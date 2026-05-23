@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Share2Icon } from "lucide-react";
+import { EyeIcon, Share2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useEditorStore } from "@/store/editor";
@@ -20,7 +20,15 @@ function SaveBadge() {
   );
 }
 
-export default function TopBar({ projectName, projectId }: { projectName: string; projectId: string }) {
+export default function TopBar({
+  projectName,
+  projectId,
+  canEdit = true,
+}: {
+  projectName: string;
+  projectId: string;
+  canEdit?: boolean;
+}) {
   function copyLink() {
     navigator.clipboard
       .writeText(window.location.href)
@@ -47,7 +55,14 @@ export default function TopBar({ projectName, projectId }: { projectName: string
         >
           {projectName}
         </Link>
-        <SaveBadge />
+        {canEdit ? (
+          <SaveBadge />
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            <EyeIcon className="size-3" />
+            Viewer
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />

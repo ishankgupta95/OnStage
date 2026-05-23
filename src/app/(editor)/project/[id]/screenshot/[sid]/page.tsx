@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getTeamRole, canEdit } from "@/lib/workspace";
 import Editor, { type RailShot } from "@/components/editor/Editor";
 import { DEFAULT_DOC, type EditorDoc } from "@/lib/editorDoc";
 
@@ -15,7 +16,7 @@ export default async function ScreenshotEditorPage({
   params: Promise<{ id: string; sid: string }>;
 }) {
   const { id, sid } = await params;
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
 
   // Load every screenshot in the project so the filmstrip can switch in place
@@ -36,7 +37,8 @@ export default async function ScreenshotEditorPage({
   const current = screenshots.find((s) => s.id === sid);
   if (!current) notFound();
 
-  const { data: project } = await supabase.from("projects").select("name").eq("id", id).single();
+  const { data: project } = await supabase.from("projects").select("name, team_id").eq("id", id).single();
+  const role = project ? await getTeamRole(supabase, project.team_id as string, user.id) : null;
 
   return (
     <Editor
@@ -45,6 +47,7 @@ export default async function ScreenshotEditorPage({
       projectId={id}
       projectName={project?.name ?? "Project"}
       screenshots={screenshots}
+      canEdit={canEdit(role)}
     />
   );
 }

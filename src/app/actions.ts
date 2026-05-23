@@ -4,13 +4,28 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser, getUser } from "@/lib/auth";
-import { ensureWorkspace } from "@/lib/workspace";
+import { resolveActiveTeam, getProjectTeam, getTeamRole, canEdit } from "@/lib/workspace";
 import { DEFAULT_DOC, type EditorDoc } from "@/lib/editorDoc";
+
+const NO_EDIT = "You don't have permission to edit this workspace.";
+
+// Editor+ gate for project/screenshot mutations addressed by id. RLS enforces
+// the same at the DB; this surfaces a clear error instead of an opaque denial.
+async function assertProjectEditable(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string,
+  userId: string,
+) {
+  const teamId = await getProjectTeam(supabase, projectId);
+  if (!teamId) throw new Error("Project not found.");
+  if (!canEdit(await getTeamRole(supabase, teamId, userId))) throw new Error(NO_EDIT);
+}
 
 export async function createProject(formData: FormData) {
   const user = await requireUser();
   const supabase = await createClient();
-  const teamId = await ensureWorkspace(supabase, user.id);
+  const { teamId, role } = await resolveActiveTeam(supabase, user.id);
+  if (!canEdit(role)) throw new Error(NO_EDIT);
   const name = ((formData.get("name") as string) || "").trim() || "Untitled app";
   const { data, error } = await supabase
     .from("projects")
@@ -23,25 +38,29 @@ export async function createProject(formData: FormData) {
 }
 
 export async function deleteProject(formData: FormData) {
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
-  await supabase.from("projects").delete().eq("id", formData.get("id") as string);
+  const id = formData.get("id") as string;
+  await assertProjectEditable(supabase, id, user.id);
+  await supabase.from("projects").delete().eq("id", id);
   revalidatePath("/dashboard");
 }
 
 export async function renameProject(formData: FormData) {
   const id = formData.get("id") as string;
   const name = ((formData.get("name") as string) || "").trim();
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
+  await assertProjectEditable(supabase, id, user.id);
   if (name) await supabase.from("projects").update({ name }).eq("id", id);
   revalidatePath(`/project/${id}`);
   revalidatePath("/dashboard");
 }
 
 export async function reorderScreenshots(projectId: string, ids: string[]) {
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
+  await assertProjectEditable(supabase, projectId, user.id);
   await Promise.all(ids.map((id, i) => supabase.from("screenshots").update({ position: i }).eq("id", id)));
   revalidatePath(`/project/${projectId}`);
 }
@@ -50,8 +69,9 @@ export async function moveScreenshot(formData: FormData) {
   const id = formData.get("id") as string;
   const projectId = formData.get("projectId") as string;
   const dir = formData.get("dir") as string;
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
+  await assertProjectEditable(supabase, projectId, user.id);
   const { data: shots } = await supabase
     .from("screenshots")
     .select("id,position")
@@ -80,8 +100,9 @@ async function nextPosition(supabase: Awaited<ReturnType<typeof createClient>>, 
 
 export async function createScreenshot(formData: FormData) {
   const projectId = formData.get("projectId") as string;
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
+  await assertProjectEditable(supabase, projectId, user.id);
   const position = await nextPosition(supabase, projectId);
   const { data, error } = await supabase
     .from("screenshots")
@@ -101,8 +122,9 @@ export async function createScreenshot(formData: FormData) {
 export async function duplicateScreenshot(formData: FormData) {
   const id = formData.get("id") as string;
   const projectId = formData.get("projectId") as string;
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
+  await assertProjectEditable(supabase, projectId, user.id);
   const { data: src } = await supabase.from("screenshots").select("*").eq("id", id).single();
   if (src) {
     const position = await nextPosition(supabase, projectId);
@@ -120,8 +142,9 @@ export async function duplicateScreenshot(formData: FormData) {
 
 export async function deleteScreenshot(formData: FormData) {
   const projectId = formData.get("projectId") as string;
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
+  await assertProjectEditable(supabase, projectId, user.id);
   await supabase.from("screenshots").delete().eq("id", formData.get("id") as string);
   revalidatePath(`/project/${projectId}`);
 }
@@ -134,8 +157,9 @@ function rowToDoc(config: unknown): EditorDoc {
 // Inline variants for the in-editor filmstrip: they return the created/affected
 // row instead of redirecting, so the editor can switch screenshots in place.
 export async function addScreenshot(projectId: string): Promise<{ id: string; position: number; doc: EditorDoc } | null> {
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
+  await assertProjectEditable(supabase, projectId, user.id);
   const position = await nextPosition(supabase, projectId);
   const { data, error } = await supabase
     .from("screenshots")
@@ -151,8 +175,9 @@ export async function duplicateScreenshotInline(
   id: string,
   projectId: string,
 ): Promise<{ id: string; position: number; doc: EditorDoc } | null> {
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
+  await assertProjectEditable(supabase, projectId, user.id);
   const { data: src } = await supabase.from("screenshots").select("*").eq("id", id).single();
   if (!src) return null;
   const position = await nextPosition(supabase, projectId);
@@ -174,8 +199,9 @@ export async function duplicateScreenshotInline(
 }
 
 export async function deleteScreenshotInline(id: string, projectId: string): Promise<{ ok: boolean }> {
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
+  await assertProjectEditable(supabase, projectId, user.id);
   const { error } = await supabase.from("screenshots").delete().eq("id", id);
   revalidatePath(`/project/${projectId}`);
   return { ok: !error };

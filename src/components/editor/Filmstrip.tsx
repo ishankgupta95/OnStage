@@ -32,6 +32,7 @@ function Card({
   index,
   active,
   canDelete,
+  canEdit,
   onSwitch,
   onDuplicate,
   onDelete,
@@ -40,6 +41,7 @@ function Card({
   index: number;
   active: boolean;
   canDelete: boolean;
+  canEdit: boolean;
   onSwitch: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -53,7 +55,13 @@ function Card({
     height: 64,
   };
   return (
-    <div ref={setNodeRef} style={style} className="group relative shrink-0" {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group relative shrink-0"
+      {...(canEdit ? attributes : {})}
+      {...(canEdit ? listeners : {})}
+    >
       <button
         onClick={onSwitch}
         className={`block h-full w-full overflow-hidden rounded-lg bg-muted transition-all ${
@@ -76,37 +84,47 @@ function Card({
       <span className="pointer-events-none absolute left-1 top-1 grid h-4 min-w-4 place-items-center rounded bg-background/85 px-1 font-mono text-[9px] font-semibold tabular-nums text-foreground shadow-sm backdrop-blur">
         {index + 1}
       </span>
-      <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDuplicate();
-          }}
-          title="Duplicate"
-          aria-label="Duplicate screenshot"
-          className="grid size-5 place-items-center rounded bg-background/85 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
-        >
-          <CopyIcon className="size-3" />
-        </button>
-        {canDelete && (
+      {canEdit && (
+        <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onDelete();
+              onDuplicate();
             }}
-            title="Delete"
-            aria-label="Delete screenshot"
-            className="grid size-5 place-items-center rounded bg-background/85 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-destructive"
+            title="Duplicate"
+            aria-label="Duplicate screenshot"
+            className="grid size-5 place-items-center rounded bg-background/85 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
           >
-            <Trash2Icon className="size-3" />
+            <CopyIcon className="size-3" />
           </button>
-        )}
-      </div>
+          {canDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              title="Delete"
+              aria-label="Delete screenshot"
+              className="grid size-5 place-items-center rounded bg-background/85 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-destructive"
+            >
+              <Trash2Icon className="size-3" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-export default function Filmstrip({ projectId, initial }: { projectId: string; initial: RailShot[] }) {
+export default function Filmstrip({
+  projectId,
+  initial,
+  canEdit = true,
+}: {
+  projectId: string;
+  initial: RailShot[];
+  canEdit?: boolean;
+}) {
   const [items, setItems] = useState<RailShot[]>(initial);
   const currentId = useEditorStore((s) => s.screenshotId);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -203,6 +221,7 @@ export default function Filmstrip({ projectId, initial }: { projectId: string; i
                 index={i}
                 active={s.id === currentId}
                 canDelete={items.length > 1}
+                canEdit={canEdit}
                 onSwitch={() => switchTo(s)}
                 onDuplicate={() => duplicate(s.id)}
                 onDelete={() => remove(s.id)}
@@ -211,15 +230,17 @@ export default function Filmstrip({ projectId, initial }: { projectId: string; i
           </div>
         </SortableContext>
       </DndContext>
-      <button
-        onClick={add}
-        title="Add screenshot"
-        aria-label="Add screenshot"
-        className="flex h-16 w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary/60 hover:bg-primary/[0.04] hover:text-primary"
-      >
-        <PlusIcon className="size-4" />
-        <span className="font-mono text-[8px] uppercase tracking-wider">Add</span>
-      </button>
+      {canEdit && (
+        <button
+          onClick={add}
+          title="Add screenshot"
+          aria-label="Add screenshot"
+          className="flex h-16 w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary/60 hover:bg-primary/[0.04] hover:text-primary"
+        >
+          <PlusIcon className="size-4" />
+          <span className="font-mono text-[8px] uppercase tracking-wider">Add</span>
+        </button>
+      )}
     </div>
   );
 }

@@ -79,7 +79,7 @@ function LayoutThumb({ id, orientation }: { id: LayoutPreset; orientation: Orien
   );
 }
 
-export default function LeftSidebar() {
+export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }) {
   const doc = useEditorStore((s) => s.doc);
   const updateDoc = useEditorStore((s) => s.updateDoc);
   const setLayout = useEditorStore((s) => s.setLayout);
@@ -88,7 +88,10 @@ export default function LeftSidebar() {
   const orientation = doc.orientation ?? "portrait";
 
   return (
-    <aside className="w-72 shrink-0 animate-in fade-in slide-in-from-left-2 space-y-6 overflow-y-auto border-r p-4 duration-500">
+    <aside
+      className={`w-72 shrink-0 animate-in fade-in slide-in-from-left-2 space-y-6 overflow-y-auto border-r p-4 duration-500 ${readOnly ? "opacity-60" : ""}`}
+      inert={readOnly || undefined}
+    >
       <section>
         <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Orientation</h3>
         <div className="flex items-center gap-0.5 rounded-md border p-0.5 text-xs">

@@ -30,7 +30,7 @@ function prettyLayout(preset: string) {
   return preset.replace(/-/g, " ");
 }
 
-function Card({ shot, index, projectId }: { shot: Shot; index: number; projectId: string }) {
+function Card({ shot, index, projectId, canEdit }: { shot: Shot; index: number; projectId: string; canEdit: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -67,36 +67,40 @@ function Card({ shot, index, projectId }: { shot: Shot; index: number; projectId
       </Link>
 
       {/* drag handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="absolute right-3.5 top-3.5 grid size-7 cursor-grab place-items-center rounded-md bg-background/85 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-all hover:text-foreground focus-visible:opacity-100 active:cursor-grabbing group-hover:opacity-100"
-        aria-label={`Reorder screenshot ${index + 1}`}
-      >
-        <GripVerticalIcon className="size-4" />
-      </button>
+      {canEdit && (
+        <button
+          {...attributes}
+          {...listeners}
+          className="absolute right-3.5 top-3.5 grid size-7 cursor-grab place-items-center rounded-md bg-background/85 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-all hover:text-foreground focus-visible:opacity-100 active:cursor-grabbing group-hover:opacity-100"
+          aria-label={`Reorder screenshot ${index + 1}`}
+        >
+          <GripVerticalIcon className="size-4" />
+        </button>
+      )}
 
       <div className="flex items-center justify-between gap-1 px-3 pb-2.5 pt-0.5">
         <div className="min-w-0">
           <p className="truncate text-xs font-medium">{deviceLabel}</p>
           <p className="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{prettyLayout(shot.layout_preset)}</p>
         </div>
-        <div className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-          <form action={duplicateScreenshot}>
-            <input type="hidden" name="id" value={shot.id} />
-            <input type="hidden" name="projectId" value={projectId} />
-            <Button variant="ghost" size="icon-sm" type="submit" aria-label="Duplicate screenshot">
-              <CopyIcon />
-            </Button>
-          </form>
-          <form action={deleteScreenshot}>
-            <input type="hidden" name="id" value={shot.id} />
-            <input type="hidden" name="projectId" value={projectId} />
-            <Button variant="ghost" size="icon-sm" type="submit" aria-label="Delete screenshot" className="text-muted-foreground hover:text-destructive">
-              <Trash2Icon />
-            </Button>
-          </form>
-        </div>
+        {canEdit && (
+          <div className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+            <form action={duplicateScreenshot}>
+              <input type="hidden" name="id" value={shot.id} />
+              <input type="hidden" name="projectId" value={projectId} />
+              <Button variant="ghost" size="icon-sm" type="submit" aria-label="Duplicate screenshot">
+                <CopyIcon />
+              </Button>
+            </form>
+            <form action={deleteScreenshot}>
+              <input type="hidden" name="id" value={shot.id} />
+              <input type="hidden" name="projectId" value={projectId} />
+              <Button variant="ghost" size="icon-sm" type="submit" aria-label="Delete screenshot" className="text-muted-foreground hover:text-destructive">
+                <Trash2Icon />
+              </Button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -119,7 +123,15 @@ function AddTile({ projectId }: { projectId: string }) {
   );
 }
 
-export default function ScreenshotGrid({ projectId, screenshots }: { projectId: string; screenshots: Shot[] }) {
+export default function ScreenshotGrid({
+  projectId,
+  screenshots,
+  canEdit = true,
+}: {
+  projectId: string;
+  screenshots: Shot[];
+  canEdit?: boolean;
+}) {
   const [items, setItems] = useState(screenshots);
   // Resync only when membership changes (add/delete), not on reorder-only updates.
   const [knownIds, setKnownIds] = useState(() => screenshots.map((s) => s.id).slice().sort().join(","));
@@ -153,9 +165,9 @@ export default function ScreenshotGrid({ projectId, screenshots }: { projectId: 
       <SortableContext items={items.map((s) => s.id)} strategy={rectSortingStrategy}>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {items.map((s, i) => (
-            <Card key={s.id} shot={s} index={i} projectId={projectId} />
+            <Card key={s.id} shot={s} index={i} projectId={projectId} canEdit={canEdit} />
           ))}
-          <AddTile projectId={projectId} />
+          {canEdit && <AddTile projectId={projectId} />}
         </div>
       </SortableContext>
     </DndContext>

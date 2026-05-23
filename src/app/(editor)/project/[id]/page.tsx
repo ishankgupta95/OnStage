@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeftIcon, DownloadIcon, PlusIcon } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getTeamRole, canEdit } from "@/lib/workspace";
 import { createScreenshot, renameProject } from "@/app/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,11 +16,12 @@ function formatDate(value: string | null | undefined) {
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireUser();
+  const user = await requireUser();
   const supabase = await createClient();
 
-  const { data: project } = await supabase.from("projects").select("id,name,updated_at").eq("id", id).single();
+  const { data: project } = await supabase.from("projects").select("id,name,updated_at,team_id").eq("id", id).single();
   if (!project) notFound();
+  const editable = canEdit(await getTeamRole(supabase, project.team_id as string, user.id));
 
   const { data: screenshots } = await supabase
     .from("screenshots")
@@ -52,21 +54,25 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       <header className="mt-4 flex flex-col gap-5 border-b border-border pb-7 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Project</span>
-          <form action={renameProject} className="group/name relative mt-1.5 flex items-center gap-2">
-            <input type="hidden" name="id" value={id} />
-            <input
-              name="name"
-              defaultValue={project.name}
-              aria-label="Project name"
-              className="-ml-2 w-full max-w-md rounded-lg border border-transparent bg-transparent px-2 py-1 text-3xl font-extrabold tracking-tight outline-none transition-colors hover:bg-muted/60 focus:border-border focus:bg-card sm:text-4xl"
-            />
-            <button
-              type="submit"
-              className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-focus-within/name:opacity-100"
-            >
-              Save
-            </button>
-          </form>
+          {editable ? (
+            <form action={renameProject} className="group/name relative mt-1.5 flex items-center gap-2">
+              <input type="hidden" name="id" value={id} />
+              <input
+                name="name"
+                defaultValue={project.name}
+                aria-label="Project name"
+                className="-ml-2 w-full max-w-md rounded-lg border border-transparent bg-transparent px-2 py-1 text-3xl font-extrabold tracking-tight outline-none transition-colors hover:bg-muted/60 focus:border-border focus:bg-card sm:text-4xl"
+              />
+              <button
+                type="submit"
+                className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-focus-within/name:opacity-100"
+              >
+                Save
+              </button>
+            </form>
+          ) : (
+            <h1 className="mt-1.5 text-3xl font-extrabold tracking-tight sm:text-4xl">{project.name}</h1>
+          )}
           <p className="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
             <span className="tabular-nums">
               {shots.length} screenshot{shots.length === 1 ? "" : "s"}
@@ -90,13 +96,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               Export
             </Link>
           )}
-          <form action={createScreenshot}>
-            <input type="hidden" name="projectId" value={id} />
-            <Button type="submit" size="sm" className="h-9 gap-1.5 px-3.5">
-              <PlusIcon className="size-4" />
-              New screenshot
-            </Button>
-          </form>
+          {editable && (
+            <form action={createScreenshot}>
+              <input type="hidden" name="projectId" value={id} />
+              <Button type="submit" size="sm" className="h-9 gap-1.5 px-3.5">
+                <PlusIcon className="size-4" />
+                New screenshot
+              </Button>
+            </form>
+          )}
         </div>
       </header>
 
@@ -112,22 +120,28 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="h-20 w-11 rounded-xl border-2 border-dashed border-border" />
             </div>
-            <h2 className="text-xl font-bold tracking-tight">Your store gallery starts here</h2>
+            <h2 className="text-xl font-bold tracking-tight">
+              {editable ? "Your store gallery starts here" : "No screenshots yet"}
+            </h2>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Add a screenshot, drop in a capture, then pick a layout and background. Every screenshot for this app lives together in one project.
+              {editable
+                ? "Add a screenshot, drop in a capture, then pick a layout and background. Every screenshot for this app lives together in one project."
+                : "This project has no screenshots yet. You have view-only access in this workspace."}
             </p>
-            <form action={createScreenshot} className="mt-6 inline-block">
-              <input type="hidden" name="projectId" value={id} />
-              <Button type="submit" className="h-10 gap-1.5 px-5">
-                <PlusIcon className="size-4" />
-                New screenshot
-              </Button>
-            </form>
+            {editable && (
+              <form action={createScreenshot} className="mt-6 inline-block">
+                <input type="hidden" name="projectId" value={id} />
+                <Button type="submit" className="h-10 gap-1.5 px-5">
+                  <PlusIcon className="size-4" />
+                  New screenshot
+                </Button>
+              </form>
+            )}
           </div>
         </div>
       ) : (
         <div className="mt-8">
-          <ScreenshotGrid projectId={id} screenshots={shots} />
+          <ScreenshotGrid projectId={id} screenshots={shots} canEdit={editable} />
         </div>
       )}
     </main>

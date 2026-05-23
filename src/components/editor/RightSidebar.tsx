@@ -64,7 +64,7 @@ function SliderRow({
 
 const addBtn = "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
 
-export default function RightSidebar() {
+export default function RightSidebar({ readOnly = false }: { readOnly?: boolean }) {
   const doc = useEditorStore((s) => s.doc);
   const setFrameImage = useEditorStore((s) => s.setFrameImage);
   const updateFrameAdjust = useEditorStore((s) => s.updateFrameAdjust);
@@ -108,7 +108,10 @@ export default function RightSidebar() {
   const masterW = masterDimsFor(doc.orientation).w;
 
   return (
-    <aside className="w-80 shrink-0 animate-in fade-in slide-in-from-right-2 space-y-6 overflow-y-auto border-l p-4 duration-500">
+    <aside
+      className={`w-80 shrink-0 animate-in fade-in slide-in-from-right-2 space-y-6 overflow-y-auto border-l p-4 duration-500 ${readOnly ? "opacity-60" : ""}`}
+      inert={readOnly || undefined}
+    >
       {doc.layout === "freeform" && (
         <section className="space-y-3.5">
           <SectionTitle>Frame placement</SectionTitle>

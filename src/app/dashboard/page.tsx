@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { ArrowUpRightIcon, FolderPlusIcon, ImageIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ArrowUpRightIcon, EyeIcon, FolderPlusIcon, ImageIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { ensureWorkspace } from "@/lib/workspace";
+import { resolveActiveTeam, getWorkspaces, canEdit } from "@/lib/workspace";
 import { createProject, deleteProject } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 type ScreenshotRow = { thumbnail_url: string | null; position: number };
 type ProjectRow = { id: string; name: string; updated_at: string | null; screenshots: ScreenshotRow[] | null };
@@ -30,7 +31,11 @@ function Mark() {
 export default async function DashboardPage() {
   const user = await requireUser();
   const supabase = await createClient();
-  const teamId = await ensureWorkspace(supabase, user.id);
+  // resolveActiveTeam first — it provisions the personal workspace for brand-new
+  // users, so getWorkspaces below is guaranteed to include it.
+  const { teamId, role } = await resolveActiveTeam(supabase, user.id);
+  const workspaces = await getWorkspaces(supabase, user.id);
+  const editable = canEdit(role);
   const { data } = await supabase
     .from("projects")
     .select("id,name,updated_at, screenshots(thumbnail_url, position)")
@@ -52,13 +57,12 @@ export default async function DashboardPage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8 lg:py-14">
       <header className="flex items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3">
-          <Mark />
-          <div>
-            <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Workspace</span>
-            <h1 className="mt-1 text-2xl font-extrabold tracking-tight">Onstage</h1>
-          </div>
-        </Link>
+        <div className="flex min-w-0 items-center gap-2">
+          <Link href="/" aria-label="Onstage home" className="shrink-0">
+            <Mark />
+          </Link>
+          <WorkspaceSwitcher workspaces={workspaces} activeId={teamId} />
+        </div>
         <div className="flex items-center gap-2">
           <span className="hidden text-sm text-muted-foreground sm:inline">{user.email}</span>
           <ThemeToggle />
@@ -79,13 +83,20 @@ export default async function DashboardPage() {
             <span className="tabular-nums text-foreground/80">{totalShots}</span> screenshot{totalShots === 1 ? "" : "s"}
           </p>
         </div>
-        <form action={createProject} className="flex w-full items-center gap-2 sm:w-auto">
-          <Input name="name" placeholder="New app name…" className="h-9 w-full sm:w-56" />
-          <Button type="submit" size="sm" className="h-9 shrink-0 gap-1.5 px-3.5">
-            <PlusIcon className="size-4" />
-            Create
-          </Button>
-        </form>
+        {editable ? (
+          <form action={createProject} className="flex w-full items-center gap-2 sm:w-auto">
+            <Input name="name" placeholder="New app name…" className="h-9 w-full sm:w-56" />
+            <Button type="submit" size="sm" className="h-9 shrink-0 gap-1.5 px-3.5">
+              <PlusIcon className="size-4" />
+              Create
+            </Button>
+          </form>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-border bg-muted/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:self-auto">
+            <EyeIcon className="size-3.5" />
+            Viewer · read only
+          </span>
+        )}
       </section>
 
       {projects.length === 0 ? (
@@ -97,7 +108,9 @@ export default async function DashboardPage() {
             </span>
             <h2 className="text-xl font-bold tracking-tight">No projects yet</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              A project is one app — it holds all of its store screenshots. Name one in the field above to get started.
+              {editable
+                ? "A project is one app — it holds all of its store screenshots. Name one in the field above to get started."
+                : "This workspace has no projects yet. You have view-only access — an editor or the owner can add the first one."}
             </p>
           </div>
         </div>
@@ -133,12 +146,14 @@ export default async function DashboardPage() {
                   <ArrowUpRightIcon className="size-4 shrink-0 -translate-x-1 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
                 </div>
               </Link>
-              <form action={deleteProject} className="absolute right-2.5 top-2.5 z-10 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-                <input type="hidden" name="id" value={p.id} />
-                <Button variant="ghost" size="icon-sm" type="submit" aria-label={`Delete ${p.name}`} className="bg-background/85 backdrop-blur hover:text-destructive">
-                  <Trash2Icon />
-                </Button>
-              </form>
+              {editable && (
+                <form action={deleteProject} className="absolute right-2.5 top-2.5 z-10 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                  <input type="hidden" name="id" value={p.id} />
+                  <Button variant="ghost" size="icon-sm" type="submit" aria-label={`Delete ${p.name}`} className="bg-background/85 backdrop-blur hover:text-destructive">
+                    <Trash2Icon />
+                  </Button>
+                </form>
+              )}
             </div>
           ))}
         </div>
