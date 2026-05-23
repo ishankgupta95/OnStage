@@ -5,42 +5,41 @@ export type GradientPreset = {
   stops: { color: string; position: number }[];
 };
 
-// Starter subset (4). Curated set of 12 lands in Phase 2 (see plan §6).
+const g = (
+  id: string,
+  label: string,
+  angle: number,
+  a: string,
+  b: string,
+  c?: string,
+): GradientPreset => ({
+  id,
+  label,
+  angle,
+  stops: c
+    ? [
+        { color: a, position: 0 },
+        { color: b, position: 0.5 },
+        { color: c, position: 1 },
+      ]
+    : [
+        { color: a, position: 0 },
+        { color: b, position: 1 },
+      ],
+});
+
+// 12 curated gradients (plan §3 / §6).
 export const GRADIENTS: GradientPreset[] = [
-  {
-    id: "emerald-fade",
-    label: "Emerald Fade",
-    angle: 135,
-    stops: [
-      { color: "#10B981", position: 0 },
-      { color: "#0F5132", position: 1 },
-    ],
-  },
-  {
-    id: "sunset",
-    label: "Sunset",
-    angle: 160,
-    stops: [
-      { color: "#FB923C", position: 0 },
-      { color: "#DB2777", position: 1 },
-    ],
-  },
-  {
-    id: "ocean",
-    label: "Ocean",
-    angle: 120,
-    stops: [
-      { color: "#38BDF8", position: 0 },
-      { color: "#1E3A8A", position: 1 },
-    ],
-  },
-  {
-    id: "dusk",
-    label: "Dusk",
-    angle: 145,
-    stops: [
-      { color: "#6366F1", position: 0 },
-      { color: "#0F172A", position: 1 },
-    ],
-  },
+  g("emerald-fade", "Emerald", 135, "#10B981", "#0F5132"),
+  g("sunset", "Sunset", 160, "#FB923C", "#DB2777"),
+  g("ocean", "Ocean", 120, "#38BDF8", "#1E3A8A"),
+  g("dusk", "Dusk", 145, "#6366F1", "#0F172A"),
+  g("aurora", "Aurora", 135, "#34D399", "#3B82F6", "#8B5CF6"),
+  g("rose", "Rose", 150, "#FB7185", "#9D174D"),
+  g("peach", "Peach", 120, "#FDE68A", "#FB7185"),
+  g("violet", "Violet", 140, "#A78BFA", "#4C1D95"),
+  g("midnight", "Midnight", 160, "#1E293B", "#020617"),
+  g("forest", "Forest", 135, "#4ADE80", "#14532D"),
+  g("gold", "Gold", 130, "#FCD34D", "#B45309"),
+  g("sky", "Sky", 120, "#E0F2FE", "#0EA5E9", "#1E40AF"),
 ];
