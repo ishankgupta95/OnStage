@@ -4,7 +4,9 @@ import type { DeviceClass } from "@/lib/deviceGeometry";
 export type BackgroundChoice =
   | { kind: "gradient"; id: string }
   | { kind: "palette"; id: string }
-  | { kind: "solid"; color: string };
+  | { kind: "solid"; color: string }
+  | { kind: "mesh"; id: string }
+  | { kind: "pattern"; id: string };
 
 // Canvas orientation. The master design space (where text/frame/image coords
 // live) transposes between the two: portrait is 1290×2796, landscape 2796×1290.

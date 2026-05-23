@@ -130,3 +130,23 @@
     @apply font-sans;
   }
 }
+
+/* Marketing: a faint "design canvas" grid used behind hero/CTA blueprint motifs. */
+.bp-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px);
+  background-size: 46px 46px;
+}
+
+/* Gentle float for hero device frames; offset each with an inline animation-delay.
+   Gated on motion preference so it never fights reduced-motion users. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes onstage-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  .onstage-float {
+    animation: onstage-float 8s ease-in-out infinite;
+  }
+}

@@ -1,8 +1,13 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import Editor from "@/components/editor/Editor";
+import Editor, { type RailShot } from "@/components/editor/Editor";
 import { DEFAULT_DOC, type EditorDoc } from "@/lib/editorDoc";
+
+function toDoc(config: unknown): EditorDoc {
+  const c = config as Partial<EditorDoc> | null;
+  return c && Array.isArray(c.textLayers) ? (c as EditorDoc) : DEFAULT_DOC;
+}
 
 export default async function ScreenshotEditorPage({
   params,
@@ -13,21 +18,33 @@ export default async function ScreenshotEditorPage({
   await requireUser();
   const supabase = await createClient();
 
-  const { data: shot } = await supabase.from("screenshots").select("id,config").eq("id", sid).single();
-  if (!shot) notFound();
+  // Load every screenshot in the project so the filmstrip can switch in place
+  // without a round-trip; the current one supplies the initial editor doc.
+  const { data: rows } = await supabase
+    .from("screenshots")
+    .select("id,position,thumbnail_url,config")
+    .eq("project_id", id)
+    .order("position");
+
+  const screenshots: RailShot[] = (rows ?? []).map((row) => ({
+    id: row.id as string,
+    position: row.position as number,
+    thumbnailUrl: (row.thumbnail_url as string | null) ?? null,
+    doc: toDoc(row.config),
+  }));
+
+  const current = screenshots.find((s) => s.id === sid);
+  if (!current) notFound();
 
   const { data: project } = await supabase.from("projects").select("name").eq("id", id).single();
 
-  const config = shot.config as Partial<EditorDoc> | null;
-  const initialDoc: EditorDoc =
-    config && Array.isArray(config.textLayers) ? (config as EditorDoc) : DEFAULT_DOC;
-
   return (
     <Editor
-      initialDoc={initialDoc}
+      initialDoc={current.doc}
       screenshotId={sid}
       projectId={id}
       projectName={project?.name ?? "Project"}
+      screenshots={screenshots}
     />
   );
 }

@@ -5,20 +5,26 @@ import TopBar from "./TopBar";
 import LeftSidebar from "./LeftSidebar";
 import RightSidebar from "./RightSidebar";
 import EditorCanvas from "./EditorCanvas";
+import Filmstrip from "./Filmstrip";
 import { useEditorStore } from "@/store/editor";
 import type { EditorDoc } from "@/lib/editorDoc";
 import { saveScreenshotConfig } from "@/app/actions";
+
+// One project screenshot, as shown in the filmstrip rail.
+export type RailShot = { id: string; position: number; thumbnailUrl: string | null; doc: EditorDoc };
 
 export default function Editor({
   initialDoc,
   screenshotId,
   projectId,
   projectName,
+  screenshots,
 }: {
   initialDoc: EditorDoc;
   screenshotId: string;
   projectId: string;
   projectName: string;
+  screenshots: RailShot[];
 }) {
   // Hydrate the store with the loaded screenshot before children render (no flash),
   // and reset undo history so undo can't revert to a previous screenshot's state.
@@ -38,21 +44,22 @@ export default function Editor({
     return null;
   });
 
-  // Autosave: persist the doc ~1.5s after edits stop.
+  // Autosave: persist the doc ~1.5s after edits stop. The target screenshot id
+  // is read from the store (captured when the edit is seen), not a prop — so the
+  // filmstrip can switch screenshots in place and edits still save to the right one.
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    // Track the last DOC we reacted to. Update it BEFORE setSaveState — that call
-    // mutates the store and synchronously re-fires this subscriber, so the guard
-    // must already see "no doc change" to avoid infinite recursion.
     let lastSeen = JSON.stringify(useEditorStore.getState().doc);
     const unsub = useEditorStore.subscribe((state) => {
       const current = JSON.stringify(state.doc);
       if (current === lastSeen) return;
       lastSeen = current;
+      const sid = useEditorStore.getState().screenshotId;
       useEditorStore.getState().setSaveState("saving");
       clearTimeout(timer);
       timer = setTimeout(async () => {
-        const res = await saveScreenshotConfig(screenshotId, JSON.parse(current));
+        if (!sid) return;
+        const res = await saveScreenshotConfig(sid, JSON.parse(current));
         useEditorStore.getState().setSaveState(res.ok ? "saved" : "idle");
       }, 1500);
     });
@@ -60,15 +67,18 @@ export default function Editor({
       clearTimeout(timer);
       unsub();
     };
-  }, [screenshotId]);
+  }, []);
 
   return (
     <div className="flex h-screen flex-col">
       <TopBar projectName={projectName} projectId={projectId} />
       <div className="flex flex-1 overflow-hidden">
         <LeftSidebar />
-        <main className="relative flex-1 bg-muted/30">
-          <EditorCanvas />
+        <main className="relative flex flex-1 flex-col bg-muted/30">
+          <div className="relative flex-1 animate-in fade-in overflow-hidden duration-700 fill-mode-both delay-100">
+            <EditorCanvas />
+          </div>
+          <Filmstrip projectId={projectId} initial={screenshots} />
         </main>
         <RightSidebar />
       </div>

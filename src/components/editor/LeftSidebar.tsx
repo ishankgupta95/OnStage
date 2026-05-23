@@ -6,6 +6,7 @@ import { deviceClassOf } from "@/lib/deviceGeometry";
 import { computeLayout, fitFrame } from "@/lib/layout";
 import { GRADIENTS } from "@/lib/gradients";
 import { SOLID_BACKGROUNDS, PALETTES } from "@/lib/palettes";
+import { MESH_GRADIENTS, PATTERNS, meshSwatchStyle, patternSwatchStyle } from "@/lib/backgrounds";
 import type { Orientation } from "@/lib/editorDoc";
 import type { LayoutPreset } from "@/lib/schema";
 
@@ -87,7 +88,7 @@ export default function LeftSidebar() {
   const orientation = doc.orientation ?? "portrait";
 
   return (
-    <aside className="w-64 shrink-0 space-y-6 overflow-y-auto border-r p-4">
+    <aside className="w-72 shrink-0 animate-in fade-in slide-in-from-left-2 space-y-6 overflow-y-auto border-r p-4 duration-500">
       <section>
         <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Orientation</h3>
         <div className="flex items-center gap-0.5 rounded-md border p-0.5 text-xs">
@@ -111,7 +112,7 @@ export default function LeftSidebar() {
               key={l.id}
               onClick={() => setLayout(l.id)}
               title={l.label}
-              className={`flex flex-col items-center gap-1 rounded-md border p-1.5 transition-colors hover:bg-accent ${doc.layout === l.id ? "border-primary ring-1 ring-primary" : ""}`}
+              className={`flex flex-col items-center gap-1 rounded-md border p-1.5 transition-all hover:bg-accent active:scale-[0.97] ${doc.layout === l.id ? "border-primary ring-1 ring-primary" : ""}`}
             >
               <LayoutThumb id={l.id} orientation={orientation} />
               <span className="w-full truncate text-center text-[10px] leading-tight">{l.label}</span>
@@ -149,7 +150,7 @@ export default function LeftSidebar() {
               <button
                 key={g.id}
                 onClick={() => updateDoc({ background: { kind: "gradient", id: g.id } })}
-                className={`h-12 rounded-md border ${active ? "ring-2 ring-primary" : ""}`}
+                className={`h-12 rounded-md border transition-transform hover:scale-[1.03] ${active ? "ring-2 ring-primary" : ""}`}
                 style={{ background: css }}
                 title={g.label}
                 aria-label={g.label}
@@ -168,6 +169,44 @@ export default function LeftSidebar() {
                 className={`h-7 rounded border ${active ? "ring-2 ring-primary" : ""}`}
                 style={{ backgroundColor: c }}
                 aria-label={`solid ${c}`}
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Mesh</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {MESH_GRADIENTS.map((m) => {
+            const active = doc.background.kind === "mesh" && doc.background.id === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => updateDoc({ background: { kind: "mesh", id: m.id } })}
+                className={`h-14 rounded-md border transition-transform hover:scale-[1.03] ${active ? "ring-2 ring-primary" : ""}`}
+                style={meshSwatchStyle(m)}
+                title={m.label}
+                aria-label={m.label}
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Patterns</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {PATTERNS.map((p) => {
+            const active = doc.background.kind === "pattern" && doc.background.id === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => updateDoc({ background: { kind: "pattern", id: p.id } })}
+                className={`h-14 rounded-md border transition-transform hover:scale-[1.03] ${active ? "ring-2 ring-primary" : ""}`}
+                style={patternSwatchStyle(p)}
+                title={p.label}
+                aria-label={p.label}
               />
             );
           })}

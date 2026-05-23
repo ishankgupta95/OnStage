@@ -14,6 +14,7 @@ import { saveThumbnail } from "@/app/actions";
 import ExportController from "./ExportController";
 
 const FIT_H = 680;
+const CANVAS_PAD = 96; // breathing room around the preview inside the canvas area
 const clampZoom = (z: number) => Math.min(3, Math.max(0.3, z));
 
 function useHtmlImage(src: string | null) {
@@ -78,6 +79,7 @@ export default function Canvas() {
   const [fontsReady, setFontsReady] = useState(false);
   const [fontTick, setFontTick] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const [viewport, setViewport] = useState<{ w: number; h: number } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [guides, setGuides] = useState<{ x?: number; y?: number }>({});
   // Inline text edit: an HTML textarea overlaid on the selected caption.
@@ -118,8 +120,12 @@ export default function Canvas() {
   const previewSize = orientSize(representativeSizeForClass(previewClass), orientation);
   const previewDevice = deviceForSize(previewSize, doc.device);
   const previewDoc = previewDevice === doc.device ? doc : { ...doc, device: previewDevice };
-  // Fit the long edge so portrait is unchanged and landscape fits its width.
-  const fitScale = FIT_H / Math.max(previewSize.w, previewSize.h);
+  // Fit the preview to the available canvas area on both axes, so the device fills
+  // the space instead of sitting tiny in a sea of empty margin. Falls back to a
+  // fixed long-edge fit until the container has been measured.
+  const fitScale = viewport
+    ? Math.max(0.05, Math.min((viewport.w - CANVAS_PAD) / previewSize.w, (viewport.h - CANVAS_PAD) / previewSize.h))
+    : FIT_H / Math.max(previewSize.w, previewSize.h);
   // Text is authored in the master space, so only edit it in the iPhone preview.
   const textEditable = previewClass === "iphone";
 
@@ -200,6 +206,18 @@ export default function Canvas() {
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
+  // Measure the canvas area so the preview fit tracks available space.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const cr = entries[0]?.contentRect;
+      if (cr) setViewport({ w: cr.width, h: cr.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // Mirror `editing` into a ref so the (mount-once) keyboard handler can tell
   // when the inline textarea owns the keyboard.
   useEffect(() => {
@@ -214,12 +232,14 @@ export default function Canvas() {
     const layer = useEditorStore.getState().doc.textLayers.find((l) => l.id === id);
     if (!layer) return;
     const sc = stage.scaleX();
-    const abs = node.getAbsolutePosition();
-    const rect = stage.container().getBoundingClientRect();
+    // The textarea is rendered absolutely INSIDE the stage wrapper, so its position
+    // is just the node's pixel offset within the canvas (local coord × stage scale).
+    // No viewport math — immune to scroll and transformed/animated ancestors, which
+    // is what broke the old position:fixed overlay (it jumped outside the frame).
     setEditing({
       id,
-      left: rect.left + abs.x,
-      top: rect.top + abs.y,
+      left: node.x() * sc,
+      top: node.y() * sc,
       width: node.width() * sc,
       fontSize: node.fontSize() * sc,
       lineHeight: layer.lineHeight,
@@ -301,7 +321,7 @@ export default function Canvas() {
   return (
     <div className="absolute inset-0" onDrop={onDrop} onDragOver={(e) => e.preventDefault()}>
       {/* Preview-as switcher: shows each device family's export, and targets its crop. */}
-      <div className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-full border bg-background/90 p-0.5 font-mono text-[11px] uppercase tracking-wider shadow backdrop-blur">
+      <div className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 animate-in fade-in slide-in-from-top-1 items-center gap-0.5 rounded-full border bg-background/90 p-0.5 font-mono text-[11px] uppercase tracking-wider shadow backdrop-blur duration-500 fill-mode-both delay-200">
         {PREVIEW_CLASSES.map((c) => (
           <button
             key={c.id}
@@ -310,7 +330,7 @@ export default function Canvas() {
               setEditing(null);
             }}
             className={cn(
-              "rounded-full px-3 py-1 transition-colors",
+              "rounded-full px-3 py-1 transition-all active:scale-95",
               previewClass === c.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -318,8 +338,9 @@ export default function Canvas() {
           </button>
         ))}
       </div>
-      <div ref={scrollRef} className="absolute inset-0 overflow-auto" onScroll={() => editing && setEditing(null)}>
+      <div ref={scrollRef} className="absolute inset-0 overflow-auto">
         <div className="flex min-h-full min-w-full items-center justify-center p-8">
+          <div className="relative">
           <Stage
             width={Math.round(previewSize.w * scale)}
             height={Math.round(previewSize.h * scale)}
@@ -376,6 +397,52 @@ export default function Canvas() {
               onRequestEditText={requestEditText}
             />
           </Stage>
+            {/* Inline caption editor — absolute INSIDE the stage wrapper so it sits
+                exactly over the Konva text, regardless of scroll or transformed
+                ancestors. Coords are the node's pixel offset within the canvas. */}
+            {editing && textEditable && (
+              <textarea
+                ref={taRef}
+                autoFocus
+                spellCheck={false}
+                value={doc.textLayers.find((l) => l.id === editing.id)?.content ?? ""}
+                onChange={(e) => updateTextLayer(editing.id, { content: e.target.value })}
+                onBlur={() => setEditing(null)}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setEditing(null);
+                  }
+                }}
+                style={{
+                  position: "absolute",
+                  left: editing.left,
+                  top: editing.top,
+                  width: editing.width,
+                  fontSize: editing.fontSize,
+                  lineHeight: editing.lineHeight,
+                  letterSpacing: editing.letterSpacing,
+                  fontFamily: editing.fontFamily,
+                  fontWeight: editing.fontWeight,
+                  textAlign: editing.align,
+                  color: editing.color,
+                  margin: 0,
+                  padding: 0,
+                  border: "none",
+                  outline: "2px solid #56b8e6",
+                  outlineOffset: 4,
+                  background: "transparent",
+                  resize: "none",
+                  overflow: "hidden",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  caretColor: "#56b8e6",
+                  zIndex: 30,
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -410,51 +477,6 @@ export default function Canvas() {
             </ul>
           </div>
         </div>
-      )}
-
-      {/* Inline caption editor: a textarea overlaid on the selected text, styled
-          to match. Content is committed live to the store; closes on blur/Esc. */}
-      {editing && textEditable && (
-        <textarea
-          ref={taRef}
-          autoFocus
-          spellCheck={false}
-          value={doc.textLayers.find((l) => l.id === editing.id)?.content ?? ""}
-          onChange={(e) => updateTextLayer(editing.id, { content: e.target.value })}
-          onBlur={() => setEditing(null)}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === "Escape") {
-              e.preventDefault();
-              setEditing(null);
-            }
-          }}
-          style={{
-            position: "fixed",
-            left: editing.left,
-            top: editing.top,
-            width: editing.width,
-            fontSize: editing.fontSize,
-            lineHeight: editing.lineHeight,
-            letterSpacing: editing.letterSpacing,
-            fontFamily: editing.fontFamily,
-            fontWeight: editing.fontWeight,
-            textAlign: editing.align,
-            color: editing.color,
-            margin: 0,
-            padding: 0,
-            border: "none",
-            outline: "2px solid #56b8e6",
-            outlineOffset: 4,
-            background: "transparent",
-            resize: "none",
-            overflow: "hidden",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            caretColor: "#56b8e6",
-            zIndex: 30,
-          }}
-        />
       )}
 
       {/* Off-screen full-res stage at the master size (orientation-sized), used

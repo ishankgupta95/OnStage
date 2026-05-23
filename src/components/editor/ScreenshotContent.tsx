@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Layer, Rect, Text, Line, Group, Transformer, Image as KonvaImage } from "react-konva";
 import type Konva from "konva";
 import type { EditorDoc, TextLayer, FrameTransform, FrameAdjust, ImageLayer } from "@/lib/editorDoc";
@@ -16,6 +16,7 @@ import { geometryFor, deviceClassOf, type DeviceGeometry } from "@/lib/deviceGeo
 import { computeLayout, fitFrame } from "@/lib/layout";
 import { GRADIENTS } from "@/lib/gradients";
 import { PALETTES } from "@/lib/palettes";
+import { MESH_GRADIENTS, PATTERNS, hexToRgba, generatePatternTile } from "@/lib/backgrounds";
 import DeviceFrame from "./DeviceFrame";
 
 // Sentinel selection id for the freeform device frame (vs. a text layer id).
@@ -107,6 +108,78 @@ export default function ScreenshotContent({
     bgStops = [0, c[1] ?? c[0], 0.5, c[2] ?? c[c.length - 1], 1, c[3] ?? c[c.length - 1]];
   }
 
+  // Pattern backgrounds repeat a generated canvas tile (same-origin → no taint).
+  const patternId = bg.kind === "pattern" ? bg.id : null;
+  const patternTile = useMemo(
+    () => (patternId ? generatePatternTile(PATTERNS.find((x) => x.id === patternId) ?? PATTERNS[0]) : null),
+    [patternId],
+  );
+
+  const renderBackground = () => {
+    if (bg.kind === "solid") {
+      return <Rect x={0} y={0} width={W} height={H} fill={bg.color} listening={false} />;
+    }
+    if (bg.kind === "mesh") {
+      const mesh = MESH_GRADIENTS.find((x) => x.id === bg.id) ?? MESH_GRADIENTS[0];
+      const maxR = Math.max(W, H);
+      return (
+        <>
+          <Rect x={0} y={0} width={W} height={H} fill={mesh.base} listening={false} />
+          {mesh.blobs.map((b, i) => (
+            <Rect
+              key={i}
+              x={0}
+              y={0}
+              width={W}
+              height={H}
+              fillRadialGradientStartPoint={{ x: b.x * W, y: b.y * H }}
+              fillRadialGradientStartRadius={0}
+              fillRadialGradientEndPoint={{ x: b.x * W, y: b.y * H }}
+              fillRadialGradientEndRadius={b.r * maxR}
+              fillRadialGradientColorStops={[0, hexToRgba(b.color, 0.95), 0.55, hexToRgba(b.color, 0.4), 1, hexToRgba(b.color, 0)]}
+              listening={false}
+            />
+          ))}
+        </>
+      );
+    }
+    if (bg.kind === "pattern") {
+      const pat = PATTERNS.find((x) => x.id === bg.id) ?? PATTERNS[0];
+      return (
+        <>
+          <Rect x={0} y={0} width={W} height={H} fill={pat.bg} listening={false} />
+          {patternTile && (
+            <Rect
+              x={0}
+              y={0}
+              width={W}
+              height={H}
+              // Konva's createPattern accepts any CanvasImageSource at runtime;
+              // the prop type only lists HTMLImageElement, hence the cast.
+              fillPatternImage={patternTile as unknown as HTMLImageElement}
+              fillPatternRepeat="repeat"
+              fillPatternScale={{ x: sx, y: sx }}
+              listening={false}
+            />
+          )}
+        </>
+      );
+    }
+    // gradient / palette → linear gradient
+    return (
+      <Rect
+        x={0}
+        y={0}
+        width={W}
+        height={H}
+        fillLinearGradientStartPoint={bgPts!.start}
+        fillLinearGradientEndPoint={bgPts!.end}
+        fillLinearGradientColorStops={bgStops}
+        listening={false}
+      />
+    );
+  };
+
   const renderText = (l: TextLayer) => (
     <Text
       key={l.id}
@@ -161,20 +234,7 @@ export default function ScreenshotContent({
       <Layer listening={editable}>
         {/* Background never listens, so a click on empty canvas hits the Stage
             itself — the editor uses that to deselect the active layer. */}
-        {bg.kind === "solid" ? (
-          <Rect x={0} y={0} width={W} height={H} fill={bg.color} listening={false} />
-        ) : (
-          <Rect
-            x={0}
-            y={0}
-            width={W}
-            height={H}
-            fillLinearGradientStartPoint={bgPts!.start}
-            fillLinearGradientEndPoint={bgPts!.end}
-            fillLinearGradientColorStops={bgStops}
-            listening={false}
-          />
-        )}
+        {renderBackground()}
         {isFreeform ? (
           <FreeformFrame
             transform={doc.frameTransform ?? DEFAULT_FRAME_TRANSFORM}

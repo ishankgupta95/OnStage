@@ -126,6 +126,61 @@ export async function deleteScreenshot(formData: FormData) {
   revalidatePath(`/project/${projectId}`);
 }
 
+function rowToDoc(config: unknown): EditorDoc {
+  const c = config as Partial<EditorDoc> | null;
+  return c && Array.isArray(c.textLayers) ? (c as EditorDoc) : DEFAULT_DOC;
+}
+
+// Inline variants for the in-editor filmstrip: they return the created/affected
+// row instead of redirecting, so the editor can switch screenshots in place.
+export async function addScreenshot(projectId: string): Promise<{ id: string; position: number; doc: EditorDoc } | null> {
+  await requireUser();
+  const supabase = await createClient();
+  const position = await nextPosition(supabase, projectId);
+  const { data, error } = await supabase
+    .from("screenshots")
+    .insert({ project_id: projectId, position, device_frame: DEFAULT_DOC.device, layout_preset: DEFAULT_DOC.layout, config: DEFAULT_DOC })
+    .select("id,position")
+    .single();
+  if (error || !data) return null;
+  revalidatePath(`/project/${projectId}`);
+  return { id: data.id as string, position: data.position as number, doc: DEFAULT_DOC };
+}
+
+export async function duplicateScreenshotInline(
+  id: string,
+  projectId: string,
+): Promise<{ id: string; position: number; doc: EditorDoc } | null> {
+  await requireUser();
+  const supabase = await createClient();
+  const { data: src } = await supabase.from("screenshots").select("*").eq("id", id).single();
+  if (!src) return null;
+  const position = await nextPosition(supabase, projectId);
+  const { data, error } = await supabase
+    .from("screenshots")
+    .insert({
+      project_id: projectId,
+      position,
+      device_frame: src.device_frame,
+      layout_preset: src.layout_preset,
+      config: src.config,
+      source_image_url: src.source_image_url,
+    })
+    .select("id,position,config")
+    .single();
+  if (error || !data) return null;
+  revalidatePath(`/project/${projectId}`);
+  return { id: data.id as string, position: data.position as number, doc: rowToDoc(data.config) };
+}
+
+export async function deleteScreenshotInline(id: string, projectId: string): Promise<{ ok: boolean }> {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.from("screenshots").delete().eq("id", id);
+  revalidatePath(`/project/${projectId}`);
+  return { ok: !error };
+}
+
 // Every screenshot's doc for a project, ordered by position. Used by the
 // "export all screenshots" path. RLS scopes this to the caller's team.
 export async function getProjectScreenshotConfigs(projectId: string) {
