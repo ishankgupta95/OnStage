@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useEditorStore } from "@/store/editor";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { projectHref } from "@/lib/routes";
 import ExportDialog from "./ExportDialog";
 
 function SaveBadge() {
@@ -50,7 +51,7 @@ export default function TopBar({
         </Link>
         <span className="text-muted-foreground/40">/</span>
         <Link
-          href={`/project/${projectId}`}
+          href={projectHref(projectId)}
           className="truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           {projectName}

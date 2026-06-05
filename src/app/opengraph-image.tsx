@@ -10,6 +10,8 @@ import { ImageResponse } from "next/og";
 export const alt = "Onstage — App Store screenshots that ship";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+// Required for `output: export` — render the OG PNG statically at build time.
+export const dynamic = "force-static";
 
 export default function OGImage() {
   return new ImageResponse(

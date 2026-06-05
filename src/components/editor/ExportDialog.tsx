@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EXPORT_PRESETS, EXPORT_SIZES } from "@/lib/sizes";
 import { useEditorStore, type ExportScope, type ExportShot } from "@/store/editor";
-import { getProjectScreenshotConfigs } from "@/app/actions";
+import { getProjectScreenshotConfigs } from "@/lib/localData";
 
 function sameSet(a: string[], b: string[]) {
   return a.length === b.length && a.every((x) => b.includes(x));

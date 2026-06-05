@@ -13,7 +13,7 @@ import OnboardingTour from "./OnboardingTour";
 import { useEditorStore } from "@/store/editor";
 import type { EditorDoc } from "@/lib/editorDoc";
 import { deviceClassOf } from "@/lib/deviceGeometry";
-import { saveScreenshotConfig } from "@/app/actions";
+import { saveScreenshotConfig } from "@/lib/localData";
 import { track } from "@/lib/analytics";
 
 // One project screenshot, as shown in the filmstrip rail.

@@ -1,12 +1,12 @@
-// Uploads an image to Supabase Storage (via the server route) and returns its public URL.
+// Reads an image File and returns a base64 data URL. The static demo has no
+// upload endpoint, so the data URL is stored directly in the editor doc — it
+// renders in the Konva preview AND the export, and being same-origin it never
+// taints the export canvas.
 export async function uploadImage(file: File): Promise<string> {
-  const form = new FormData();
-  form.append("file", file);
-  const res = await fetch("/api/upload", { method: "POST", body: form });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || "Upload failed");
-  }
-  const { url } = await res.json();
-  return url as string;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Couldn't read the image file"));
+    reader.readAsDataURL(file);
+  });
 }

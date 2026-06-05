@@ -5,7 +5,6 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
-import { useSignedIn } from "./useSignedIn";
 
 const LINKS = [
   { href: "#gallery", label: "Examples" },
@@ -28,7 +27,6 @@ function Mark() {
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
-  const signedIn = useSignedIn();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -62,11 +60,6 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-1.5 sm:gap-2.5">
           <ThemeToggle />
-          {signedIn === false && (
-            <Link href="/login" className="hidden px-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline">
-              Sign in
-            </Link>
-          )}
           <Link href="/dashboard" className={cn(buttonVariants({ size: "sm" }), "h-9 px-4 text-[0.84rem]")}>
             Open editor
           </Link>

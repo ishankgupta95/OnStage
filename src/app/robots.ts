@@ -1,16 +1,14 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+// Required for `output: export` — emit a static robots.txt at build time.
+export const dynamic = "force-static";
+
+const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "https://ishankgupta95.github.io/OnStage";
 
 export default function robots(): MetadataRoute.Robots {
+  // Public demo — everything is crawlable.
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      // Auth-gated routes have no useful content for crawlers and may briefly
-      // 200 with a login redirect — keep them out of the index.
-      disallow: ["/dashboard", "/settings", "/project", "/invite", "/api"],
-    },
+    rules: { userAgent: "*", allow: "/" },
     sitemap: `${siteUrl()}/sitemap.xml`,
   };
 }

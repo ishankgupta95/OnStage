@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeftIcon, MonitorIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { projectHref } from "@/lib/routes";
 
 // Shown instead of the editor on small viewports. The editor is desktop-only
 // (3-pane layout + precise pointer work), so we send mobile users back rather
@@ -31,7 +32,7 @@ export default function EditorMobileBlock({
           </p>
           <div className="mt-7 flex items-center justify-center gap-2">
             <Link
-              href={`/project/${projectId}`}
+              href={projectHref(projectId)}
               className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}
             >
               <ArrowLeftIcon className="size-4" />

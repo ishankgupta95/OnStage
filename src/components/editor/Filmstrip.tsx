@@ -21,7 +21,8 @@ import {
   duplicateScreenshotInline,
   deleteScreenshotInline,
   reorderScreenshots,
-} from "@/app/actions";
+} from "@/lib/localData";
+import { withBase, editorHref } from "@/lib/routes";
 
 function thumbWidth(shot: RailShot) {
   return shot.doc.orientation === "landscape" ? 116 : 34;
@@ -134,7 +135,8 @@ export default function Filmstrip({
   // and just update the URL. No temporal.clear() — undo now spans the whole set.
   function loadIntoStore(shot: RailShot) {
     useEditorStore.getState().setActive(shot.id);
-    window.history.replaceState(null, "", `/project/${projectId}/screenshot/${shot.id}`);
+    // Raw history API doesn't prepend basePath — withBase() does.
+    window.history.replaceState(null, "", withBase(editorHref(projectId, shot.id)));
   }
 
   function switchTo(target: RailShot) {

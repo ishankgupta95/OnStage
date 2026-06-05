@@ -12,7 +12,7 @@ import { deviceForSize, orientSize, sizeById, type ExportSize } from "@/lib/size
 import { FONT_FAMILY, docUses3D, type EditorDoc } from "@/lib/editorDoc";
 import { downloadBlob } from "@/lib/download";
 import { blobDimensions, canvasToBlob, loadExportImage } from "@/lib/exportImages";
-import { recordExport, getExportAllowance } from "@/app/actions";
+import { recordExport } from "@/lib/localData";
 import { track } from "@/lib/analytics";
 
 type RenderJob = {
@@ -79,31 +79,8 @@ export default function ExportController() {
             ? request.shots.map((s) => (s.id === liveId ? { ...s, doc: liveDoc } : s))
             : [{ id: liveId ?? "screenshot", position: 0, doc: liveDoc }];
 
-        // Free-tier export gate: 3 exports/month + watermark, checked against the
-        // open project's team (export_history is the source of truth, server-side).
-        let exportWatermark = false;
-        if (state.projectId) {
-          const allowance = await getExportAllowance(state.projectId);
-          if (!allowance.allowed) {
-            track("export_blocked", { plan: allowance.plan, used: allowance.used, limit: allowance.limit ?? 0 });
-            setProgress({
-              state: "error",
-              message: `Free plan allows ${allowance.limit} exports/month — you've used ${allowance.used}. Upgrade for unlimited.`,
-            });
-            toast.error("Export limit reached", {
-              description: "The free plan allows 3 exports/month. Upgrade for unlimited exports.",
-              action: {
-                label: "Upgrade",
-                onClick: () => {
-                  window.location.assign("/pricing");
-                },
-              },
-              duration: 8000,
-            });
-            return;
-          }
-          exportWatermark = allowance.watermark;
-        }
+        // No paywall on the demo — every export is allowed, no watermark.
+        const exportWatermark = false;
 
         const multiShot = shots.length > 1;
         const total = shots.length * sizes.length;

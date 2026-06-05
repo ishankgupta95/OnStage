@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   closestCenter,
@@ -17,7 +18,9 @@ import { CopyIcon, GripVerticalIcon, ImageIcon, PlusIcon, Trash2Icon } from "luc
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DEVICE_BY_ID } from "@/lib/devices";
-import { duplicateScreenshot, deleteScreenshot, reorderScreenshots, createScreenshot } from "@/app/actions";
+import { duplicateScreenshot, deleteScreenshot, reorderScreenshots, createScreenshot } from "@/lib/localData";
+import { editorHref } from "@/lib/routes";
+import type { EditorDoc } from "@/lib/editorDoc";
 
 export type Shot = {
   id: string;
@@ -27,11 +30,36 @@ export type Shot = {
   orientation?: "portrait" | "landscape";
 };
 
+// Build a board Shot from a freshly created/duplicated screenshot doc.
+function shotFromDoc(id: string, doc: EditorDoc): Shot {
+  return {
+    id,
+    device_frame: doc.device,
+    layout_preset: doc.layout,
+    thumbnail_url: null,
+    orientation: doc.orientation,
+  };
+}
+
 function prettyLayout(preset: string) {
   return preset.replace(/-/g, " ");
 }
 
-function Card({ shot, index, projectId, canEdit }: { shot: Shot; index: number; projectId: string; canEdit: boolean }) {
+function Card({
+  shot,
+  index,
+  projectId,
+  canEdit,
+  onDuplicate,
+  onDelete,
+}: {
+  shot: Shot;
+  index: number;
+  projectId: string;
+  canEdit: boolean;
+  onDuplicate: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -47,7 +75,7 @@ function Card({ shot, index, projectId, canEdit }: { shot: Shot; index: number; 
       style={style}
       className={`group relative rounded-2xl border border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-lg hover:shadow-black/5 ${isDragging ? "opacity-80 shadow-xl ring-1 ring-primary/40" : ""}`}
     >
-      <Link href={`/project/${projectId}/screenshot/${shot.id}`} className="block p-2.5">
+      <Link href={editorHref(projectId, shot.id)} className="block p-2.5">
         <div
           className="relative overflow-hidden rounded-xl bg-muted ring-1 ring-border"
           style={{ aspectRatio: landscape ? "2796 / 1290" : "1290 / 2796" }}
@@ -86,20 +114,25 @@ function Card({ shot, index, projectId, canEdit }: { shot: Shot; index: number; 
         </div>
         {canEdit && (
           <div className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-            <form action={duplicateScreenshot}>
-              <input type="hidden" name="id" value={shot.id} />
-              <input type="hidden" name="projectId" value={projectId} />
-              <Button variant="ghost" size="icon-sm" type="submit" aria-label="Duplicate screenshot">
-                <CopyIcon />
-              </Button>
-            </form>
-            <form action={deleteScreenshot}>
-              <input type="hidden" name="id" value={shot.id} />
-              <input type="hidden" name="projectId" value={projectId} />
-              <Button variant="ghost" size="icon-sm" type="submit" aria-label="Delete screenshot" className="text-muted-foreground hover:text-destructive">
-                <Trash2Icon />
-              </Button>
-            </form>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              type="button"
+              aria-label="Duplicate screenshot"
+              onClick={() => onDuplicate(shot.id)}
+            >
+              <CopyIcon />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              type="button"
+              aria-label="Delete screenshot"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => onDelete(shot.id)}
+            >
+              <Trash2Icon />
+            </Button>
           </div>
         )}
       </div>
@@ -107,20 +140,18 @@ function Card({ shot, index, projectId, canEdit }: { shot: Shot; index: number; 
   );
 }
 
-function AddTile({ projectId }: { projectId: string }) {
+function AddTile({ onAdd }: { onAdd: () => void }) {
   return (
-    <form action={createScreenshot} className="contents">
-      <input type="hidden" name="projectId" value={projectId} />
-      <button
-        type="submit"
-        className="group flex aspect-[1290/2796] w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/[0.04] hover:text-primary"
-      >
-        <span className="grid size-10 place-items-center rounded-full bg-muted transition-colors group-hover:bg-primary/15">
-          <PlusIcon className="size-5" />
-        </span>
-        <span className="text-xs font-medium">New screenshot</span>
-      </button>
-    </form>
+    <button
+      type="button"
+      onClick={onAdd}
+      className="group flex aspect-[1290/2796] w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/[0.04] hover:text-primary"
+    >
+      <span className="grid size-10 place-items-center rounded-full bg-muted transition-colors group-hover:bg-primary/15">
+        <PlusIcon className="size-5" />
+      </span>
+      <span className="text-xs font-medium">New screenshot</span>
+    </button>
   );
 }
 
@@ -133,6 +164,7 @@ export default function ScreenshotGrid({
   screenshots: Shot[];
   canEdit?: boolean;
 }) {
+  const router = useRouter();
   const [items, setItems] = useState(screenshots);
   // Resync only when membership changes (add/delete), not on reorder-only updates.
   const [knownIds, setKnownIds] = useState(() => screenshots.map((s) => s.id).slice().sort().join(","));
@@ -147,6 +179,35 @@ export default function ScreenshotGrid({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  async function handleAdd() {
+    const created = await createScreenshot(projectId);
+    if (!created) {
+      toast.error("Couldn't add screenshot");
+      return;
+    }
+    router.push(editorHref(projectId, created.id));
+  }
+
+  async function handleDuplicate(id: string) {
+    const created = await duplicateScreenshot(id, projectId);
+    if (!created) {
+      toast.error("Couldn't duplicate screenshot");
+      return;
+    }
+    setItems((prev) => [...prev, shotFromDoc(created.id, created.doc)]);
+  }
+
+  async function handleDelete(id: string) {
+    if (items.length <= 1) return;
+    const prev = items;
+    setItems((p) => p.filter((s) => s.id !== id));
+    const res = await deleteScreenshot(id, projectId);
+    if (!res.ok) {
+      setItems(prev);
+      toast.error("Couldn't delete screenshot");
+    }
+  }
+
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
@@ -160,7 +221,7 @@ export default function ScreenshotGrid({
       projectId,
       next.map((s) => s.id),
     ).catch(() => {
-      setItems(prev); // revert the optimistic reorder so the UI matches the server
+      setItems(prev); // revert the optimistic reorder
       toast.error("Couldn't save the new order");
     });
   }
@@ -170,9 +231,17 @@ export default function ScreenshotGrid({
       <SortableContext items={items.map((s) => s.id)} strategy={rectSortingStrategy}>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {items.map((s, i) => (
-            <Card key={s.id} shot={s} index={i} projectId={projectId} canEdit={canEdit} />
+            <Card
+              key={s.id}
+              shot={s}
+              index={i}
+              projectId={projectId}
+              canEdit={canEdit}
+              onDuplicate={handleDuplicate}
+              onDelete={handleDelete}
+            />
           ))}
-          {canEdit && <AddTile projectId={projectId} />}
+          {canEdit && <AddTile onAdd={handleAdd} />}
         </div>
       </SortableContext>
     </DndContext>

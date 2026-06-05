@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftIcon, PlusIcon } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { createProject } from "@/app/actions";
+import { createProject } from "@/lib/localData";
+import { editorHref } from "@/lib/routes";
 import { computeLayout, fitFrame } from "@/lib/layout";
 import { GRADIENTS } from "@/lib/gradients";
 import { PALETTES } from "@/lib/palettes";
@@ -19,6 +21,7 @@ import {
   type Platform,
 } from "@/lib/templates";
 import type { LayoutPreset } from "@/lib/schema";
+import type { BackgroundChoice } from "@/lib/editorDoc";
 
 type ColorChoice = { kind: "gradient" | "palette"; id: string };
 
@@ -79,24 +82,32 @@ function Swatch({ css, label, active, onSelect }: { css: string; label: string; 
   );
 }
 
-function CreateButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" size="lg" disabled={pending} className="gap-1.5">
-      {!pending && <PlusIcon className="size-4" />}
-      {pending ? "Creating…" : "Create project"}
-    </Button>
-  );
-}
-
 export default function NewProjectForm() {
+  const router = useRouter();
+  const [name, setName] = useState("");
   const [templateId, setTemplateId] = useState<string>(TEMPLATES[1]?.id ?? "blank");
   const [platform, setPlatform] = useState<Platform>("ios");
   const [color, setColor] = useState<ColorChoice>({ kind: "gradient", id: "emerald-fade" });
+  const [creating, setCreating] = useState(false);
 
   const bgCss = backgroundCssFor(color);
   const capColor = captionColorFor(color);
   const selected = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (creating) return;
+    setCreating(true);
+    try {
+      const background: BackgroundChoice = { kind: color.kind, id: color.id };
+      const { projectId, firstScreenshotId } = await createProject({ name, templateId, platform, background });
+      // Land straight on the board (the editor), open on the first screen.
+      router.push(editorHref(projectId, firstScreenshotId));
+    } catch {
+      setCreating(false);
+      toast.error("Couldn't create the project");
+    }
+  }
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 py-10 sm:px-8">
@@ -113,19 +124,20 @@ export default function NewProjectForm() {
         drop in your screenshots and edit the captions. Everything stays editable per screen.
       </p>
 
-      <form action={createProject} className="mt-8 space-y-9 pb-28">
-        {/* State carried into the server action. */}
-        <input type="hidden" name="template" value={templateId} />
-        <input type="hidden" name="platform" value={platform} />
-        <input type="hidden" name="bgKind" value={color.kind} />
-        <input type="hidden" name="bgId" value={color.id} />
-
+      <form onSubmit={handleCreate} className="mt-8 space-y-9 pb-28">
         <section className="grid gap-6 sm:grid-cols-2">
           <div>
             <label htmlFor="project-name" className="mb-2 block font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               App name
             </label>
-            <Input id="project-name" name="name" placeholder="e.g. Habit Tracker" className="h-10" autoFocus />
+            <Input
+              id="project-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Habit Tracker"
+              className="h-10"
+              autoFocus
+            />
           </div>
           <div>
             <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Platform</p>
@@ -225,7 +237,10 @@ export default function NewProjectForm() {
               <span className="font-medium text-foreground">{selected.label}</span> · {selected.screens.length} screen
               {selected.screens.length === 1 ? "" : "s"} · {platform === "ios" ? "iOS" : "Android"}
             </p>
-            <CreateButton />
+            <Button type="submit" size="lg" disabled={creating} className="gap-1.5">
+              {!creating && <PlusIcon className="size-4" />}
+              {creating ? "Creating…" : "Create project"}
+            </Button>
           </div>
         </div>
       </form>

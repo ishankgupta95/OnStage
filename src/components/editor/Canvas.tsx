@@ -18,7 +18,7 @@ import {
 } from "@/lib/editorDoc";
 import { cn } from "@/lib/utils";
 import { uploadImage } from "@/lib/uploadImage";
-import { saveThumbnail } from "@/app/actions";
+import { saveThumbnail } from "@/lib/localData";
 import ExportController from "./ExportController";
 
 const CANVAS_PAD = 120; // breathing room around the board inside the canvas area
