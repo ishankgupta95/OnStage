@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser, getUser } from "@/lib/auth";
 import { resolveActiveTeam, getProjectTeam, getTeamRole, canEdit } from "@/lib/workspace";
-import { DEFAULT_DOC, type EditorDoc } from "@/lib/editorDoc";
+import { getTeamBilling } from "@/lib/billing/plan";
+import { entitlements, type TeamPlan } from "@/lib/billing/plans";
+import { DEFAULT_DOC, type EditorDoc, type BackgroundChoice } from "@/lib/editorDoc";
+import { buildTemplateDocs, templateById, type Platform } from "@/lib/templates";
 
 const NO_EDIT = "You don't have permission to edit this workspace.";
 
@@ -27,14 +30,40 @@ export async function createProject(formData: FormData) {
   const { teamId, role } = await resolveActiveTeam(supabase, user.id);
   if (!canEdit(role)) throw new Error(NO_EDIT);
   const name = ((formData.get("name") as string) || "").trim() || "Untitled app";
+
+  // Starting template + platform (→ device) + color (→ background). Defaults keep
+  // a bare {name} submit working (Blank · iOS · emerald gradient).
+  const template = templateById(formData.get("template") as string | null);
+  const platform: Platform = formData.get("platform") === "android" ? "android" : "ios";
+  const bgKind = (formData.get("bgKind") as string) === "palette" ? "palette" : "gradient";
+  const bgId = (formData.get("bgId") as string) || "emerald-fade";
+  const background: BackgroundChoice = { kind: bgKind, id: bgId };
+
   const { data, error } = await supabase
     .from("projects")
     .insert({ team_id: teamId, name, created_by: user.id })
     .select("id")
     .single();
   if (error || !data) throw new Error(error?.message ?? "Failed to create project");
+  const projectId = data.id as string;
+
+  // Seed the project with the template's screens (each carries its layout, the
+  // chosen device, and the chosen background).
+  const docs = buildTemplateDocs(template, platform, background);
+  const rows = docs.map((doc, i) => ({
+    project_id: projectId,
+    position: i,
+    device_frame: doc.device,
+    layout_preset: doc.layout,
+    config: doc,
+  }));
+  const { data: inserted } = await supabase.from("screenshots").insert(rows).select("id,position");
+  const firstId = (inserted ?? []).find((r) => r.position === 0)?.id as string | undefined;
+
   revalidatePath("/dashboard");
-  redirect(`/project/${data.id}`);
+  // Land straight on the board (the editor), open on the first screen.
+  if (firstId) redirect(`/project/${projectId}/screenshot/${firstId}`);
+  redirect(`/project/${projectId}`);
 }
 
 export async function deleteProject(formData: FormData) {
@@ -239,6 +268,38 @@ export async function recordExport(projectId: string, count: number) {
     export_count: count,
   });
   return { ok: true };
+}
+
+// Free-tier export allowance for a project's team: counts this calendar month's
+// export operations (export_history rows) against the plan's monthly limit.
+// Paid plans (unlimited) always return allowed=true, watermark=false.
+export async function getExportAllowance(
+  projectId: string,
+): Promise<{ plan: TeamPlan; used: number; limit: number | null; allowed: boolean; watermark: boolean }> {
+  const supabase = await createClient();
+  const teamId = await getProjectTeam(supabase, projectId);
+  if (!teamId) return { plan: "free", used: 0, limit: 3, allowed: false, watermark: true };
+  const billing = await getTeamBilling(supabase, teamId);
+  const ent = entitlements(billing.plan);
+  if (ent.exportsPerMonth == null) {
+    return { plan: billing.plan, used: 0, limit: null, allowed: true, watermark: ent.watermark };
+  }
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+  const { count } = await supabase
+    .from("export_history")
+    .select("id", { count: "exact", head: true })
+    .eq("team_id", teamId)
+    .gte("created_at", monthStart.toISOString());
+  const used = count ?? 0;
+  return {
+    plan: billing.plan,
+    used,
+    limit: ent.exportsPerMonth,
+    allowed: used < ent.exportsPerMonth,
+    watermark: ent.watermark,
+  };
 }
 
 // Saves a small preview image (data URL) for the project page. Best-effort.

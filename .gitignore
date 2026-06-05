@@ -15,6 +15,9 @@
 
 # next.js
 /.next/
+# isolated build dirs (ONSTAGE_BUILD_DIST_DIR — avoid stomping `next dev`)
+/.next-build/
+/.next-isolated/
 /out/
 
 # production
@@ -36,6 +39,9 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# claude code runtime
+.claude/scheduled_tasks.lock
 
 # typescript
 *.tsbuildinfo

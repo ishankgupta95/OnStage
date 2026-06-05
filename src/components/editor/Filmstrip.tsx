@@ -129,16 +129,11 @@ export default function Filmstrip({
   const currentId = useEditorStore((s) => s.screenshotId);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
-  // Load a screenshot into the store without navigating: flush the current one's
-  // edits, swap the doc, reset undo, and update the URL (Next syncs replaceState).
+  // Activate a screenshot without navigating. The store now holds every doc, so
+  // we switch by id (using the live in-store doc, not the filmstrip's stale copy)
+  // and just update the URL. No temporal.clear() — undo now spans the whole set.
   function loadIntoStore(shot: RailShot) {
-    useEditorStore.setState({
-      doc: shot.doc,
-      screenshotId: shot.id,
-      selectedLayerId: shot.doc.textLayers[0]?.id ?? null,
-      saveState: "idle",
-    });
-    useEditorStore.temporal.getState().clear();
+    useEditorStore.getState().setActive(shot.id);
     window.history.replaceState(null, "", `/project/${projectId}/screenshot/${shot.id}`);
   }
 
@@ -163,6 +158,7 @@ export default function Filmstrip({
       return;
     }
     const shot: RailShot = { id: created.id, position: created.position, thumbnailUrl: null, doc: created.doc };
+    useEditorStore.getState().upsertDoc(created.id, created.doc);
     setItems((prev) => [...prev, shot]);
     switchTo(shot);
   }
@@ -178,6 +174,7 @@ export default function Filmstrip({
       return;
     }
     const shot: RailShot = { id: created.id, position: created.position, thumbnailUrl: null, doc: created.doc };
+    useEditorStore.getState().upsertDoc(created.id, created.doc);
     setItems((prev) => [...prev, shot]);
     switchTo(shot);
   }
@@ -188,6 +185,7 @@ export default function Filmstrip({
     const idx = items.findIndex((s) => s.id === id);
     const next = items.filter((s) => s.id !== id);
     setItems(next);
+    useEditorStore.getState().removeDoc(id);
     void deleteScreenshotInline(id, projectId);
     // If we deleted the open screenshot, open a neighbor (no flush — it's gone).
     if (wasCurrent && next.length) {
@@ -203,6 +201,8 @@ export default function Filmstrip({
     if (oldIndex < 0 || newIndex < 0) return;
     const nextItems = arrayMove(items, oldIndex, newIndex);
     setItems(nextItems);
+    // Keep the board (which renders by store order) in sync with the rail.
+    useEditorStore.getState().setOrder(nextItems.map((s) => s.id));
     void reorderScreenshots(
       projectId,
       nextItems.map((s) => s.id),

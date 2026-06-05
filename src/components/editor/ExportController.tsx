@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Stage } from "react-konva";
+import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
 import JSZip from "jszip";
 import { toast } from "sonner";
 import ScreenshotContent from "./ScreenshotContent";
+import { ensure3DLoaded } from "./device3d/loader";
 import { useEditorStore, type ExportShot } from "@/store/editor";
 import { deviceForSize, orientSize, sizeById, type ExportSize } from "@/lib/sizes";
-import { FONT_FAMILY, type EditorDoc } from "@/lib/editorDoc";
+import { FONT_FAMILY, docUses3D, type EditorDoc } from "@/lib/editorDoc";
 import { downloadBlob } from "@/lib/download";
 import { blobDimensions, canvasToBlob, loadExportImage } from "@/lib/exportImages";
-import { recordExport } from "@/app/actions";
+import { recordExport, getExportAllowance } from "@/app/actions";
+import { track } from "@/lib/analytics";
 
 type RenderJob = {
   key: string;
@@ -20,6 +22,7 @@ type RenderJob = {
   doc: EditorDoc;
   images: (HTMLImageElement | null)[];
   layerImages: Record<string, HTMLImageElement | null>;
+  watermark: boolean;
 };
 
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
@@ -76,10 +79,37 @@ export default function ExportController() {
             ? request.shots.map((s) => (s.id === liveId ? { ...s, doc: liveDoc } : s))
             : [{ id: liveId ?? "screenshot", position: 0, doc: liveDoc }];
 
+        // Free-tier export gate: 3 exports/month + watermark, checked against the
+        // open project's team (export_history is the source of truth, server-side).
+        let exportWatermark = false;
+        if (state.projectId) {
+          const allowance = await getExportAllowance(state.projectId);
+          if (!allowance.allowed) {
+            track("export_blocked", { plan: allowance.plan, used: allowance.used, limit: allowance.limit ?? 0 });
+            setProgress({
+              state: "error",
+              message: `Free plan allows ${allowance.limit} exports/month — you've used ${allowance.used}. Upgrade for unlimited.`,
+            });
+            toast.error("Export limit reached", {
+              description: "The free plan allows 3 exports/month. Upgrade for unlimited exports.",
+              action: {
+                label: "Upgrade",
+                onClick: () => {
+                  window.location.assign("/pricing");
+                },
+              },
+              duration: 8000,
+            });
+            return;
+          }
+          exportWatermark = allowance.watermark;
+        }
+
         const multiShot = shots.length > 1;
         const total = shots.length * sizes.length;
         let completed = 0;
         setProgress({ state: "running", completed, total });
+        track("export_started", { scope: request.scope, sizes: sizes.length, shots: shots.length, total });
 
         // Load every font used across the batch (other shots may use fonts not
         // yet requested on this page) so text never renders with a fallback.
@@ -90,6 +120,10 @@ export default function ExportController() {
         await Promise.all([...fontSpecs].map((sp) => document.fonts.load(sp).catch(() => {})));
         await document.fonts.ready;
 
+        // Preload the Three.js renderer chunk if any shot uses a 3D angle, so the
+        // synchronous harvest below has it ready (no flat-frame fallback on export).
+        if (shots.some((s) => docUses3D(s.doc))) await ensure3DLoaded();
+
         const files: { path: string; blob: Blob }[] = [];
         const decoded: { id: string; w: number; h: number }[] = [];
 
@@ -97,22 +131,32 @@ export default function ExportController() {
           const images = await Promise.all(
             (shot.doc.frameImages ?? []).map((src) => (src ? loadExportImage(src) : Promise.resolve(null))),
           );
-          // Load every free-floating image layer for this shot (keyed by src).
+          // Load every free-floating image layer AND every multi-device freeform
+          // frame's screenshot for this shot (both keyed by src; ScreenshotContent
+          // resolves freeform frames via this same src→image map).
           const layerImages: Record<string, HTMLImageElement | null> = {};
-          await Promise.all(
-            (shot.doc.imageLayers ?? []).map(async (il) => {
+          await Promise.all([
+            ...(shot.doc.imageLayers ?? []).map(async (il) => {
               layerImages[il.src] = await loadExportImage(il.src).catch(() => null);
             }),
-          );
+            ...(shot.doc.freeformFrames ?? []).map(async (ff) => {
+              if (ff.src) layerImages[ff.src] = await loadExportImage(ff.src).catch(() => null);
+            }),
+          ]);
           if (cancelled) return;
 
           for (const size of sizes) {
             // Landscape docs export at the transposed pixel dimensions.
             const osize = orientSize(size, shot.doc.orientation);
             const key = `${shot.id}-${size.id}-${request.nonce}-${completed}`;
-            // The export size picks the frame family (iPad slot → iPad frame, etc.).
-            const doc = { ...shot.doc, device: deviceForSize(size, shot.doc.device) };
-            setJob({ key, w: osize.w, h: osize.h, doc, images, layerImages });
+            // The export size picks the frame family (iPad slot → iPad frame, etc.)
+            // for PRESET layouts. Freeform devices are placed explicitly (any mix
+            // of models), so they keep their own device on every size — no swap.
+            const doc =
+              shot.doc.layout === "freeform"
+                ? shot.doc
+                : { ...shot.doc, device: deviceForSize(size, shot.doc.device) };
+            setJob({ key, w: osize.w, h: osize.h, doc, images, layerImages, watermark: exportWatermark });
             const stage = await waitForStage(key);
             if (cancelled) return;
 
@@ -158,6 +202,7 @@ export default function ExportController() {
 
         setProgress({ state: "done", total: files.length });
         toast.success(`Exported ${files.length} PNG${files.length > 1 ? "s" : ""}`);
+        track("screenshot_exported", { count: files.length, scope: request.scope });
 
         const pid = useEditorStore.getState().projectId;
         if (pid) void recordExport(pid, files.length).catch(() => {});
@@ -180,9 +225,11 @@ export default function ExportController() {
   return (
     <div aria-hidden style={{ position: "fixed", left: -100000, top: 0, pointerEvents: "none" }}>
       <Stage ref={stageRef} width={job?.w ?? 1} height={job?.h ?? 1}>
-        {job ? (
-          <ScreenshotContent doc={job.doc} screenImages={job.images} layerImages={job.layerImages} editable={false} width={job.w} height={job.h} />
-        ) : null}
+        <Layer>
+          {job ? (
+            <ScreenshotContent doc={job.doc} screenImages={job.images} layerImages={job.layerImages} editable={false} width={job.w} height={job.h} watermark={job.watermark} />
+          ) : null}
+        </Layer>
       </Stage>
     </div>
   );

@@ -3,9 +3,9 @@ import { ArrowUpRightIcon, EyeIcon, FolderPlusIcon, ImageIcon, PlusIcon, Trash2I
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveActiveTeam, getWorkspaces, canEdit } from "@/lib/workspace";
-import { createProject, deleteProject } from "@/app/actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { deleteProject } from "@/app/actions";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
@@ -84,13 +84,10 @@ export default async function DashboardPage() {
           </p>
         </div>
         {editable ? (
-          <form action={createProject} className="flex w-full items-center gap-2 sm:w-auto">
-            <Input name="name" placeholder="New app name…" className="h-9 w-full sm:w-56" />
-            <Button type="submit" size="sm" className="h-9 shrink-0 gap-1.5 px-3.5">
-              <PlusIcon className="size-4" />
-              Create
-            </Button>
-          </form>
+          <Link href="/project/new" className={cn(buttonVariants({ size: "sm" }), "h-9 shrink-0 gap-1.5 self-start px-3.5 sm:self-auto")}>
+            <PlusIcon className="size-4" />
+            New project
+          </Link>
         ) : (
           <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-border bg-muted/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:self-auto">
             <EyeIcon className="size-3.5" />
@@ -109,7 +106,7 @@ export default async function DashboardPage() {
             <h2 className="text-xl font-bold tracking-tight">No projects yet</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
               {editable
-                ? "A project is one app — it holds all of its store screenshots. Name one in the field above to get started."
+                ? "A project is one app — it holds all of its store screenshots. Click New project to pick a starting template and create your first."
                 : "This workspace has no projects yet. You have view-only access — an editor or the owner can add the first one."}
             </p>
           </div>

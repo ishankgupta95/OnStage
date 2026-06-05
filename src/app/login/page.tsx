@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,10 @@ export default function LoginPage() {
     });
     setLoading(false);
     if (error) setError(error.message);
-    else setSent(true);
+    else {
+      track("magic_link_requested");
+      setSent(true);
+    }
   }
 
   return (

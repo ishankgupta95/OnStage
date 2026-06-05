@@ -14,6 +14,7 @@ import {
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CopyIcon, GripVerticalIcon, ImageIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DEVICE_BY_ID } from "@/lib/devices";
 import { duplicateScreenshot, deleteScreenshot, reorderScreenshots, createScreenshot } from "@/app/actions";
@@ -152,12 +153,16 @@ export default function ScreenshotGrid({
     const oldIndex = items.findIndex((s) => s.id === active.id);
     const newIndex = items.findIndex((s) => s.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
+    const prev = items;
     const next = arrayMove(items, oldIndex, newIndex);
     setItems(next);
-    void reorderScreenshots(
+    reorderScreenshots(
       projectId,
       next.map((s) => s.id),
-    );
+    ).catch(() => {
+      setItems(prev); // revert the optimistic reorder so the UI matches the server
+      toast.error("Couldn't save the new order");
+    });
   }
 
   return (

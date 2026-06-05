@@ -7,7 +7,7 @@ import { computeLayout, fitFrame } from "@/lib/layout";
 import { GRADIENTS } from "@/lib/gradients";
 import { SOLID_BACKGROUNDS, PALETTES } from "@/lib/palettes";
 import { MESH_GRADIENTS, PATTERNS, meshSwatchStyle, patternSwatchStyle } from "@/lib/backgrounds";
-import type { Orientation } from "@/lib/editorDoc";
+import { parseFreeformSel, resolveFreeformFrames, PERSPECTIVE_PRESETS, perspectivePresetId, type Orientation } from "@/lib/editorDoc";
 import type { LayoutPreset } from "@/lib/schema";
 
 const ORIENTATIONS: { id: Orientation; label: string }[] = [
@@ -82,10 +82,18 @@ function LayoutThumb({ id, orientation }: { id: LayoutPreset; orientation: Orien
 export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }) {
   const doc = useEditorStore((s) => s.doc);
   const updateDoc = useEditorStore((s) => s.updateDoc);
+  const setActiveDevice = useEditorStore((s) => s.setActiveDevice);
   const setLayout = useEditorStore((s) => s.setLayout);
   const setOrientation = useEditorStore((s) => s.setOrientation);
   const setPreviewClass = useEditorStore((s) => s.setPreviewClass);
+  const selectedLayerId = useEditorStore((s) => s.selectedLayerId);
   const orientation = doc.orientation ?? "portrait";
+  // The device picker targets the SELECTED freeform device (when in freeform with
+  // one selected), else the doc-level device (presets / freeform default).
+  const selectedFreeformId = doc.layout === "freeform" ? parseFreeformSel(selectedLayerId) : null;
+  const activeDevice = selectedFreeformId
+    ? resolveFreeformFrames(doc).find((f) => f.id === selectedFreeformId)?.device ?? doc.device
+    : doc.device;
 
   return (
     <aside
@@ -99,6 +107,7 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
             <button
               key={o.id}
               onClick={() => setOrientation(o.id)}
+              aria-pressed={orientation === o.id}
               className={`flex-1 rounded px-2 py-1 transition-colors ${orientation === o.id ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
             >
               {o.label}
@@ -107,7 +116,7 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
         </div>
       </section>
 
-      <section>
+      <section data-tour="layouts">
         <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Layout</h3>
         <div className="grid grid-cols-3 gap-2">
           {LAYOUTS.map((l) => (
@@ -115,6 +124,8 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
               key={l.id}
               onClick={() => setLayout(l.id)}
               title={l.label}
+              aria-label={l.label}
+              aria-pressed={doc.layout === l.id}
               className={`flex flex-col items-center gap-1 rounded-md border p-1.5 transition-all hover:bg-accent active:scale-[0.97] ${doc.layout === l.id ? "border-primary ring-1 ring-primary" : ""}`}
             >
               <LayoutThumb id={l.id} orientation={orientation} />
@@ -124,18 +135,20 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
         </div>
       </section>
 
-      <section>
+      <section data-tour="device">
         <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Device</h3>
         <div className="space-y-1">
           {DEVICES.map((d) => (
             <button
               key={d.id}
               onClick={() => {
-                updateDoc({ device: d.id });
+                // Targets the selected freeform device, else the doc-level device.
+                setActiveDevice(d.id);
                 // Switch the canvas preview to this device's family so the change is visible.
                 setPreviewClass(deviceClassOf(d.id));
               }}
-              className={`block w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-accent ${doc.device === d.id ? "border-primary ring-1 ring-primary" : ""}`}
+              aria-pressed={activeDevice === d.id}
+              className={`block w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-accent ${activeDevice === d.id ? "border-primary ring-1 ring-primary" : ""}`}
             >
               {d.label}
             </button>
@@ -143,7 +156,26 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
         </div>
       </section>
 
-      <section>
+      <section data-tour="angle">
+        <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">3D Angle</h3>
+        <div className="grid grid-cols-2 gap-0.5 rounded-md border p-0.5 text-xs">
+          {PERSPECTIVE_PRESETS.map((p) => {
+            const active = perspectivePresetId(doc.perspective) === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => updateDoc({ perspective: p.value ?? undefined })}
+                aria-pressed={active}
+                className={`rounded px-2 py-1.5 transition-colors ${active ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section data-tour="background">
         <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Background</h3>
         <div className="grid grid-cols-4 gap-2">
           {GRADIENTS.map((g) => {
@@ -153,6 +185,7 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
               <button
                 key={g.id}
                 onClick={() => updateDoc({ background: { kind: "gradient", id: g.id } })}
+                aria-pressed={active}
                 className={`h-12 rounded-md border transition-transform hover:scale-[1.03] ${active ? "ring-2 ring-primary" : ""}`}
                 style={{ background: css }}
                 title={g.label}
@@ -169,6 +202,7 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
               <button
                 key={c}
                 onClick={() => updateDoc({ background: { kind: "solid", color: c } })}
+                aria-pressed={active}
                 className={`h-7 rounded border ${active ? "ring-2 ring-primary" : ""}`}
                 style={{ backgroundColor: c }}
                 aria-label={`solid ${c}`}
@@ -187,6 +221,7 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
               <button
                 key={m.id}
                 onClick={() => updateDoc({ background: { kind: "mesh", id: m.id } })}
+                aria-pressed={active}
                 className={`h-14 rounded-md border transition-transform hover:scale-[1.03] ${active ? "ring-2 ring-primary" : ""}`}
                 style={meshSwatchStyle(m)}
                 title={m.label}
@@ -206,6 +241,7 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
               <button
                 key={p.id}
                 onClick={() => updateDoc({ background: { kind: "pattern", id: p.id } })}
+                aria-pressed={active}
                 className={`h-14 rounded-md border transition-transform hover:scale-[1.03] ${active ? "ring-2 ring-primary" : ""}`}
                 style={patternSwatchStyle(p)}
                 title={p.label}
@@ -225,6 +261,8 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
               <button
                 key={p.id}
                 onClick={() => updateDoc({ background: { kind: "palette", id: p.id } })}
+                aria-pressed={active}
+                aria-label={p.label}
                 className={`flex w-full items-center gap-2 rounded-md border p-1.5 hover:bg-accent ${active ? "border-primary ring-1 ring-primary" : ""}`}
                 title={p.label}
               >

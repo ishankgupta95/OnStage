@@ -48,8 +48,9 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Accent #56b8e6 (sky blue, from the portfolio). Light is the default theme;
-   next-themes toggles the .dark class for the dark theme. */
+/* Accent #56b8e6 (sky blue, from the portfolio). The OS preference is the default
+   (next-themes defaultTheme="system"); it toggles the .dark class for dark mode,
+   and these :root values are the light theme. */
 :root {
   --background: #ffffff;
   --foreground: #0b0c0e;
@@ -128,6 +129,27 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Guaranteed visible focus ring for keyboard users on every focusable element.
+     shadcn components opt out via `outline-none` (a utility, which wins over this
+     base rule) and draw their own ring, so this only backstops the custom
+     buttons/links in the editor sidebars, filmstrip, etc. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Reduced-motion reset: neutralize all animations/transitions for users who ask
+   for it. Complements the targeted gating on .onstage-float and Reveal. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

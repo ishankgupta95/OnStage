@@ -85,7 +85,7 @@ export default function ExportDialog({ projectId }: { projectId: string }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm" data-export />}>Export</DialogTrigger>
+      <DialogTrigger render={<Button size="sm" data-export data-tour="export" />}>Export</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Export screenshots</DialogTitle>

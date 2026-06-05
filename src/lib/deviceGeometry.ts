@@ -12,6 +12,9 @@ export type DeviceGeometry = {
   screenCornerRatio: number;
   cutout: Cutout;
   buttons: boolean;
+  // Body depth ÷ short edge — drives the 3D-angled mockup's thickness. Real
+  // devices are thin (phones ~0.10, tablets ~0.026). Ignored by the flat frame.
+  thickness: number;
 };
 
 const IPHONE: DeviceGeometry = {
@@ -22,6 +25,7 @@ const IPHONE: DeviceGeometry = {
   screenCornerRatio: 0.135,
   cutout: "island",
   buttons: true,
+  thickness: 0.098,
 };
 
 const IPAD: DeviceGeometry = {
@@ -32,6 +36,7 @@ const IPAD: DeviceGeometry = {
   screenCornerRatio: 0.03,
   cutout: "none",
   buttons: false,
+  thickness: 0.026,
 };
 
 const PIXEL: DeviceGeometry = {
@@ -42,6 +47,7 @@ const PIXEL: DeviceGeometry = {
   screenCornerRatio: 0.1,
   cutout: "punch",
   buttons: true,
+  thickness: 0.1,
 };
 
 const GALAXY: DeviceGeometry = {
@@ -52,6 +58,7 @@ const GALAXY: DeviceGeometry = {
   screenCornerRatio: 0.045,
   cutout: "punch",
   buttons: true,
+  thickness: 0.1,
 };
 
 // Android tablet (Galaxy Tab) — 16:10 portrait, uniform bezels, no notch.
@@ -63,6 +70,7 @@ const ANDROID_TABLET: DeviceGeometry = {
   screenCornerRatio: 0.03,
   cutout: "none",
   buttons: true,
+  thickness: 0.036,
 };
 
 // Unfolded inner display — near-square.
@@ -74,6 +82,7 @@ const FOLD: DeviceGeometry = {
   screenCornerRatio: 0.03,
   cutout: "punch",
   buttons: true,
+  thickness: 0.055,
 };
 
 const SE: DeviceGeometry = { ...IPHONE, aspect: 0.49, cornerRatio: 0.08, cutout: "none", screenCornerRatio: 0.02 };

@@ -4,6 +4,7 @@ import Providers from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "Onstage — App Store screenshots that ship",
   description:
     "Web-based App Store & Google Play screenshot generator for indie devs and small teams.",
