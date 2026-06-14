@@ -1,10 +1,11 @@
-name: Deploy demo to GitHub Pages
+name: Deploy to GitHub Pages
 
-# Builds the static portfolio export (demo branch) and publishes it to GitHub
-# Pages. One-time setup: repo Settings → Pages → Source = "GitHub Actions".
+# Builds the static portfolio export (master is now the canonical free, local
+# app) and publishes it to GitHub Pages. One-time setup: repo Settings → Pages →
+# Source = "GitHub Actions".
 on:
   push:
-    branches: [demo]
+    branches: [master]
   workflow_dispatch:
 
 permissions:

@@ -8,8 +8,8 @@ const distDir = process.env.ONSTAGE_BUILD_DIST_DIR;
 // Static portfolio export (GitHub Pages). Opt-in via env so local `next dev`
 // and ordinary builds behave normally — only the Pages CI build turns it on
 // (NEXT_PUBLIC_STATIC_EXPORT=true NEXT_PUBLIC_BASE_PATH=/OnStage). Under export
-// there is no server: no server actions/route handlers/middleware (the demo
-// branch runs entirely client-side; see src/lib/localData.ts).
+// there is no server: no server actions/route handlers/middleware (the app
+// runs entirely client-side; see src/lib/localData.ts).
 const isExport = process.env.NEXT_PUBLIC_STATIC_EXPORT === "true";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "/OnStage";
 
