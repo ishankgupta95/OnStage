@@ -1,7 +1,7 @@
 "use client";
 
 import { useEditorStore } from "@/store/editor";
-import { DEVICES } from "@/lib/devices";
+import { DEVICE_PICKER } from "@/lib/devices";
 import { deviceClassOf } from "@/lib/deviceGeometry";
 import { computeLayout, fitFrame } from "@/lib/layout";
 import { GRADIENTS } from "@/lib/gradients";
@@ -138,7 +138,7 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
       <section data-tour="device">
         <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Device</h3>
         <div className="space-y-1">
-          {DEVICES.map((d) => (
+          {DEVICE_PICKER.map((d) => (
             <button
               key={d.id}
               onClick={() => {

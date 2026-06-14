@@ -82,7 +82,6 @@ export default function ExportController() {
         // No paywall on the demo — every export is allowed, no watermark.
         const exportWatermark = false;
 
-        const multiShot = shots.length > 1;
         const total = shots.length * sizes.length;
         let completed = 0;
         setProgress({ state: "running", completed, total });
@@ -151,9 +150,11 @@ export default function ExportController() {
             }
             decoded.push({ id: size.id, w: dim.w, h: dim.h });
 
-            const path = multiShot
-              ? `${size.id}/${String(shot.position + 1).padStart(2, "0")}.png`
-              : `onstage-${size.id}.png`;
+            // Folder per OS + exact resolution, e.g. `iOS/1320x2868/01.png`.
+            // Uses osize (orientation-adjusted, dimension-verified) so the folder
+            // name always matches the file's real pixels.
+            const nn = String(shot.position + 1).padStart(2, "0");
+            const path = `${size.os}/${osize.w}x${osize.h}/${nn}.png`;
             files.push({ path, blob });
 
             completed += 1;
@@ -169,7 +170,9 @@ export default function ExportController() {
         }
 
         if (files.length === 1) {
-          downloadBlob(files[0].blob, files[0].path);
+          // Single PNG: flat download (a `download` attr with "/" gets mangled
+          // by browsers), so collapse the folder path into the filename.
+          downloadBlob(files[0].blob, `onstage-${files[0].path.replace(/\//g, "-")}`);
         } else {
           const zip = new JSZip();
           for (const f of files) zip.file(f.path, f.blob);

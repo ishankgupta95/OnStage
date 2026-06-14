@@ -81,6 +81,20 @@ export default function ExportDialog({ projectId }: { projectId: string }) {
     });
   };
 
+  // One-click: every accepted App Store + Play size, foldered by OS/resolution.
+  const everythingTotal = EXPORT_SIZES.length * shotCount;
+  const onExportEverything = () => {
+    if (busy) return;
+    const all = EXPORT_PRESETS.find((p) => p.id === "all")?.sizeIds ?? EXPORT_SIZES.map((s) => s.id);
+    setSelectedSizeIds(all);
+    setExportRequest({
+      nonce: Date.now(),
+      sizeIds: all,
+      scope: effectiveScope,
+      shots: effectiveScope === "all" ? shots : [],
+    });
+  };
+
   const pct = progress.state === "running" && progress.total ? (progress.completed / progress.total) * 100 : 0;
 
   return (
@@ -94,10 +108,27 @@ export default function ExportDialog({ projectId }: { projectId: string }) {
           </DialogDescription>
         </DialogHeader>
 
+        <Button onClick={onExportEverything} disabled={busy} className="w-full">
+          {busy ? (
+            <>
+              <Loader2 className="animate-spin" /> Exporting…
+            </>
+          ) : (
+            <>
+              <DownloadIcon /> Export every store size
+              <span className="tabular-nums opacity-80">
+                · {everythingTotal} PNG{everythingTotal !== 1 ? "s" : ""}
+              </span>
+            </>
+          )}
+        </Button>
+
         <div className="max-h-[60vh] space-y-5 overflow-y-auto">
           <section className="space-y-2">
-            <h3 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Bundle</h3>
-            <div className="grid grid-cols-3 gap-2">
+            <h3 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Or pick a bundle
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
               {EXPORT_PRESETS.map((preset) => {
                 const active = activePreset === preset.id;
                 return (

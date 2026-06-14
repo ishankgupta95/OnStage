@@ -41,3 +41,23 @@ export const DEVICES: DeviceSpec[] = [
 export const DEVICE_BY_ID = Object.fromEntries(
   DEVICES.map((d) => [d.id, d]),
 ) as Record<DeviceFrame, DeviceSpec | undefined>;
+
+// The models shown in the device picker. Every device above maps to one of a
+// handful of shared frame geometries (deviceGeometry.ts), so most "different"
+// models render an identical frame. We keep DEVICES (and DEVICE_BY_ID) full so
+// any saved/legacy doc still resolves a label and renders correctly, and only
+// curate which models are *offered* — one representative per distinct frame.
+const PICKER_IDS: DeviceFrame[] = [
+  "iphone-16-pro", // covers 16/15/14 Pro & non-Pro (identical IPHONE frame)
+  "iphone-se-3",
+  "ipad-pro-13", // covers iPad Pro 11 / Air (identical IPAD frame)
+  "ipad-mini", // distinct: narrower 0.7 aspect
+  "pixel-9", // covers Pixel 9 Pro / XL / 8 (identical PIXEL frame)
+  "galaxy-s24-ultra", // covers S24/S23 family + A55 (GALAXY frame)
+  "galaxy-z-fold-6", // covers Pixel 9 Pro Fold (identical FOLD frame)
+  "galaxy-tab-s9",
+];
+
+export const DEVICE_PICKER: DeviceSpec[] = PICKER_IDS.map((id) => DEVICE_BY_ID[id]).filter(
+  (d): d is DeviceSpec => Boolean(d),
+);
