@@ -13,7 +13,6 @@ import { FONT_FAMILY, docUses3D, type EditorDoc } from "@/lib/editorDoc";
 import { downloadBlob } from "@/lib/download";
 import { blobDimensions, canvasToBlob, loadExportImage } from "@/lib/exportImages";
 import { recordExport } from "@/lib/localData";
-import { track } from "@/lib/analytics";
 
 type RenderJob = {
   key: string;
@@ -85,7 +84,6 @@ export default function ExportController() {
         const total = shots.length * sizes.length;
         let completed = 0;
         setProgress({ state: "running", completed, total });
-        track("export_started", { scope: request.scope, sizes: sizes.length, shots: shots.length, total });
 
         // Load every font used across the batch (other shots may use fonts not
         // yet requested on this page) so text never renders with a fallback.
@@ -182,7 +180,6 @@ export default function ExportController() {
 
         setProgress({ state: "done", total: files.length });
         toast.success(`Exported ${files.length} PNG${files.length > 1 ? "s" : ""}`);
-        track("screenshot_exported", { count: files.length, scope: request.scope });
 
         const pid = useEditorStore.getState().projectId;
         if (pid) void recordExport(pid, files.length).catch(() => {});

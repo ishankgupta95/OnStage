@@ -14,7 +14,6 @@ import { useEditorStore } from "@/store/editor";
 import type { EditorDoc } from "@/lib/editorDoc";
 import { deviceClassOf } from "@/lib/deviceGeometry";
 import { saveScreenshotConfig } from "@/lib/localData";
-import { track } from "@/lib/analytics";
 
 // One project screenshot, as shown in the filmstrip rail.
 export type RailShot = { id: string; position: number; thumbnailUrl: string | null; doc: EditorDoc };
@@ -113,11 +112,6 @@ function EditorWorkspace({
       unsub();
     };
   }, [canEdit]);
-
-  // Funnel: editor opened (activation step). Fires once per editor mount.
-  useEffect(() => {
-    track("editor_opened", { projectId });
-  }, [projectId]);
 
   return (
     <div className="flex h-screen flex-col">

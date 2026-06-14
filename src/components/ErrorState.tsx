@@ -1,22 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
 import { RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { captureError } from "@/lib/observability";
 
 // Shared fallback for route-segment error.tsx boundaries. On-brand with the
-// empty states (rounded card, blueprint grid, mono kicker). Reports the error
-// once on mount, then offers a retry (Next 16.2 `unstable_retry`, falling back
-// to `reset`) plus an optional escape-hatch link.
+// empty states (rounded card, blueprint grid, mono kicker). Offers a retry
+// (Next 16.2 `unstable_retry`, falling back to `reset`) plus an optional
+// escape-hatch link.
 export default function ErrorState({
   error,
   reset,
   unstable_retry,
   title = "Something went wrong",
-  description = "An unexpected error interrupted this page. Your work is saved as of the last autosave — try again, and if it keeps happening, the issue has been logged.",
+  description = "An unexpected error interrupted this page. Your work is saved as of the last autosave — try again, and if it keeps happening, reload the page.",
   homeHref,
   homeLabel,
   fullScreen = false,
@@ -30,10 +28,6 @@ export default function ErrorState({
   homeLabel?: string;
   fullScreen?: boolean;
 }) {
-  useEffect(() => {
-    captureError(error, { digest: error.digest });
-  }, [error]);
-
   const retry = unstable_retry ?? reset;
 
   return (
