@@ -1,21 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { ThemeProvider } from "next-themes";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { openSet } from "@/store/onstage";
+import { clearStaleAccountKeys } from "@/lib/data/local";
 
+/**
+ * The design is dark-first with an explicit switch in every header, so the
+ * palette is a deliberate choice rather than an OS reading. next-themes stamps
+ * `.light` on <html> before paint, which is what the token layer keys off.
+ */
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  // After mount, so the server-rendered markup and the first client render
+  // agree; the stored set then replaces the sample one.
+  useEffect(() => {
+    // Before the first read, so a stale "out" sentinel or export meter from
+    // the account era can't reach getSession().
+    clearStaleAccountKeys();
+    void openSet();
+  }, []);
 
-  // Default to the OS preference (prefers-color-scheme); an explicit toggle
-  // persists and overrides it. next-themes sets the class pre-paint, so there's
-  // no flash (html has suppressHydrationWarning).
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>{children}</TooltipProvider>
-      </QueryClientProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem={false}
+      disableTransitionOnChange
+    >
+      {children}
     </ThemeProvider>
   );
 }

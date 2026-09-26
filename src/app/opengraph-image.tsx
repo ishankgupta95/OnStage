@@ -5,9 +5,9 @@ import { ImageResponse } from "next/og";
 //
 // Pure inline styles + system fonts so it has no asset dependencies and the
 // build doesn't slow down rendering it. The aesthetic mirrors the brand:
-// emerald accent, large display type, monospace caption.
+// blurple accent, large display type, monospace caption.
 
-export const alt = "Onstage — App Store screenshots that ship";
+export const alt = "Onstage — store screenshots, done in an afternoon";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 // Required for `output: export` — render the OG PNG statically at build time.
@@ -21,7 +21,7 @@ export default function OGImage() {
           width: "100%",
           height: "100%",
           background:
-            "linear-gradient(135deg, #0B1A14 0%, #0F5132 55%, #0B1A14 100%)",
+            "linear-gradient(135deg, #161826 0%, #2b2741 55%, #161826 100%)",
           color: "#fff",
           display: "flex",
           flexDirection: "column",
@@ -47,7 +47,7 @@ export default function OGImage() {
               width: 10,
               height: 10,
               borderRadius: 999,
-              background: "#56b8e6",
+              background: "#9184d9",
             }}
           />
           Onstage
@@ -62,10 +62,10 @@ export default function OGImage() {
               maxWidth: 980,
             }}
           >
-            App Store screenshots that ship.
+            Make a store screenshot right here.
           </div>
           <div style={{ fontSize: 28, color: "rgba(255,255,255,0.78)", maxWidth: 820 }}>
-            A web editor for indie devs and small teams. Side-by-side board, real device frames, exact-dimension PNG export.
+            Drop a screen onto the phone, tilt it, pick a background. Every size the App Store and Google Play ask for, in one export.
           </div>
         </div>
         <div
@@ -81,7 +81,7 @@ export default function OGImage() {
           }}
         >
           <span>onstage.app</span>
-          <span>1290 × 2796 · 1284 × 2778 · 2064 × 2752</span>
+          <span>1320 × 2868 · 1242 × 2688 · 1080 × 1920</span>
         </div>
       </div>
     ),

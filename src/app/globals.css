@@ -1,147 +1,224 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* ══════════════════════════════════════════════════════════════════════════
+   Nocturne — the design system the Onstage mockups were drawn against.
+   Ported from _ds/nocturne-…/styles.css so the tokens in the design file and
+   the tokens the app renders with are the same tokens.
+   ══════════════════════════════════════════════════════════════════════ */
+:root {
+  --color-bg: #161826;
+  --color-surface: #232532;
+  --color-text: #e9e9ed;
+  --color-accent: #9184d9;
+  --color-accent-2: #a7a1db;
+  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+
+  --color-neutral-100: #f3f5fe;
+  --color-neutral-200: #e4e7f5;
+  --color-neutral-300: #cfd3e5;
+  --color-neutral-400: #b2b6ca;
+  --color-neutral-500: #9397ab;
+  --color-neutral-600: #75798c;
+  --color-neutral-700: #595d6c;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
+
+  --color-accent-100: #f5f4ff;
+  --color-accent-200: #e7e5fe;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-accent-900: #2b2741;
+
+  --color-accent-2-100: #f5f4ff;
+  --color-accent-2-200: #e7e5fe;
+  --color-accent-2-300: #d2cefd;
+  --color-accent-2-400: #b5afe8;
+  --color-accent-2-500: #9690c9;
+  --color-accent-2-600: #7972a9;
+  --color-accent-2-700: #5c5783;
+  --color-accent-2-800: #423e5d;
+  --color-accent-2-900: #2b293a;
+
+  --font-heading: "Inter", system-ui, sans-serif;
+  --font-heading-weight: 500;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 0 0 1px #3f424d;
+  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+
+/* ── Onstage's alias layer, verbatim from the mockup's <style> block. Every
+   screen reads these, so dark ⇄ light is a single token swap. ─────────── */
+:root {
+  --accent: var(--color-accent);
+  --accent-rgb: 145, 132, 217;
+  --accent-hi: var(--color-accent-400);
+  --accent-hi2: var(--color-accent-300);
+  --on-accent: var(--color-bg);
+  --bg: var(--color-bg);
+  --chrome: var(--color-surface);
+  --surface: var(--color-surface);
+  --surface-2: #12141f;
+  --surface-3: var(--color-neutral-900);
+  --text: var(--color-text);
+  --text-2: var(--color-neutral-200);
+  --muted: var(--color-neutral-400);
+  --muted-2: var(--color-neutral-500);
+  --muted-3: var(--color-neutral-600);
+  --muted-4: var(--color-neutral-600);
+  --ink-rgb: 233, 233, 237;
+  --pop: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  --scrim-strong: color-mix(in srgb, var(--color-bg) 94%, transparent);
+  --scrim-soft: color-mix(in srgb, var(--color-bg) 66%, transparent);
+  --backdrop: color-mix(in srgb, #0b0c14 74%, transparent);
+  --paper: var(--color-neutral-100);
+  --paper-ink: var(--color-neutral-900);
+  --paper-muted: var(--color-neutral-700);
+  --paper-line-rgb: 41, 43, 49;
+  --ok: #6fbf95;
+  --ok-rgb: 111, 191, 149;
+  --warn: #d9a75a;
+  --warn-rgb: 217, 167, 90;
+}
+
+.light {
+  --bg: var(--color-neutral-100);
+  --chrome: #fbfcff;
+  --surface: #fbfcff;
+  --surface-2: var(--color-neutral-200);
+  --surface-3: var(--color-neutral-300);
+  --text: var(--color-neutral-900);
+  --text-2: var(--color-neutral-800);
+  --muted: var(--color-neutral-700);
+  --muted-2: var(--color-neutral-600);
+  --muted-3: var(--color-neutral-600);
+  --muted-4: var(--color-neutral-500);
+  --ink-rgb: 41, 43, 49;
+  --accent-hi: var(--color-accent-700);
+  --accent-hi2: var(--color-accent-600);
+  --on-accent: var(--color-neutral-100);
+  --pop: #fbfcff;
+  --scrim-strong: color-mix(in srgb, var(--color-neutral-100) 95%, transparent);
+  --scrim-soft: color-mix(in srgb, var(--color-neutral-100) 70%, transparent);
+  --backdrop: color-mix(in srgb, var(--color-neutral-900) 52%, transparent);
+  --paper: var(--color-neutral-200);
+  --paper-ink: var(--color-neutral-900);
+  --paper-muted: var(--color-neutral-700);
+  --ok: #3f8f6a;
+  --ok-rgb: 63, 143, 106;
+  --warn: #a8762a;
+  --warn-rgb: 168, 118, 42;
+}
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: "Satoshi", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-heading: "Satoshi", ui-sans-serif, system-ui, sans-serif;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-/* Accent #56b8e6 (sky blue, from the portfolio). The OS preference is the default
-   (next-themes defaultTheme="system"); it toggles the .dark class for dark mode,
-   and these :root values are the light theme. */
-:root {
-  --background: #ffffff;
-  --foreground: #0b0c0e;
-  --card: #ffffff;
-  --card-foreground: #0b0c0e;
-  --popover: #ffffff;
-  --popover-foreground: #0b0c0e;
-  --primary: #56b8e6;
-  --primary-foreground: #08080a;
-  --secondary: #f1f3f5;
-  --secondary-foreground: #0b0c0e;
-  --muted: #f4f5f7;
-  --muted-foreground: #5f636b;
-  --accent: #edf0f3;
-  --accent-foreground: #0b0c0e;
-  --destructive: #e5484d;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: rgba(0, 0, 0, 0.14);
-  --ring: #56b8e6;
-  --chart-1: #56b8e6;
-  --chart-2: #3aa0d0;
-  --chart-3: #7a8aff;
-  --chart-4: #9b7bff;
-  --chart-5: #f5a97f;
-  --radius: 0.5rem;
-  --sidebar: #fafafa;
-  --sidebar-foreground: #0b0c0e;
-  --sidebar-primary: #56b8e6;
-  --sidebar-primary-foreground: #08080a;
-  --sidebar-accent: #edf0f3;
-  --sidebar-accent-foreground: #0b0c0e;
-  --sidebar-border: rgba(0, 0, 0, 0.08);
-  --sidebar-ring: #56b8e6;
-}
-
-.dark {
-  --background: #0b0c0e;
-  --foreground: #e7e9ec;
-  --card: #121417;
-  --card-foreground: #e7e9ec;
-  --popover: #16181c;
-  --popover-foreground: #e7e9ec;
-  --primary: #56b8e6;
-  --primary-foreground: #08080a;
-  --secondary: #1b1e22;
-  --secondary-foreground: #e7e9ec;
-  --muted: #16181c;
-  --muted-foreground: #9aa1a9;
-  --accent: #20242a;
-  --accent-foreground: #f2f4f6;
-  --destructive: #f0524b;
-  --border: rgba(255, 255, 255, 0.09);
-  --input: rgba(255, 255, 255, 0.12);
-  --ring: #56b8e6;
-  --chart-1: #56b8e6;
-  --chart-2: #5ee0c0;
-  --chart-3: #6aa6ff;
-  --chart-4: #b39bff;
-  --chart-5: #f5a97f;
-  --sidebar: #0e1013;
-  --sidebar-foreground: #e7e9ec;
-  --sidebar-primary: #56b8e6;
-  --sidebar-primary-foreground: #08080a;
-  --sidebar-accent: #20242a;
-  --sidebar-accent-foreground: #f2f4f6;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #56b8e6;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
   }
   html {
-    @apply font-sans;
+    color-scheme: dark;
   }
-  /* Guaranteed visible focus ring for keyboard users on every focusable element.
-     shadcn components opt out via `outline-none` (a utility, which wins over this
-     base rule) and draw their own ring, so this only backstops the custom
-     buttons/links in the editor sidebars, filmstrip, etc. */
+  html.light {
+    color-scheme: light;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button {
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--accent-hi);
+  }
   :focus-visible {
-    outline: 2px solid var(--ring);
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+  ::selection {
+    background: rgba(var(--accent-rgb), 0.3);
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(var(--ink-rgb), 0.13);
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  input,
+  textarea {
+    font-family: inherit;
   }
 }
 
-/* Reduced-motion reset: neutralize all animations/transitions for users who ask
-   for it. Complements the targeted gating on .onstage-float and Reveal. */
+@keyframes onst-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+@keyframes onst-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* The hover affordances the mockup expressed with style-hover="…". */
+.hov-ink:hover {
+  background: rgba(var(--ink-rgb), 0.06) !important;
+}
+.hov-accent:hover {
+  background: rgba(var(--accent-rgb), 0.12) !important;
+}
+.hov-accent-border:hover {
+  border-color: rgba(var(--accent-rgb), 0.5) !important;
+}
+.hov-accent-border-solid:hover {
+  border-color: var(--accent) !important;
+}
+.hov-reveal:hover .reveal {
+  opacity: 1 !important;
+}
+.hov-row:hover {
+  background: rgba(var(--ink-rgb), 0.03) !important;
+}
+.no-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -153,22 +230,39 @@
   }
 }
 
-/* Marketing: a faint "design canvas" grid used behind hero/CTA blueprint motifs. */
-.bp-grid {
-  background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px);
-  background-size: 46px 46px;
+/* Theme-conditional icons, done in CSS so there is no hydration flash. */
+.only-dark {
+  display: grid;
+}
+.only-light {
+  display: none;
+}
+.light .only-dark {
+  display: none;
+}
+.light .only-light {
+  display: grid;
 }
 
-/* Gentle float for hero device frames; offset each with an inline animation-delay.
-   Gated on motion preference so it never fights reduced-motion users. */
-@media (prefers-reduced-motion: no-preference) {
-  @keyframes onstage-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-12px); }
+/* The editor needs room. Handled in CSS rather than JS so there is no
+   measure-then-swap flash, and no hydration mismatch. */
+.wide-only {
+  display: contents;
+}
+.narrow-only {
+  display: none;
+}
+@media (max-width: 899px) {
+  .wide-only {
+    display: none;
   }
-  .onstage-float {
-    animation: onstage-float 8s ease-in-out infinite;
+  .narrow-only {
+    display: block;
+  }
+}
+
+@keyframes onst-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

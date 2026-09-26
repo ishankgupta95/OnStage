@@ -25,6 +25,13 @@ jobs:
       # Turns on output:'export' + basePath in next.config.ts.
       NEXT_PUBLIC_STATIC_EXPORT: "true"
       NEXT_PUBLIC_BASE_PATH: "/OnStage"
+      # Feature flags (src/lib/features.ts) are deliberately unset: Onstage
+      # deploys as a free, no-account tool. To bring a surface back, add its
+      # var here as the string "true" —
+      #   NEXT_PUBLIC_FEATURE_ACCOUNTS / _TEAMS / _BILLING / _EXPORT_QUOTA
+      #   NEXT_PUBLIC_FEATURE_STORE_UPLOAD / _AI_ASSIST / _AB_TEST /
+      #   _JOB_QUEUE / _STORE_IMPORT / _DESIGN_BOARDS (fixture-only surfaces;
+      #   they need a backend before they can be honest)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,6 +39,12 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Next 16 dropped linting from `next build`, so nothing else in this
+      # pipeline would catch an orphaned import or an unused local. The repo's
+      # lint baseline is clean — keep it that way.
+      - run: npm run lint -- --max-warnings 0
+      # Vitest unit tests (vitest.config.ts): pure modules, store, local backend.
+      - run: npm test
       - run: npm run build
       # Stop Jekyll from dropping the _next/ assets directory.
       - run: touch out/.nojekyll

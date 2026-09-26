@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { s } from "@/lib/onstage/css";
+import { IcoAlert } from "@/components/onstage/icons";
 
-// Shared fallback for route-segment error.tsx boundaries. On-brand with the
-// empty states (rounded card, blueprint grid, mono kicker). Offers a retry
-// (Next 16.2 `unstable_retry`, falling back to `reset`) plus an optional
-// escape-hatch link.
+/**
+ * Shared fallback for route-segment error boundaries, in the same language as
+ * the 404 and empty screens: a quiet card, a kicker, two ways out.
+ */
 export default function ErrorState({
   error,
   reset,
@@ -31,33 +30,60 @@ export default function ErrorState({
   const retry = unstable_retry ?? reset;
 
   return (
-    <div className={cn("grid place-items-center px-6", fullScreen ? "h-screen" : "min-h-[60vh] py-16")}>
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card/40 px-6 py-12 text-center">
-        <div className="bp-grid pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(70%_60%_at_50%_25%,black,transparent)]" />
-        <div className="relative">
-          <span className="mx-auto mb-6 grid size-14 place-items-center rounded-2xl bg-destructive/10 text-destructive ring-1 ring-destructive/20">
-            <TriangleAlertIcon className="size-7" />
-          </span>
-          <h1 className="text-xl font-bold tracking-tight">{title}</h1>
-          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">{description}</p>
-          {error.digest && (
-            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-              Ref {error.digest}
-            </p>
+    <div
+      style={s(
+        `display:grid;place-items:center;padding:0 28px;background:var(--bg);color:var(--text);${
+          fullScreen ? "height:100vh" : "min-height:60vh;padding-top:64px;padding-bottom:64px"
+        }`,
+      )}
+    >
+      <div style={s("max-width:560px;text-align:center")}>
+        <span
+          style={s(
+            "display:grid;place-items:center;width:44px;height:44px;margin:0 auto;border-radius:12px;background:rgba(var(--warn-rgb),.14);color:var(--warn)",
           )}
-          <div className="mt-6 flex items-center justify-center gap-2">
-            {retry && (
-              <Button onClick={() => retry()} className="gap-1.5">
-                <RotateCcwIcon className="size-4" />
-                Try again
-              </Button>
-            )}
-            {homeHref && (
-              <Link href={homeHref} className={cn(buttonVariants({ variant: "outline" }), "gap-1.5")}>
-                {homeLabel ?? "Go back"}
-              </Link>
-            )}
-          </div>
+        >
+          <IcoAlert size={22} w={2} />
+        </span>
+        <h1 style={s("margin:22px 0 0;font-size:24px;font-weight:500;letter-spacing:-.028em")}>
+          {title}
+        </h1>
+        <p
+          style={s(
+            "margin:10px auto 0;max-width:46ch;font-size:14.5px;line-height:1.6;color:var(--muted)",
+          )}
+        >
+          {description}
+        </p>
+        {error.digest ? (
+          <p style={s("margin-top:12px;font-size:11px;letter-spacing:.14em;color:var(--muted-3)")}>
+            REF {error.digest}
+          </p>
+        ) : null}
+        <div style={s("display:flex;justify-content:center;gap:10px;margin-top:24px")}>
+          {retry ? (
+            <button
+              type="button"
+              onClick={retry}
+              className="hov-accent"
+              style={s(
+                "height:40px;padding:0 16px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-size:14px;font-weight:500;cursor:pointer",
+              )}
+            >
+              Try again
+            </button>
+          ) : null}
+          {homeHref ? (
+            <Link
+              href={homeHref}
+              className="hov-ink"
+              style={s(
+                "display:inline-flex;align-items:center;height:40px;padding:0 16px;border:1px solid rgba(var(--ink-rgb),.16);border-radius:8px;background:transparent;color:var(--text);font-size:14px",
+              )}
+            >
+              {homeLabel ?? "Back to home"}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>

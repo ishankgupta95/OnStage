@@ -1,0 +1,2480 @@
+{
+ "conventions": {
+  "artboard": "268x580 design px (iPhone 6.9in). x/y/w are fractions of 268; y/h are fractions of 580.",
+  "device": "x,y = device centre; y>1 or x outside 0..1 = bleed. scale = device width / 176 px (1.0 = .657W). iPhone height = 369.75*scale px (aspect .476); frame 'none' = frameless card, height = 380.95*scale (aspect .462). 'second' = back/peeking device.",
+  "pose": "CSS conventions: tiltX = rotateX (pitch, + tips top away), tiltY = rotateY (yaw; negative turns the screen toward the left, i.e. a phone on the right faces centre), roll = rotateZ (+ clockwise).",
+  "caption": "captionY = top of the headline block (fraction of 580); captionSize = headline font size as a fraction of 268 (e.g. .13 = 34.8px). eyebrow sits ~.03 above captionY. captionPos 'left' = a column x .075-.46 beside the device. Optional per-frame 'ink'/'accent' override the template values (dark/inverted frames).",
+  "accent": "One *starred* run per caption. accentStyle: color = run in accent; highlight = accent-filled marker/pill behind the run with ink text; italic = serif italic swap in accent; underline = run in accent with an accent underline.",
+  "decor": "x,y = centre, w,h = size (fractions). number = large display text (stats, numerals, Monolith's word) in color; shape = rect (rules, mats, dimension lines); chip = rounded label; badge = small text label; laurel/stars = rating proof (Apple only); zoom = magnified screen crop card with an accent ring.",
+  "backgrounds": "Browser-renderable CSS approximations for mockups. Conic wedges stand in for Ridgeline's ridge paths; the product draws real paths."
+ },
+ "templates": [
+  {
+   "slug": "ridgeline",
+   "name": "Ridgeline",
+   "source": "dimensional",
+   "vibe": "One continuous mountain dusk in the app's brand colours: phones rise out of the ridges, a dashed route runs through every seam, and one phone leans across the 4|5 seam.",
+   "tags": [
+    "Dark",
+    "Panoramic",
+    "3D",
+    "Brand colours",
+    "Default"
+   ],
+   "category": "Outdoor navigation",
+   "phase": 1,
+   "light": false,
+   "font": {
+    "family": "Plus Jakarta Sans",
+    "weight": 800,
+    "italicAccent": false,
+    "case": "none",
+    "tracking": "-0.03em"
+   },
+   "ink": "#F0EFE9",
+   "accent": "#F2B65A",
+   "accentStyle": "color",
+   "frames": [
+    {
+     "caption": "Find your *next peak*",
+     "sub": "",
+     "eyebrow": "SUMMIT",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.085,
+     "captionSize": 0.135,
+     "background": "conic-gradient(from 110deg at 84% 87%, #081F23 0deg 140deg, #0000 140deg), conic-gradient(from 114deg at 30% 80%, #0B2F33D9 0deg 132deg, #0000 132deg), radial-gradient(ellipse 90% 45% at 55% 50%, #E8A33F59 0%, #E8A33F00 70%), linear-gradient(90deg, #0F3A3D 0%, #175D5B 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.76,
+      "scale": 1.28,
+      "tiltX": 10,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "graphite",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "Weather for *every ridge*",
+     "sub": "Hour-by-hour wind and snow at altitude",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.052,
+     "captionSize": 0.125,
+     "background": "conic-gradient(from 110deg at 18% 86%, #081F23 0deg 140deg, #0000 140deg), conic-gradient(from 114deg at 72% 79%, #0B2F33D9 0deg 132deg, #0000 132deg), radial-gradient(ellipse 70% 40% at 55% 58%, #2FB5A533 0%, #2FB5A500 70%), linear-gradient(90deg, #175D5B 0%, #1B6F6A 50%, #196869 100%)",
+     "device": {
+      "show": true,
+      "x": 0.46,
+      "y": 0.67,
+      "scale": 1.1,
+      "tiltX": 0,
+      "tiltY": 17,
+      "roll": 0,
+      "frame": "graphite",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "Maps that work *offline*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.052,
+     "captionSize": 0.125,
+     "background": "conic-gradient(from 110deg at 95% 85%, #081F23 0deg 140deg, #0000 140deg), conic-gradient(from 114deg at 42% 80%, #0B2F33D9 0deg 132deg, #0000 132deg), radial-gradient(ellipse 80% 50% at 50% 60%, #2FB5A538 0%, #2FB5A500 70%), linear-gradient(90deg, #196869 0%, #145B66 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.745,
+      "scale": 1.3,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "graphite",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "Share your *live location*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.052,
+     "captionSize": 0.125,
+     "background": "conic-gradient(from 110deg at 10% 84%, #081F23 0deg 140deg, #0000 140deg), conic-gradient(from 114deg at 66% 78%, #0B2F33D9 0deg 132deg, #0000 132deg), linear-gradient(90deg, #145B66 0%, #145A66 10%, #11434F 100%)",
+     "device": {
+      "show": true,
+      "x": 0.8,
+      "y": 0.745,
+      "scale": 1.2,
+      "tiltX": 0,
+      "tiltY": -17,
+      "roll": -6,
+      "frame": "graphite",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "Plan the *whole trip*",
+     "sub": "Routes, huts and permits in one itinerary",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.052,
+     "captionSize": 0.125,
+     "background": "conic-gradient(from 110deg at 40% 87%, #081F23 0deg 140deg, #0000 140deg), conic-gradient(from 114deg at 88% 80%, #0B2F33D9 0deg 132deg, #0000 132deg), radial-gradient(ellipse 70% 40% at 80% 25%, #F0EFE91A 0%, #F0EFE900 70%), linear-gradient(90deg, #11434F 0%, #0E2A36 100%)",
+     "device": {
+      "show": true,
+      "x": 0.62,
+      "y": 0.73,
+      "scale": 1.0,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "graphite",
+      "second": {
+       "x": -0.2,
+       "y": 0.745,
+       "scale": 1.2,
+       "tiltY": -17
+      }
+     },
+     "decor": [
+      {
+       "type": "chip",
+       "x": 0.3,
+       "y": 0.62,
+       "w": 0.42,
+       "h": 0.08,
+       "color": "#F0EFE9",
+       "text": "3 huts · 42 km"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "headliner",
+   "name": "Headliner",
+   "source": "conversion",
+   "vibe": "The top-grossing baseline: a huge centred benefit headline with one yellow keyword over a giant flat phone running off the bottom; frame 2 is a rating laurel on Apple and a plain feature frame on Play.",
+   "tags": [
+    "Dark",
+    "Bold type",
+    "Social proof",
+    "Flat",
+    "Conversion"
+   ],
+   "category": "Language learning",
+   "phase": 1,
+   "light": false,
+   "font": {
+    "family": "Inter",
+    "weight": 800,
+    "italicAccent": false,
+    "case": "none",
+    "tracking": "-0.035em"
+   },
+   "ink": "#FFFFFF",
+   "accent": "#FFD84A",
+   "accentStyle": "color",
+   "frames": [
+    {
+     "caption": "Talk like a *local*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.055,
+     "captionSize": 0.15,
+     "background": "radial-gradient(ellipse 90% 40% at 50% 0%, #FFFFFF26 0%, #FFFFFF00 70%), linear-gradient(180deg, #3050FF 0%, #1F37D9 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.746,
+      "scale": 1.4,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "Lessons that *stick*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.175,
+     "captionSize": 0.128,
+     "background": "radial-gradient(ellipse 90% 40% at 50% 0%, #FFFFFF1A 0%, #FFFFFF00 70%), linear-gradient(180deg, #2238C9 0%, #152491 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.757,
+      "scale": 1.34,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "laurel",
+       "x": 0.5,
+       "y": 0.1,
+       "w": 0.56,
+       "h": 0.09,
+       "color": "#FFFFFF",
+       "text": "4.8"
+      },
+      {
+       "type": "stars",
+       "x": 0.5,
+       "y": 0.133,
+       "w": 0.26,
+       "h": 0.02,
+       "color": "#FFD84A",
+       "text": "★★★★★"
+      },
+      {
+       "type": "badge",
+       "x": 0.5,
+       "y": 0.155,
+       "w": 0.36,
+       "h": 0.018,
+       "color": "#FFFFFFB8",
+       "text": "120K RATINGS · Apple only"
+      }
+     ]
+    },
+    {
+     "caption": "Chat with *AI tutors*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.055,
+     "captionSize": 0.135,
+     "background": "radial-gradient(ellipse 90% 40% at 50% 0%, #FFFFFF26 0%, #FFFFFF00 70%), linear-gradient(180deg, #3050FF 0%, #1F37D9 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.727,
+      "scale": 1.34,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "Never lose your *streak*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.055,
+     "captionSize": 0.135,
+     "background": "radial-gradient(ellipse 90% 40% at 50% 0%, #FFFFFF1A 0%, #FFFFFF00 70%), linear-gradient(180deg, #2238C9 0%, #152491 100%)",
+     "device": {
+      "show": true,
+      "x": 0.52,
+      "y": 0.74,
+      "scale": 1.28,
+      "tiltX": 0,
+      "tiltY": -17,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "Ready for your *trip*",
+     "sub": "Travel phrases for 40 countries, offline",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.055,
+     "captionSize": 0.135,
+     "background": "radial-gradient(ellipse 90% 40% at 50% 0%, #FFFFFF26 0%, #FFFFFF00 70%), linear-gradient(180deg, #3050FF 0%, #1F37D9 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.768,
+      "scale": 1.28,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": []
+    }
+   ]
+  },
+  {
+   "slug": "marker",
+   "name": "Marker",
+   "source": "conversion",
+   "vibe": "Warm editorial energy: a heavy left-aligned headline with a yellow highlighter swipe behind the keyword, and a huge phone that zig-zags off the left and right edges.",
+   "tags": [
+    "Light",
+    "Bold type",
+    "Highlight",
+    "Flat",
+    "Side bleed"
+   ],
+   "category": "Study / flashcards",
+   "phase": 2,
+   "light": true,
+   "font": {
+    "family": "Bricolage Grotesque",
+    "weight": 800,
+    "italicAccent": false,
+    "case": "none",
+    "tracking": "-0.03em"
+   },
+   "ink": "#151515",
+   "accent": "#FFE14D",
+   "accentStyle": "highlight",
+   "frames": [
+    {
+     "caption": "Flashcards that *stick*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.06,
+     "captionSize": 0.155,
+     "background": "repeating-linear-gradient(180deg, #0000 0px 23px, #1515150F 23px 24px) 0 100% / 100% 70% no-repeat, #F7F6F2",
+     "device": {
+      "show": true,
+      "x": 0.64,
+      "y": 0.746,
+      "scale": 1.4,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "Your notes, *sorted*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.06,
+     "captionSize": 0.14,
+     "background": "repeating-linear-gradient(180deg, #0000 0px 23px, #1515150F 23px 24px) 0 100% / 100% 70% no-repeat, #F7F6F2",
+     "device": {
+      "show": true,
+      "x": 0.36,
+      "y": 0.746,
+      "scale": 1.4,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "Exam week, *handled*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.06,
+     "captionSize": 0.14,
+     "background": "#151515",
+     "device": {
+      "show": true,
+      "x": 0.64,
+      "y": 0.746,
+      "scale": 1.4,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": [],
+     "ink": "#F7F6F2"
+    },
+    {
+     "caption": "Study with *friends*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.06,
+     "captionSize": 0.14,
+     "background": "repeating-linear-gradient(180deg, #0000 0px 23px, #1515150F 23px 24px) 0 100% / 100% 70% no-repeat, #F7F6F2",
+     "device": {
+      "show": true,
+      "x": 0.36,
+      "y": 0.746,
+      "scale": 1.4,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "Every subject, *one app*",
+     "sub": "Cards, notes and quizzes that sync everywhere",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.06,
+     "captionSize": 0.14,
+     "background": "repeating-linear-gradient(180deg, #0000 0px 23px, #1515150F 23px 24px) 0 100% / 100% 70% no-repeat, #F7F6F2",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.76,
+      "scale": 1.28,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": []
+    }
+   ]
+  },
+  {
+   "slug": "big-number",
+   "name": "Big Number",
+   "source": "conversion",
+   "vibe": "Stat-led: every frame opens on one huge mint number with its units set small, an accent rule and a short line, while the phone angles in from alternating sides.",
+   "tags": [
+    "Dark",
+    "Bold type",
+    "Stats",
+    "3D"
+   ],
+   "category": "Sleep tracker",
+   "phase": 2,
+   "light": false,
+   "font": {
+    "family": "Space Grotesk",
+    "weight": 700,
+    "italicAccent": false,
+    "case": "none",
+    "tracking": "-0.02em"
+   },
+   "ink": "#F2F5F7",
+   "accent": "#7CF29A",
+   "accentStyle": "color",
+   "frames": [
+    {
+     "caption": "of real sleep, *measured*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.225,
+     "captionSize": 0.105,
+     "background": "radial-gradient(circle at 72% 70%, #7CF29A14 0%, #7CF29A00 45%), linear-gradient(180deg, #0F1419 0%, #0A0D10 100%)",
+     "device": {
+      "show": true,
+      "x": 0.62,
+      "y": 0.724,
+      "scale": 1.19,
+      "tiltX": 6,
+      "tiltY": -16,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.47,
+       "y": 0.115,
+       "w": 0.8,
+       "h": 0.12,
+       "color": "#7CF29A",
+       "text": "7h 42m"
+      },
+      {
+       "type": "shape",
+       "x": 0.13,
+       "y": 0.205,
+       "w": 0.12,
+       "h": 0.004,
+       "color": "#7CF29A"
+      }
+     ]
+    },
+    {
+     "caption": "*deep sleep* in three weeks",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.225,
+     "captionSize": 0.105,
+     "background": "radial-gradient(circle at 28% 70%, #7CF29A14 0%, #7CF29A00 45%), linear-gradient(180deg, #13201A 0%, #0B120E 100%)",
+     "device": {
+      "show": true,
+      "x": 0.38,
+      "y": 0.724,
+      "scale": 1.19,
+      "tiltX": 6,
+      "tiltY": 16,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.38,
+       "y": 0.115,
+       "w": 0.62,
+       "h": 0.12,
+       "color": "#7CF29A",
+       "text": "+18%"
+      },
+      {
+       "type": "shape",
+       "x": 0.13,
+       "y": 0.205,
+       "w": 0.12,
+       "h": 0.004,
+       "color": "#7CF29A"
+      }
+     ]
+    },
+    {
+     "caption": "Wake up *gently*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.055,
+     "captionSize": 0.13,
+     "background": "linear-gradient(180deg, #0F1419 0%, #0A0D10 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.708,
+      "scale": 1.28,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": []
+    },
+    {
+     "caption": "your nightly *sleep score*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.225,
+     "captionSize": 0.105,
+     "background": "radial-gradient(circle at 28% 70%, #7CF29A14 0%, #7CF29A00 45%), linear-gradient(180deg, #13201A 0%, #0B120E 100%)",
+     "device": {
+      "show": true,
+      "x": 0.62,
+      "y": 0.724,
+      "scale": 1.19,
+      "tiltX": 6,
+      "tiltY": -16,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.4,
+       "y": 0.115,
+       "w": 0.66,
+       "h": 0.12,
+       "color": "#7CF29A",
+       "text": "92/100"
+      },
+      {
+       "type": "shape",
+       "x": 0.13,
+       "y": 0.205,
+       "w": 0.12,
+       "h": 0.004,
+       "color": "#7CF29A"
+      }
+     ]
+    },
+    {
+     "caption": "to a *better routine*",
+     "sub": "Wind-down plans built from your own data",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.225,
+     "captionSize": 0.105,
+     "background": "radial-gradient(circle at 72% 70%, #7CF29A14 0%, #7CF29A00 45%), linear-gradient(180deg, #0F1419 0%, #0A0D10 100%)",
+     "device": {
+      "show": true,
+      "x": 0.38,
+      "y": 0.78,
+      "scale": 1.19,
+      "tiltX": 6,
+      "tiltY": 16,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.45,
+       "y": 0.115,
+       "w": 0.76,
+       "h": 0.12,
+       "color": "#7CF29A",
+       "text": "5 nights"
+      },
+      {
+       "type": "shape",
+       "x": 0.13,
+       "y": 0.205,
+       "w": 0.12,
+       "h": 0.004,
+       "color": "#7CF29A"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "field-notes",
+   "name": "Field Notes",
+   "source": "editorial",
+   "vibe": "A printed field journal: warm paper, a mono folio and hairline, a serif headline with one italic terracotta word, and a flat phone rising from the bottom edge that steps centre, right, centre, left.",
+   "tags": [
+    "Light",
+    "Serif",
+    "Mono",
+    "Flat",
+    "Editorial"
+   ],
+   "category": "Journaling",
+   "phase": 1,
+   "light": true,
+   "font": {
+    "family": "Fraunces",
+    "weight": 600,
+    "italicAccent": true,
+    "case": "none",
+    "tracking": "-0.02em"
+   },
+   "ink": "#1C1A17",
+   "accent": "#C8472B",
+   "accentStyle": "italic",
+   "frames": [
+    {
+     "caption": "A quieter place to *write*",
+     "sub": "One prompt a day. No feeds, no streaks.",
+     "eyebrow": "N° 01 — TODAY",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.095,
+     "captionSize": 0.135,
+     "background": "radial-gradient(ellipse 80% 50% at 85% 8%, #FFF7E8B3 0%, #FFF7E800 70%), #F2EEE5",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.779,
+      "scale": 1.157,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "graphite",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.082,
+       "w": 0.84,
+       "h": 0.0012,
+       "color": "#1C1A1738"
+      }
+     ]
+    },
+    {
+     "caption": "Prompts that *find you*",
+     "sub": "",
+     "eyebrow": "N° 02 — PROMPTS",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.095,
+     "captionSize": 0.118,
+     "background": "radial-gradient(ellipse 80% 50% at 85% 8%, #FFF7E8B3 0%, #FFF7E800 70%), #F2EEE5",
+     "device": {
+      "show": true,
+      "x": 0.6,
+      "y": 0.785,
+      "scale": 1.126,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "graphite",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.082,
+       "w": 0.84,
+       "h": 0.0012,
+       "color": "#1C1A1738"
+      }
+     ]
+    },
+    {
+     "caption": "On this day, *years ago*",
+     "sub": "",
+     "eyebrow": "N° 03 — MEMORIES",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.095,
+     "captionSize": 0.118,
+     "background": "radial-gradient(ellipse 80% 50% at 15% 0%, #FFFFFF0D 0%, #FFFFFF00 70%), #1C1A17",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.785,
+      "scale": 1.126,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "graphite",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.082,
+       "w": 0.84,
+       "h": 0.0012,
+       "color": "#F2EEE538"
+      }
+     ],
+     "ink": "#F2EEE5",
+     "accent": "#E9795A"
+    },
+    {
+     "caption": "Private *by default*",
+     "sub": "",
+     "eyebrow": "N° 04 — PRIVATE",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.095,
+     "captionSize": 0.118,
+     "background": "radial-gradient(ellipse 80% 50% at 85% 8%, #FFF7E8B3 0%, #FFF7E800 70%), #F2EEE5",
+     "device": {
+      "show": true,
+      "x": 0.4,
+      "y": 0.785,
+      "scale": 1.126,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "graphite",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.082,
+       "w": 0.84,
+       "h": 0.0012,
+       "color": "#1C1A1738"
+      }
+     ]
+    },
+    {
+     "caption": "Print your year as a *book*",
+     "sub": "Hardcover, 120 pages, shipped to your door",
+     "eyebrow": "N° 05 — BOOKS",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.095,
+     "captionSize": 0.118,
+     "background": "radial-gradient(ellipse 80% 50% at 15% 0%, #FFFFFF0D 0%, #FFFFFF00 70%), #1C1A17",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.785,
+      "scale": 1.126,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "graphite",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.082,
+       "w": 0.84,
+       "h": 0.0012,
+       "color": "#F2EEE538"
+      }
+     ],
+     "ink": "#F2EEE5",
+     "accent": "#E9795A"
+    }
+   ]
+  },
+  {
+   "slug": "nocturne",
+   "name": "Nocturne",
+   "source": "editorial",
+   "vibe": "Near-black lit by one electric hue per frame: the phone hangs from the top edge into its own glow, the caption sits at the bottom under a hairline, and frame 3 is a close-up.",
+   "tags": [
+    "Dark",
+    "Minimal",
+    "Mono",
+    "Glow",
+    "Caption bottom"
+   ],
+   "category": "AI writing / dev tool",
+   "phase": 2,
+   "light": false,
+   "font": {
+    "family": "Geist",
+    "weight": 600,
+    "italicAccent": false,
+    "case": "none",
+    "tracking": "-0.035em"
+   },
+   "ink": "#F4F5F8",
+   "accent": "#8A8F98",
+   "accentStyle": "color",
+   "frames": [
+    {
+     "caption": "Write less. *Ship more.*",
+     "sub": "",
+     "eyebrow": "01 / WRITE",
+     "captionPos": "bottom",
+     "align": "left",
+     "captionY": 0.725,
+     "captionSize": 0.122,
+     "background": "radial-gradient(ellipse 80% 40% at 50% 30%, #7A74FF6B 0%, #7A74FF1F 50%, #7A74FF00 100%), radial-gradient(circle, #FFFFFF0B 0 1px, #0000 1.3px) 0 0 / 10px 10px, #08090C",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.242,
+      "scale": 1.28,
+      "tiltX": 10,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.675,
+       "w": 0.84,
+       "h": 0.0012,
+       "color": "#FFFFFF1A"
+      }
+     ]
+    },
+    {
+     "caption": "Answers from *your docs*",
+     "sub": "",
+     "eyebrow": "02 / SEARCH",
+     "captionPos": "bottom",
+     "align": "left",
+     "captionY": 0.705,
+     "captionSize": 0.112,
+     "background": "radial-gradient(ellipse 80% 40% at 50% 30%, #5B7CFF6B 0%, #5B7CFF1F 50%, #5B7CFF00 100%), radial-gradient(circle, #FFFFFF0B 0 1px, #0000 1.3px) 0 0 / 10px 10px, #08090C",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.242,
+      "scale": 1.187,
+      "tiltX": 10,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.655,
+       "w": 0.84,
+       "h": 0.0012,
+       "color": "#FFFFFF1A"
+      }
+     ]
+    },
+    {
+     "caption": "Drafts in *seconds*",
+     "sub": "",
+     "eyebrow": "03 / DRAFT",
+     "captionPos": "bottom",
+     "align": "left",
+     "captionY": 0.705,
+     "captionSize": 0.112,
+     "background": "radial-gradient(ellipse 80% 40% at 50% 30%, #3FB8FF6B 0%, #3FB8FF1F 50%, #3FB8FF00 100%), radial-gradient(circle, #FFFFFF0B 0 1px, #0000 1.3px) 0 0 / 10px 10px, #08090C",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.11,
+      "scale": 1.6,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.655,
+       "w": 0.84,
+       "h": 0.0012,
+       "color": "#FFFFFF1A"
+      }
+     ]
+    },
+    {
+     "caption": "Private by *design*",
+     "sub": "",
+     "eyebrow": "04 / PRIVACY",
+     "captionPos": "bottom",
+     "align": "left",
+     "captionY": 0.705,
+     "captionSize": 0.112,
+     "background": "radial-gradient(ellipse 80% 40% at 50% 30%, #5B7CFF6B 0%, #5B7CFF1F 50%, #5B7CFF00 100%), radial-gradient(circle, #FFFFFF0B 0 1px, #0000 1.3px) 0 0 / 10px 10px, #08090C",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.242,
+      "scale": 1.187,
+      "tiltX": 10,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.655,
+       "w": 0.84,
+       "h": 0.0012,
+       "color": "#FFFFFF1A"
+      }
+     ]
+    },
+    {
+     "caption": "Works where *you work*",
+     "sub": "Mac, iPhone and the web, always in sync",
+     "eyebrow": "05 / SYNC",
+     "captionPos": "bottom",
+     "align": "left",
+     "captionY": 0.705,
+     "captionSize": 0.112,
+     "background": "radial-gradient(ellipse 80% 40% at 50% 30%, #7A74FF6B 0%, #7A74FF1F 50%, #7A74FF00 100%), radial-gradient(circle, #FFFFFF0B 0 1px, #0000 1.3px) 0 0 / 10px 10px, #08090C",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.242,
+      "scale": 1.187,
+      "tiltX": 10,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.655,
+       "w": 0.84,
+       "h": 0.0012,
+       "color": "#FFFFFF1A"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "index",
+   "name": "Index",
+   "source": "editorial",
+   "vibe": "International style: a giant frame numeral and a ragged-right text column sit beside a phone pushed 30% off the right edge; the set closes on a type-only contents page.",
+   "tags": [
+    "Light",
+    "Grotesk",
+    "Type-only",
+    "Editorial",
+    "Caption beside"
+   ],
+   "category": "Calendar / planner",
+   "phase": 2,
+   "light": true,
+   "font": {
+    "family": "Instrument Sans",
+    "weight": 600,
+    "italicAccent": false,
+    "case": "none",
+    "tracking": "-0.03em"
+   },
+   "ink": "#0B1220",
+   "accent": "#E4322B",
+   "accentStyle": "color",
+   "frames": [
+    {
+     "caption": "Plan the week in *one view*",
+     "sub": "Calendar, tasks and focus time on one page",
+     "eyebrow": "WEEK",
+     "captionPos": "left",
+     "align": "left",
+     "captionY": 0.245,
+     "captionSize": 0.09,
+     "background": "#0B1220",
+     "device": {
+      "show": true,
+      "x": 0.85,
+      "y": 0.585,
+      "scale": 1.066,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.062,
+       "w": 0.85,
+       "h": 0.004,
+       "color": "#FFFFFF"
+      },
+      {
+       "type": "number",
+       "x": 0.25,
+       "y": 0.15,
+       "w": 0.38,
+       "h": 0.12,
+       "color": "#FFFFFFEB",
+       "text": "01"
+      }
+     ],
+     "ink": "#FFFFFF",
+     "accent": "#FF4A3D"
+    },
+    {
+     "caption": "Blocks that *reflow*",
+     "sub": "Drag one meeting; the rest of the day moves with it",
+     "eyebrow": "BLOCKS",
+     "captionPos": "left",
+     "align": "left",
+     "captionY": 0.245,
+     "captionSize": 0.09,
+     "background": "#E9ECF0",
+     "device": {
+      "show": true,
+      "x": 0.85,
+      "y": 0.585,
+      "scale": 1.066,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.062,
+       "w": 0.85,
+       "h": 0.004,
+       "color": "#0B1220"
+      },
+      {
+       "type": "number",
+       "x": 0.25,
+       "y": 0.15,
+       "w": 0.38,
+       "h": 0.12,
+       "color": "#E4322B",
+       "text": "02"
+      }
+     ]
+    },
+    {
+     "caption": "Focus, *on a timer*",
+     "sub": "",
+     "eyebrow": "FOCUS",
+     "captionPos": "left",
+     "align": "left",
+     "captionY": 0.245,
+     "captionSize": 0.09,
+     "background": "#E9ECF0",
+     "device": {
+      "show": true,
+      "x": 0.85,
+      "y": 0.585,
+      "scale": 1.066,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.062,
+       "w": 0.85,
+       "h": 0.004,
+       "color": "#0B1220"
+      },
+      {
+       "type": "number",
+       "x": 0.25,
+       "y": 0.15,
+       "w": 0.38,
+       "h": 0.12,
+       "color": "#E4322B",
+       "text": "03"
+      }
+     ]
+    },
+    {
+     "caption": "Lists you *share*",
+     "sub": "Groceries to launch plans, edited together live",
+     "eyebrow": "SHARED",
+     "captionPos": "left",
+     "align": "left",
+     "captionY": 0.245,
+     "captionSize": 0.09,
+     "background": "#E9ECF0",
+     "device": {
+      "show": true,
+      "x": 0.85,
+      "y": 0.585,
+      "scale": 1.066,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.062,
+       "w": 0.85,
+       "h": 0.004,
+       "color": "#0B1220"
+      },
+      {
+       "type": "number",
+       "x": 0.25,
+       "y": 0.15,
+       "w": 0.38,
+       "h": 0.12,
+       "color": "#E4322B",
+       "text": "04"
+      }
+     ]
+    },
+    {
+     "caption": "Everything, *indexed*",
+     "sub": "",
+     "eyebrow": "CONTENTS",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.16,
+     "captionSize": 0.13,
+     "background": "#0B1220",
+     "device": {
+      "show": false,
+      "x": 0.5,
+      "y": 0.5,
+      "scale": 0,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "none",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.062,
+       "w": 0.85,
+       "h": 0.004,
+       "color": "#FFFFFF"
+      },
+      {
+       "type": "chip",
+       "x": 0.5,
+       "y": 0.42,
+       "w": 0.85,
+       "h": 0.055,
+       "color": "#FFFFFF",
+       "text": "01  Week view"
+      },
+      {
+       "type": "chip",
+       "x": 0.5,
+       "y": 0.495,
+       "w": 0.85,
+       "h": 0.055,
+       "color": "#FFFFFF",
+       "text": "02  Time blocks"
+      },
+      {
+       "type": "chip",
+       "x": 0.5,
+       "y": 0.57,
+       "w": 0.85,
+       "h": 0.055,
+       "color": "#FFFFFF",
+       "text": "03  Focus timer"
+      },
+      {
+       "type": "chip",
+       "x": 0.5,
+       "y": 0.645,
+       "w": 0.85,
+       "h": 0.055,
+       "color": "#FFFFFF",
+       "text": "04  Shared lists"
+      },
+      {
+       "type": "chip",
+       "x": 0.5,
+       "y": 0.72,
+       "w": 0.85,
+       "h": 0.055,
+       "color": "#FFFFFF",
+       "text": "05  Widgets"
+      }
+     ],
+     "ink": "#FFFFFF",
+     "accent": "#FF4A3D"
+    }
+   ]
+  },
+  {
+   "slug": "monolith",
+   "name": "Monolith",
+   "source": "editorial",
+   "vibe": "Five covers of one magazine: a giant lowercase serif word sits behind a small phone, a new jewel colour every frame, and a quiet serif caption at the bottom.",
+   "tags": [
+    "Dark",
+    "Serif",
+    "Minimal",
+    "Editorial",
+    "Caption bottom"
+   ],
+   "category": "Meditation",
+   "phase": 2,
+   "light": false,
+   "font": {
+    "family": "DM Serif Display",
+    "weight": 400,
+    "italicAccent": true,
+    "case": "none",
+    "tracking": "-0.01em"
+   },
+   "ink": "#F7EDE3",
+   "accent": "#F2B880",
+   "accentStyle": "italic",
+   "frames": [
+    {
+     "caption": "Calm, in *two minutes*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "bottom",
+     "align": "center",
+     "captionY": 0.86,
+     "captionSize": 0.085,
+     "background": "radial-gradient(ellipse 95% 60% at 50% 42%, #FFFFFF0F 0%, #FFFFFF00 70%), #3A0F16",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.556,
+      "scale": 0.85,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.5,
+       "y": 0.235,
+       "w": 0.96,
+       "h": 0.17,
+       "color": "#F4C3AE",
+       "text": "breathe"
+      }
+     ],
+     "ink": "#F7EDE3",
+     "accent": "#F2B880"
+    },
+    {
+     "caption": "Fall asleep *faster*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "bottom",
+     "align": "center",
+     "captionY": 0.86,
+     "captionSize": 0.085,
+     "background": "radial-gradient(ellipse 95% 60% at 50% 42%, #FFFFFF0F 0%, #FFFFFF00 70%), #0F2B22",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.556,
+      "scale": 0.85,
+      "tiltX": 0,
+      "tiltY": -10,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.5,
+       "y": 0.235,
+       "w": 0.96,
+       "h": 0.17,
+       "color": "#BFE3C4",
+       "text": "sleep"
+      }
+     ],
+     "ink": "#EAF2EC",
+     "accent": "#C9E3A5"
+    },
+    {
+     "caption": "Sound for *deep work*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "bottom",
+     "align": "center",
+     "captionY": 0.86,
+     "captionSize": 0.085,
+     "background": "radial-gradient(ellipse 95% 60% at 50% 42%, #FFFFFF0F 0%, #FFFFFF00 70%), #111C3A",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.556,
+      "scale": 0.85,
+      "tiltX": 0,
+      "tiltY": 10,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.5,
+       "y": 0.235,
+       "w": 0.96,
+       "h": 0.17,
+       "color": "#BFD0FF",
+       "text": "focus"
+      }
+     ],
+     "ink": "#EEF1FA",
+     "accent": "#A9C1FF"
+    },
+    {
+     "caption": "Stretch *between calls*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "bottom",
+     "align": "center",
+     "captionY": 0.86,
+     "captionSize": 0.085,
+     "background": "radial-gradient(ellipse 95% 60% at 50% 42%, #FFFFFF0F 0%, #FFFFFF00 70%), #2E1B10",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.556,
+      "scale": 0.85,
+      "tiltX": 0,
+      "tiltY": -10,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.5,
+       "y": 0.235,
+       "w": 0.96,
+       "h": 0.17,
+       "color": "#F2CFA6",
+       "text": "move"
+      }
+     ],
+     "ink": "#F6EBDD",
+     "accent": "#F2B880"
+    },
+    {
+     "caption": "A calmer *every day*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "bottom",
+     "align": "center",
+     "captionY": 0.86,
+     "captionSize": 0.085,
+     "background": "radial-gradient(ellipse 95% 60% at 50% 42%, #FFFFFF0F 0%, #FFFFFF00 70%), #161616",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.556,
+      "scale": 0.85,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.5,
+       "y": 0.235,
+       "w": 0.96,
+       "h": 0.17,
+       "color": "#E6E6E6",
+       "text": "daily"
+      }
+     ],
+     "ink": "#F2F2F2",
+     "accent": "#D9D9D9"
+    }
+   ]
+  },
+  {
+   "slug": "duo",
+   "name": "Duo",
+   "source": "dimensional",
+   "vibe": "Two phones in conversation, facing each other and overlapping in depth; each pair shows this frame's screen beside the next one, so the store row reads as a flow. Single frames get chat chips.",
+   "tags": [
+    "Light",
+    "Multi-device",
+    "Serif accent",
+    "3D"
+   ],
+   "category": "Resale marketplace",
+   "phase": 3,
+   "light": true,
+   "font": {
+    "family": "DM Sans",
+    "weight": 700,
+    "italicAccent": true,
+    "case": "none",
+    "tracking": "-0.035em"
+   },
+   "ink": "#24121A",
+   "accent": "#D6336C",
+   "accentStyle": "italic",
+   "frames": [
+    {
+     "caption": "List it. *Sold.*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.055,
+     "captionSize": 0.112,
+     "background": "radial-gradient(circle at 12% 28%, #FFB4D68C 0%, #FFB4D600 42%), radial-gradient(circle at 92% 88%, #9AD8FF73 0%, #9AD8FF00 45%), linear-gradient(180deg, #FFEDE6 0%, #FFD6C9 100%)",
+     "device": {
+      "show": true,
+      "x": 0.64,
+      "y": 0.63,
+      "scale": 0.944,
+      "tiltX": 0,
+      "tiltY": -14,
+      "roll": 4,
+      "frame": "silver",
+      "second": {
+       "x": 0.34,
+       "y": 0.58,
+       "scale": 0.853,
+       "tiltY": 22
+      }
+     },
+     "decor": []
+    },
+    {
+     "caption": "Offers, *in chat*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.055,
+     "captionSize": 0.104,
+     "background": "radial-gradient(circle at 88% 26%, #FFB4D673 0%, #FFB4D600 42%), radial-gradient(circle at 8% 90%, #9AD8FF73 0%, #9AD8FF00 45%), linear-gradient(180deg, #EFEAFF 0%, #DCD3FF 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.61,
+      "scale": 1.005,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "chip",
+       "x": 0.27,
+       "y": 0.42,
+       "w": 0.44,
+       "h": 0.055,
+       "color": "#FFFFFF",
+       "text": "Still available?"
+      },
+      {
+       "type": "chip",
+       "x": 0.74,
+       "y": 0.66,
+       "w": 0.42,
+       "h": 0.055,
+       "color": "#6C4CF5",
+       "text": "Yes, $40 today"
+      }
+     ]
+    },
+    {
+     "caption": "Snap, price, *post*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.055,
+     "captionSize": 0.104,
+     "background": "radial-gradient(circle at 88% 28%, #FFB4D68C 0%, #FFB4D600 42%), radial-gradient(circle at 8% 88%, #9AD8FF73 0%, #9AD8FF00 45%), linear-gradient(180deg, #FFEDE6 0%, #FFD6C9 100%)",
+     "device": {
+      "show": true,
+      "x": 0.36,
+      "y": 0.63,
+      "scale": 0.944,
+      "tiltX": 0,
+      "tiltY": 14,
+      "roll": -4,
+      "frame": "silver",
+      "second": {
+       "x": 0.66,
+       "y": 0.58,
+       "scale": 0.853,
+       "tiltY": -22
+      }
+     },
+     "decor": []
+    },
+    {
+     "caption": "Pickup or *shipping*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.055,
+     "captionSize": 0.104,
+     "background": "radial-gradient(circle at 88% 26%, #FFB4D673 0%, #FFB4D600 42%), radial-gradient(circle at 8% 90%, #9AD8FF73 0%, #9AD8FF00 45%), linear-gradient(180deg, #EFEAFF 0%, #DCD3FF 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.61,
+      "scale": 1.005,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "chip",
+       "x": 0.72,
+       "y": 0.48,
+       "w": 0.44,
+       "h": 0.055,
+       "color": "#FFFFFF",
+       "text": "Label ready · 2 min"
+      }
+     ]
+    },
+    {
+     "caption": "Declutter, *get paid*",
+     "sub": "Payouts to your bank in 1–2 days",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "center",
+     "captionY": 0.055,
+     "captionSize": 0.104,
+     "background": "radial-gradient(circle at 12% 28%, #FFB4D68C 0%, #FFB4D600 42%), radial-gradient(circle at 92% 88%, #9AD8FF73 0%, #9AD8FF00 45%), linear-gradient(180deg, #FFEDE6 0%, #FFD6C9 100%)",
+     "device": {
+      "show": true,
+      "x": 0.64,
+      "y": 0.65,
+      "scale": 0.944,
+      "tiltX": 0,
+      "tiltY": -14,
+      "roll": 4,
+      "frame": "silver",
+      "second": {
+       "x": 0.34,
+       "y": 0.6,
+       "scale": 0.853,
+       "tiltY": 22
+      }
+     },
+     "decor": []
+    }
+   ]
+  },
+  {
+   "slug": "gallery",
+   "name": "Gallery",
+   "source": "dimensional",
+   "vibe": "A quiet museum wall: frameless screens hung on pastel mats like framed prints, a wall-label caption underneath, single and pair frames alternating. The calm, flat counterpoint.",
+   "tags": [
+    "Light",
+    "Frameless",
+    "Minimal",
+    "Multi-screen",
+    "Caption bottom"
+   ],
+   "category": "Photo editor",
+   "phase": 1,
+   "light": true,
+   "font": {
+    "family": "Inter",
+    "weight": 600,
+    "italicAccent": false,
+    "case": "none",
+    "tracking": "-0.025em"
+   },
+   "ink": "#15171C",
+   "accent": "#2E5BD8",
+   "accentStyle": "color",
+   "frames": [
+    {
+     "caption": "Edits that stay *subtle*",
+     "sub": "",
+     "eyebrow": "01 · PRESETS",
+     "captionPos": "bottom",
+     "align": "left",
+     "captionY": 0.805,
+     "captionSize": 0.09,
+     "background": "#F1F2F4",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.3925,
+      "scale": 0.853,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "none",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.3925,
+       "w": 0.88,
+       "h": 0.705,
+       "color": "#DCE6FF",
+       "text": "mat"
+      }
+     ],
+     "accent": "#2E5BD8"
+    },
+    {
+     "caption": "Before and *after*",
+     "sub": "",
+     "eyebrow": "02 · COMPARE",
+     "captionPos": "bottom",
+     "align": "left",
+     "captionY": 0.805,
+     "captionSize": 0.09,
+     "background": "#F1F2F4",
+     "device": {
+      "show": true,
+      "x": 0.69,
+      "y": 0.42,
+      "scale": 0.61,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "none",
+      "second": {
+       "x": 0.31,
+       "y": 0.37,
+       "scale": 0.61,
+       "tiltY": 0
+      }
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.3925,
+       "w": 0.88,
+       "h": 0.705,
+       "color": "#FFE2D1",
+       "text": "mat"
+      }
+     ],
+     "accent": "#D1622C"
+    },
+    {
+     "caption": "Film looks, *zero fuss*",
+     "sub": "",
+     "eyebrow": "03 · FILM",
+     "captionPos": "bottom",
+     "align": "left",
+     "captionY": 0.805,
+     "captionSize": 0.09,
+     "background": "#F1F2F4",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.3925,
+      "scale": 0.853,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "none",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.3925,
+       "w": 0.88,
+       "h": 0.705,
+       "color": "#D9F1E1",
+       "text": "mat"
+      }
+     ],
+     "accent": "#23865A"
+    },
+    {
+     "caption": "Batch edit a *whole trip*",
+     "sub": "",
+     "eyebrow": "04 · BATCH",
+     "captionPos": "bottom",
+     "align": "left",
+     "captionY": 0.805,
+     "captionSize": 0.09,
+     "background": "#F1F2F4",
+     "device": {
+      "show": true,
+      "x": 0.69,
+      "y": 0.42,
+      "scale": 0.61,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "none",
+      "second": {
+       "x": 0.31,
+       "y": 0.37,
+       "scale": 0.61,
+       "tiltY": 0
+      }
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.3925,
+       "w": 0.88,
+       "h": 0.705,
+       "color": "#EAE1FF",
+       "text": "mat"
+      }
+     ],
+     "accent": "#6A4BD6"
+    },
+    {
+     "caption": "Your camera roll, *calmer*",
+     "sub": "Private by default. Nothing leaves your phone.",
+     "eyebrow": "05 · LIBRARY",
+     "captionPos": "bottom",
+     "align": "left",
+     "captionY": 0.805,
+     "captionSize": 0.09,
+     "background": "#F1F2F4",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.3925,
+      "scale": 0.853,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "none",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.5,
+       "y": 0.3925,
+       "w": 0.88,
+       "h": 0.705,
+       "color": "#FFF0BF",
+       "text": "mat"
+      }
+     ],
+     "accent": "#A87A00"
+    }
+   ]
+  },
+  {
+   "slug": "signal",
+   "name": "Signal",
+   "source": "dimensional",
+   "vibe": "A sports poster: a diagonal volt/black split that zig-zags continuously across the store row, colours swapping at every seam, condensed caps on top and a rolled phone straddling the split.",
+   "tags": [
+    "Dark",
+    "Bold type",
+    "Split",
+    "3D",
+    "Uppercase"
+   ],
+   "category": "Live sports scores",
+   "phase": 1,
+   "light": false,
+   "font": {
+    "family": "Anton",
+    "weight": 400,
+    "italicAccent": false,
+    "case": "upper",
+    "tracking": "0.005em"
+   },
+   "ink": "#D7FF3A",
+   "accent": "#FF4D1C",
+   "accentStyle": "highlight",
+   "frames": [
+    {
+     "caption": "Every goal, *live*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.05,
+     "captionSize": 0.18,
+     "background": "linear-gradient(168deg, #0E0E0E 0%, #0E0E0E 47.3%, #D7FF3A 47.3%, #D7FF3A 100%)",
+     "device": {
+      "show": true,
+      "x": 0.52,
+      "y": 0.763,
+      "scale": 1.2,
+      "tiltX": 6,
+      "tiltY": -12,
+      "roll": -4,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.8,
+       "y": 0.87,
+       "w": 0.46,
+       "h": 0.2,
+       "color": "#0E0E0E40",
+       "text": "01"
+      }
+     ]
+    },
+    {
+     "caption": "Your teams, *first*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.05,
+     "captionSize": 0.165,
+     "background": "linear-gradient(192deg, #D7FF3A 0%, #D7FF3A 47.3%, #0E0E0E 47.3%, #0E0E0E 100%)",
+     "device": {
+      "show": true,
+      "x": 0.48,
+      "y": 0.763,
+      "scale": 1.2,
+      "tiltX": 6,
+      "tiltY": 12,
+      "roll": 4,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.8,
+       "y": 0.87,
+       "w": 0.46,
+       "h": 0.2,
+       "color": "#D7FF3A40",
+       "text": "02"
+      }
+     ],
+     "ink": "#0E0E0E"
+    },
+    {
+     "caption": "Stats that *settle debates*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.05,
+     "captionSize": 0.165,
+     "background": "linear-gradient(168deg, #0E0E0E 0%, #0E0E0E 47.3%, #D7FF3A 47.3%, #D7FF3A 100%)",
+     "device": {
+      "show": true,
+      "x": 0.52,
+      "y": 0.763,
+      "scale": 1.2,
+      "tiltX": 6,
+      "tiltY": -12,
+      "roll": -4,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.8,
+       "y": 0.87,
+       "w": 0.46,
+       "h": 0.2,
+       "color": "#0E0E0E40",
+       "text": "03"
+      }
+     ]
+    },
+    {
+     "caption": "Kickoff *alerts*",
+     "sub": "",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.05,
+     "captionSize": 0.165,
+     "background": "linear-gradient(192deg, #D7FF3A 0%, #D7FF3A 47.3%, #0E0E0E 47.3%, #0E0E0E 100%)",
+     "device": {
+      "show": true,
+      "x": 0.48,
+      "y": 0.763,
+      "scale": 1.2,
+      "tiltX": 6,
+      "tiltY": 12,
+      "roll": 4,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.8,
+       "y": 0.87,
+       "w": 0.46,
+       "h": 0.2,
+       "color": "#D7FF3A40",
+       "text": "04"
+      }
+     ],
+     "ink": "#0E0E0E"
+    },
+    {
+     "caption": "Never miss a *match*",
+     "sub": "SCORES · LINEUPS · HIGHLIGHTS",
+     "eyebrow": "",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.05,
+     "captionSize": 0.165,
+     "background": "linear-gradient(168deg, #0E0E0E 0%, #0E0E0E 47.3%, #D7FF3A 47.3%, #D7FF3A 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.767,
+      "scale": 1.15,
+      "tiltX": 6,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "black",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "number",
+       "x": 0.8,
+       "y": 0.87,
+       "w": 0.46,
+       "h": 0.2,
+       "color": "#0E0E0E40",
+       "text": "05"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "blueprint",
+   "name": "Blueprint",
+   "source": "dimensional",
+   "vibe": "A technical drawing: drafting grid, a flat near-orthographic phone and exactly one real callout per frame (dimension line, zoom card or annotation leaders), with a whiteprint negative in the middle of the set.",
+   "tags": [
+    "Dark",
+    "Mono",
+    "Callouts",
+    "Flat",
+    "Technical"
+   ],
+   "category": "API uptime monitor",
+   "phase": 2,
+   "light": false,
+   "font": {
+    "family": "JetBrains Mono",
+    "weight": 700,
+    "italicAccent": false,
+    "case": "none",
+    "tracking": "-0.035em"
+   },
+   "ink": "#F2F6FB",
+   "accent": "#FFB547",
+   "accentStyle": "underline",
+   "frames": [
+    {
+     "caption": "Every endpoint, *watched*",
+     "sub": "",
+     "eyebrow": "SHEET 01 — MONITORS",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.085,
+     "captionSize": 0.1,
+     "background": "repeating-linear-gradient(90deg, #FFFFFF21 0 0.35%, #0000 0.35% 17%), repeating-linear-gradient(0deg, #FFFFFF21 0 0.16%, #0000 0.16% 7.85%), repeating-linear-gradient(90deg, #FFFFFF12 0 0.25%, #0000 0.25% 4.25%), repeating-linear-gradient(0deg, #FFFFFF12 0 0.12%, #0000 0.12% 1.96%), radial-gradient(ellipse 70% 45% at 50% 60%, #1E4E9C73 0%, #1E4E9C00 70%), linear-gradient(180deg, #0D2B52 0%, #0A2140 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.64,
+      "scale": 1.066,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "shape",
+       "x": 0.91,
+       "y": 0.64,
+       "w": 0.004,
+       "h": 0.68,
+       "color": "#FFB547",
+       "text": "dimension line"
+      },
+      {
+       "type": "badge",
+       "x": 0.5,
+       "y": 0.285,
+       "w": 0.3,
+       "h": 0.02,
+       "color": "#9CC3FF",
+       "text": "1320 PX"
+      },
+      {
+       "type": "badge",
+       "x": 0.73,
+       "y": 0.955,
+       "w": 0.39,
+       "h": 0.034,
+       "color": "#9CC3FF",
+       "text": "PINGBOARD · 01/05"
+      }
+     ]
+    },
+    {
+     "caption": "Latency to the *millisecond*",
+     "sub": "",
+     "eyebrow": "SHEET 02 — LATENCY",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.085,
+     "captionSize": 0.1,
+     "background": "repeating-linear-gradient(90deg, #FFFFFF21 0 0.35%, #0000 0.35% 17%), repeating-linear-gradient(0deg, #FFFFFF21 0 0.16%, #0000 0.16% 7.85%), repeating-linear-gradient(90deg, #FFFFFF12 0 0.25%, #0000 0.25% 4.25%), repeating-linear-gradient(0deg, #FFFFFF12 0 0.12%, #0000 0.12% 1.96%), radial-gradient(ellipse 70% 45% at 50% 60%, #1E4E9C73 0%, #1E4E9C00 70%), linear-gradient(180deg, #0D2B52 0%, #0A2140 100%)",
+     "device": {
+      "show": true,
+      "x": 0.62,
+      "y": 0.629,
+      "scale": 1.0,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "zoom",
+       "x": 0.3,
+       "y": 0.53,
+       "w": 0.52,
+       "h": 0.15,
+       "color": "#FFB547",
+       "text": "latency chart ×1.6"
+      },
+      {
+       "type": "badge",
+       "x": 0.73,
+       "y": 0.955,
+       "w": 0.39,
+       "h": 0.034,
+       "color": "#9CC3FF",
+       "text": "PINGBOARD · 02/05"
+      }
+     ]
+    },
+    {
+     "caption": "Alerts before *users notice*",
+     "sub": "",
+     "eyebrow": "SHEET 03 — ALERTS",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.085,
+     "captionSize": 0.1,
+     "background": "repeating-linear-gradient(90deg, #0D2B521F 0 0.35%, #0000 0.35% 17%), repeating-linear-gradient(0deg, #0D2B521F 0 0.16%, #0000 0.16% 7.85%), repeating-linear-gradient(90deg, #0D2B5212 0 0.25%, #0000 0.25% 4.25%), repeating-linear-gradient(0deg, #0D2B5212 0 0.12%, #0000 0.12% 1.96%), #EEF3F8",
+     "device": {
+      "show": true,
+      "x": 0.38,
+      "y": 0.629,
+      "scale": 1.0,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "chip",
+       "x": 0.84,
+       "y": 0.47,
+       "w": 0.24,
+       "h": 0.04,
+       "color": "#D9480F",
+       "text": "P95 SPIKE"
+      },
+      {
+       "type": "chip",
+       "x": 0.84,
+       "y": 0.6,
+       "w": 0.24,
+       "h": 0.04,
+       "color": "#D9480F",
+       "text": "AUTO-PAGE"
+      },
+      {
+       "type": "badge",
+       "x": 0.73,
+       "y": 0.955,
+       "w": 0.39,
+       "h": 0.034,
+       "color": "#2F5E99",
+       "text": "PINGBOARD · 03/05"
+      }
+     ],
+     "ink": "#0D2B52",
+     "accent": "#D9480F"
+    },
+    {
+     "caption": "Logs you can *actually read*",
+     "sub": "",
+     "eyebrow": "SHEET 04 — LOGS",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.085,
+     "captionSize": 0.1,
+     "background": "repeating-linear-gradient(90deg, #FFFFFF21 0 0.35%, #0000 0.35% 17%), repeating-linear-gradient(0deg, #FFFFFF21 0 0.16%, #0000 0.16% 7.85%), repeating-linear-gradient(90deg, #FFFFFF12 0 0.25%, #0000 0.25% 4.25%), repeating-linear-gradient(0deg, #FFFFFF12 0 0.12%, #0000 0.12% 1.96%), radial-gradient(ellipse 70% 45% at 50% 60%, #1E4E9C73 0%, #1E4E9C00 70%), linear-gradient(180deg, #0D2B52 0%, #0A2140 100%)",
+     "device": {
+      "show": true,
+      "x": 0.62,
+      "y": 0.629,
+      "scale": 1.0,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "zoom",
+       "x": 0.3,
+       "y": 0.68,
+       "w": 0.52,
+       "h": 0.12,
+       "color": "#FFB547",
+       "text": "log row ×1.6"
+      },
+      {
+       "type": "badge",
+       "x": 0.73,
+       "y": 0.955,
+       "w": 0.39,
+       "h": 0.034,
+       "color": "#9CC3FF",
+       "text": "PINGBOARD · 04/05"
+      }
+     ]
+    },
+    {
+     "caption": "Status pages in *one click*",
+     "sub": "Public or private, on your own domain",
+     "eyebrow": "SHEET 05 — STATUS",
+     "captionPos": "top",
+     "align": "left",
+     "captionY": 0.085,
+     "captionSize": 0.1,
+     "background": "repeating-linear-gradient(90deg, #FFFFFF21 0 0.35%, #0000 0.35% 17%), repeating-linear-gradient(0deg, #FFFFFF21 0 0.16%, #0000 0.16% 7.85%), repeating-linear-gradient(90deg, #FFFFFF12 0 0.25%, #0000 0.25% 4.25%), repeating-linear-gradient(0deg, #FFFFFF12 0 0.12%, #0000 0.12% 1.96%), radial-gradient(ellipse 70% 45% at 50% 60%, #1E4E9C73 0%, #1E4E9C00 70%), linear-gradient(180deg, #0D2B52 0%, #0A2140 100%)",
+     "device": {
+      "show": true,
+      "x": 0.5,
+      "y": 0.663,
+      "scale": 0.95,
+      "tiltX": 0,
+      "tiltY": 0,
+      "roll": 0,
+      "frame": "silver",
+      "second": null
+     },
+     "decor": [
+      {
+       "type": "badge",
+       "x": 0.73,
+       "y": 0.955,
+       "w": 0.39,
+       "h": 0.034,
+       "color": "#9CC3FF",
+       "text": "PINGBOARD · 05/05"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "defaultSet": {
+  "templateSlug": "ridgeline",
+  "appName": "Trailhead",
+  "font": {
+   "family": "Plus Jakarta Sans",
+   "weight": 800,
+   "italicAccent": false,
+   "case": "none",
+   "tracking": "-0.03em"
+  },
+  "ink": "#F0EFE9",
+  "accent": "#F2B65A",
+  "accentStyle": "color",
+  "frames": [
+   {
+    "caption": "Every run, *mapped*",
+    "sub": "",
+    "eyebrow": "TRAILHEAD",
+    "captionPos": "top",
+    "align": "left",
+    "captionY": 0.085,
+    "captionSize": 0.135,
+    "background": "conic-gradient(from 110deg at 84% 87%, #081F23 0deg 140deg, #0000 140deg), conic-gradient(from 114deg at 30% 80%, #0B2F33D9 0deg 132deg, #0000 132deg), radial-gradient(ellipse 90% 45% at 55% 50%, #E8A33F59 0%, #E8A33F00 70%), linear-gradient(90deg, #0F3A3D 0%, #175D5B 100%)",
+    "device": {
+     "show": true,
+     "x": 0.5,
+     "y": 0.76,
+     "scale": 1.28,
+     "tiltX": 10,
+     "tiltY": 0,
+     "roll": 0,
+     "frame": "graphite",
+     "second": null
+    },
+    "decor": [],
+    "sample": "map"
+   },
+   {
+    "caption": "Know your *pace*",
+    "sub": "Live splits against your last ten runs",
+    "eyebrow": "",
+    "captionPos": "top",
+    "align": "left",
+    "captionY": 0.052,
+    "captionSize": 0.125,
+    "background": "conic-gradient(from 110deg at 18% 86%, #081F23 0deg 140deg, #0000 140deg), conic-gradient(from 114deg at 72% 79%, #0B2F33D9 0deg 132deg, #0000 132deg), radial-gradient(ellipse 70% 40% at 55% 58%, #2FB5A533 0%, #2FB5A500 70%), linear-gradient(90deg, #175D5B 0%, #1B6F6A 50%, #196869 100%)",
+    "device": {
+     "show": true,
+     "x": 0.46,
+     "y": 0.67,
+     "scale": 1.1,
+     "tiltX": 0,
+     "tiltY": 17,
+     "roll": 0,
+     "frame": "graphite",
+     "second": null
+    },
+    "decor": [],
+    "sample": "pace"
+   },
+   {
+    "caption": "Trails *near you*",
+    "sub": "",
+    "eyebrow": "",
+    "captionPos": "top",
+    "align": "left",
+    "captionY": 0.052,
+    "captionSize": 0.125,
+    "background": "conic-gradient(from 110deg at 95% 85%, #081F23 0deg 140deg, #0000 140deg), conic-gradient(from 114deg at 42% 80%, #0B2F33D9 0deg 132deg, #0000 132deg), radial-gradient(ellipse 80% 50% at 50% 60%, #2FB5A538 0%, #2FB5A500 70%), linear-gradient(90deg, #196869 0%, #145B66 100%)",
+    "device": {
+     "show": true,
+     "x": 0.5,
+     "y": 0.745,
+     "scale": 1.3,
+     "tiltX": 0,
+     "tiltY": 0,
+     "roll": 0,
+     "frame": "graphite",
+     "second": null
+    },
+    "decor": [],
+    "sample": "nearby"
+   },
+   {
+    "caption": "Send the route to *anyone*",
+    "sub": "",
+    "eyebrow": "",
+    "captionPos": "top",
+    "align": "left",
+    "captionY": 0.052,
+    "captionSize": 0.125,
+    "background": "conic-gradient(from 110deg at 10% 84%, #081F23 0deg 140deg, #0000 140deg), conic-gradient(from 114deg at 66% 78%, #0B2F33D9 0deg 132deg, #0000 132deg), linear-gradient(90deg, #145B66 0%, #145A66 10%, #11434F 100%)",
+    "device": {
+     "show": true,
+     "x": 0.8,
+     "y": 0.745,
+     "scale": 1.2,
+     "tiltX": 0,
+     "tiltY": -17,
+     "roll": -6,
+     "frame": "graphite",
+     "second": null
+    },
+    "decor": [],
+    "sample": "share"
+   },
+   {
+    "caption": "Built for the *long haul*",
+    "sub": "Offline maps, splits and elevation in one app",
+    "eyebrow": "",
+    "captionPos": "top",
+    "align": "left",
+    "captionY": 0.052,
+    "captionSize": 0.125,
+    "background": "conic-gradient(from 110deg at 40% 87%, #081F23 0deg 140deg, #0000 140deg), conic-gradient(from 114deg at 88% 80%, #0B2F33D9 0deg 132deg, #0000 132deg), radial-gradient(ellipse 70% 40% at 80% 25%, #F0EFE91A 0%, #F0EFE900 70%), linear-gradient(90deg, #11434F 0%, #0E2A36 100%)",
+    "device": {
+     "show": true,
+     "x": 0.62,
+     "y": 0.73,
+     "scale": 1.0,
+     "tiltX": 0,
+     "tiltY": 0,
+     "roll": 0,
+     "frame": "graphite",
+     "second": {
+      "x": -0.2,
+      "y": 0.745,
+      "scale": 1.2,
+      "tiltY": -17
+     }
+    },
+    "decor": [
+     {
+      "type": "chip",
+      "x": 0.3,
+      "y": 0.62,
+      "w": 0.44,
+      "h": 0.08,
+      "color": "#F0EFE9",
+      "text": "42.8 km · THIS WEEK"
+     }
+    ],
+    "sample": "season"
+   }
+  ]
+ }
+}

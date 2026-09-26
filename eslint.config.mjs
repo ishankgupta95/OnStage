@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Design handoff bundle from claude.ai/design — read-only reference, not
+    // app source. It ships its own prototype runtime (support.js).
+    "app-screenshot-generator-ui-mockups/**",
   ]),
 ]);
 
