@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { s } from "@/lib/onstage/css";
 import { bgCss, capInk } from "@/lib/onstage/data";
+import { openSetHref } from "@/lib/onstage/setLinks";
 import { useSetPreview } from "@/lib/onstage/useSetPreview";
 import { BackButton } from "../chrome";
+import { NotFoundScreen } from "./NotFoundScreen";
 
 const CHECKS = [
   {
@@ -43,9 +46,23 @@ export function StorePageScreen() {
   // Previews the set without editing it: the store toggle is this page's own
   // view, starting from the set's target (plan D10 — only the editor and
   // guided screens change a set).
-  const { frames, store } = useSetPreview();
+  // `?set=` names the set (the project board's "This set" card); without
+  // it, the set a bare /editor would open.
+  const setId = useSearchParams().get("set") || null;
+  const { frames, store, set, missing } = useSetPreview(setId);
   const [view, setView] = useState<"apple" | "play" | null>(null);
   const play = (view ?? store) === "play";
+
+  if (missing) {
+    return (
+      <NotFoundScreen
+        kicker="SET NOT FOUND"
+        title="This set isn't in this browser"
+        body="It was deleted, or it was made in another browser — Onstage keeps each set in the browser that made it."
+        settingsLink={false}
+      />
+    );
+  }
 
   return (
     <div style={s("min-height:var(--screen-h,100vh);background:var(--bg);color:var(--text)")}>
@@ -54,7 +71,7 @@ export function StorePageScreen() {
           "display:flex;align-items:center;gap:14px;padding:13px 28px;border-bottom:1px solid rgba(var(--ink-rgb),.07);background:var(--chrome)",
         )}
       >
-        <BackButton href="/project" />
+        <BackButton href={set ? `/project?app=${encodeURIComponent(set.appId)}` : "/project"} />
         <span style={s("font-size:14.5px;font-weight:500;letter-spacing:-.015em")}>
           Store listing preview
         </span>
@@ -71,7 +88,7 @@ export function StorePageScreen() {
           </button>
         </div>
         <Link
-          href="/editor"
+          href={set ? openSetHref(set.id) : "/editor"}
           className="hov-accent"
           style={s(
             "margin-left:auto;display:inline-flex;align-items:center;height:32px;padding:0 13px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-size:12.5px;font-weight:500",

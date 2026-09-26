@@ -6,20 +6,33 @@ import { useOnstage } from "@/store/onstage";
  * which one.
  */
 
-/** Where a set lives in the given mode — switching modes keeps the set. */
-export const setHref = (mode: "guided" | "canvas", setId: string) =>
-  `${mode === "guided" ? "/guided" : "/editor"}?set=${encodeURIComponent(setId)}`;
+/**
+ * Where a set lives in the given mode — switching modes keeps the set. An
+ * `apply` intent rides along for the editor to carry out once the set has
+ * loaded. With no id, the bare route, which opens the last set.
+ */
+export function setHref(mode: "guided" | "canvas", setId: string, apply?: string | null): string {
+  const path = mode === "guided" ? "/guided" : "/editor";
+  const q = new URLSearchParams();
+  if (setId) q.set("set", setId);
+  if (apply) q.set("apply", apply);
+  const query = q.toString();
+  return query ? `${path}?${query}` : path;
+}
 
 /**
- * The canvas for the set that is open (the default one if none is), carrying
- * an intent — `template:<slug>`, `brand:<kitId>` — that the editor applies
- * once that set has loaded. Screens outside the editor use this instead of
- * changing the document themselves.
+ * Where an "open this set" control goes: the canvas, or the guided flow when
+ * that is the person's work mode. (Work mode still lives on the open set's
+ * document; S3.2 moves it to a preference, read here.)
+ */
+export const openSetHref = (setId: string) => setHref(useOnstage.getState().workMode, setId);
+
+/**
+ * The canvas for the set that is open (or, when none is, the one a bare
+ * `/editor` opens — the last one), carrying an intent — `brand:<kitId>`,
+ * `panel:export` — that the editor applies once that set has loaded. Screens
+ * outside the editor use this instead of changing the document themselves.
  */
 export function editorHref(apply: string): string {
-  const q = new URLSearchParams();
-  const open = useOnstage.getState().loadedSetId;
-  if (open) q.set("set", open);
-  q.set("apply", apply);
-  return `/editor?${q.toString()}`;
+  return setHref("canvas", useOnstage.getState().loadedSetId ?? "", apply);
 }

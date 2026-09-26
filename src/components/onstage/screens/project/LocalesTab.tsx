@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { s } from "@/lib/onstage/css";
 import { Async, Shimmer } from "@/components/onstage/Async";
-import { getBackend } from "@/lib/data/backend";
-import { useQuery } from "@/lib/data/useQuery";
-import type { Locale } from "@/lib/data/types";
-import { useOnstage } from "@/store/onstage";
+import type { QueryState } from "@/lib/data/useQuery";
+import type { Locale, SetDoc } from "@/lib/data/types";
+import { setLocales } from "@/lib/onstage/locales";
+import { setHref } from "@/lib/onstage/setLinks";
 import { IcoAlert, IcoPlus, IcoSparkle } from "@/components/onstage/icons";
 
 const STATE_STYLE: Record<Locale["state"], { label: string; bg: string; fg: string }> = {
@@ -16,16 +16,18 @@ const STATE_STYLE: Record<Locale["state"], { label: string; bg: string; fg: stri
   untranslated: { label: "NOT TRANSLATED", bg: "rgba(var(--ink-rgb),.05)", fg: "var(--muted-3)" },
 };
 
-/** Which languages this set ships in, and how complete each one is. */
-export function LocalesTab({ appId }: { appId: string }) {
+/**
+ * Which languages the board's selected set ships in, and how complete each
+ * one is — from that set's document (GAP-9). Until captions are stored per
+ * language (S9.1) that is its source language alone.
+ */
+export function LocalesTab({ setId, doc }: { setId: string | null; doc: QueryState<SetDoc | null> }) {
   const router = useRouter();
-  const setState = useOnstage((st) => st.setState);
-  const frameCount = useOnstage((st) => st.frames.length);
-  const locales = useQuery(`locales:${appId}`, () => getBackend().listLocales(appId));
 
+  // The drawer opens on the board's selected set, once the editor has
+  // loaded it (an overlay set before the switch would be closed by it).
   const translate = () => {
-    setState({ overlay: "ai", aiTab: "Localize" });
-    router.push("/editor");
+    if (setId) router.push(setHref("canvas", setId, "panel:localize"));
   };
 
   return (
@@ -54,7 +56,7 @@ export function LocalesTab({ appId }: { appId: string }) {
 
       <div style={s("margin-top:14px;display:flex;flex-direction:column;gap:9px")}>
         <Async
-          query={locales}
+          query={doc}
           skeleton={
             <>
               {[0, 1, 2, 3].map((i) => (
@@ -63,8 +65,9 @@ export function LocalesTab({ appId }: { appId: string }) {
             </>
           }
         >
-          {(rows) =>
-            rows.map((l) => {
+          {(d) =>
+            (d ? setLocales(d) : []).map((l) => {
+              const frameCount = d?.frames.length ?? 0;
               const tone = STATE_STYLE[l.state];
               const pct = Math.round((l.translated / Math.max(1, frameCount)) * 100);
               return (

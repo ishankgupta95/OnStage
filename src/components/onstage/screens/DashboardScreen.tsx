@@ -9,8 +9,14 @@ import { getBackend } from "@/lib/data/backend";
 import { useQuery } from "@/lib/data/useQuery";
 import { useSession } from "@/lib/data/useSession";
 import { FEATURES } from "@/lib/features";
+import { appSummary, librarySummary } from "@/lib/onstage/library";
+import { openSetHref } from "@/lib/onstage/setLinks";
+import { newestFirst } from "@/lib/onstage/sets";
+import { flushSaves } from "@/store/onstage";
 import { BrandMark } from "../chrome";
-import { IcoAlert, IcoPlus, IcoSearch } from "../icons";
+import { SetRow } from "../SetRow";
+import { WarnLine } from "../WarnLine";
+import { IcoPlus, IcoSearch } from "../icons";
 
 const THUMB_TILT = [-12, 0, 10, -6];
 
@@ -55,15 +61,6 @@ function AccountChip() {
   );
 }
 
-const statusTint = (status: string) =>
-  status === "Ready"
-    ? ["rgba(var(--ok-rgb),.12)", "var(--ok)"]
-    : status === "Missing size"
-      ? ["rgba(var(--warn-rgb),.12)", "#f5b544"]
-      : status === "Uploaded"
-        ? ["rgba(var(--accent-rgb),.12)", "var(--accent-hi)"]
-        : ["rgba(var(--ink-rgb),.05)", "var(--muted)"];
-
 const tagTint = (kind: string) =>
   kind === "ok"
     ? ["rgba(var(--ok-rgb),.12)", "var(--ok)"]
@@ -71,10 +68,93 @@ const tagTint = (kind: string) =>
       ? ["rgba(var(--warn-rgb),.12)", "#f5b544"]
       : ["rgba(var(--ink-rgb),.05)", "var(--muted)"];
 
+/**
+ * The last tile of the app grid: "New app", which opens into a name field
+ * (the brand-kit list's new-kit field) and, once created, goes to the new
+ * app's board to add its first set.
+ */
+function NewAppTile() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const create = async () => {
+    const trimmed = name.trim();
+    if (!trimmed || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const app = await getBackend().createApp({ name: trimmed });
+      router.push(`/project?app=${encodeURIComponent(app.id)}`);
+    } catch (e) {
+      setError(`Couldn't create the app — ${e instanceof Error ? e.message : "something went wrong."}`);
+      setBusy(false);
+    }
+  };
+
+  const tile =
+    "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:212px;border:1px dashed rgba(var(--ink-rgb),.16);border-radius:9px;background:transparent;color:var(--muted-2);font-size:12.5px";
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} style={s(`${tile};cursor:pointer`)}>
+        <IcoPlus size={14} />
+        New app
+      </button>
+    );
+  }
+  return (
+    <div style={s(`${tile};padding:16px`)}>
+      <div
+        style={s(
+          "display:flex;gap:6px;width:100%;padding:7px 8px;border:1px dashed rgba(var(--ink-rgb),.16);border-radius:8px",
+        )}
+      >
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void create();
+            if (e.key === "Escape") {
+              setOpen(false);
+              setName("");
+              setError(null);
+            }
+          }}
+          placeholder="App name"
+          aria-label="New app name"
+          style={s(
+            "flex:1;min-width:0;border:none;background:transparent;color:var(--text);font:400 12.5px 'Inter',sans-serif;outline:none",
+          )}
+        />
+        <button
+          type="button"
+          onClick={() => void create()}
+          disabled={!name.trim() || busy}
+          aria-label="Create app"
+          style={s(
+            `border:none;background:transparent;color:var(--accent-hi);font-size:16px;line-height:1;cursor:pointer;padding:0 2px;opacity:${
+              name.trim() && !busy ? 1 : 0.4
+            }`,
+          )}
+        >
+          +
+        </button>
+      </div>
+      {error && <WarnLine style="align-items:flex-start">{error}</WarnLine>}
+    </div>
+  );
+}
+
 export function DashboardScreen() {
   const router = useRouter();
   const apps = useQuery("apps", () => getBackend().listApps());
-  const sets = useQuery("sets", () => getBackend().listSets());
+  // An edit the editor left waiting for its autosave is stored first, so
+  // the counts, tags and order describe the sets as saved.
+  const sets = useQuery("sets", () => flushSaves().then(() => getBackend().listSets()));
 
   const search = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -191,8 +271,10 @@ export function DashboardScreen() {
             >
               Your apps
             </h1>
+            {/* Counted from the library (DATA-2); nothing records exports,
+                so there is no "last export" to show. */}
             <p style={s("margin:7px 0 0;font-size:14px;color:var(--muted-2)")}>
-              Three apps · 6 sets · last export 2 days ago
+              {apps.data && sets.data ? librarySummary(apps.data.length, sets.data.length) : "\u00a0"}
             </p>
           </div>
           <Link
@@ -206,32 +288,9 @@ export function DashboardScreen() {
           </Link>
         </div>
 
-        <div
-          style={s(
-            "display:flex;align-items:center;gap:12px;margin-top:22px;padding:12px 14px;border-radius:8px;border:1px solid rgba(var(--warn-rgb),.24);background:rgba(var(--warn-rgb),.07)",
-          )}
-        >
-          <span
-            style={s(
-              "display:grid;place-items:center;width:24px;height:24px;border-radius:5px;background:rgba(var(--warn-rgb),.16);color:var(--warn)",
-            )}
-          >
-            <IcoAlert size={14} w={2} />
-          </span>
-          <span style={s("font-size:13.5px")}>
-            Trailhead&apos;s Play Store set is missing the 7″ tablet size. Apple
-            accepted, Google will reject.
-          </span>
-          <Link
-            href="/project"
-            style={s(
-              "margin-left:auto;display:inline-flex;align-items:center;height:28px;padding:0 11px;border:1px solid rgba(var(--ink-rgb),.14);border-radius:5px;background:transparent;color:var(--text);font-size:12px;font-weight:500",
-            )}
-          >
-            Fix it
-          </Link>
-        </div>
-
+        {/* The "Google will reject" banner was fixed text about an app that
+            isn't the user's (GAP-8); nothing stored says a set would be
+            rejected, so there is no alert to derive. */}
         <div
           style={s(
             "display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px",
@@ -249,6 +308,15 @@ export function DashboardScreen() {
           >
             {(rows) =>
               rows
+                // Each card's count, platforms, tags and strip come from its
+                // own sets, not the text stored when the app was made.
+                // (Blank until the sets have loaded, rather than "0 SETS".)
+                .map((a) => ({
+                  ...a,
+                  ...(sets.data
+                    ? appSummary(a, sets.data.filter((x) => x.appId === a.id))
+                    : { meta: "", tags: [] }),
+                }))
                 .filter((a) => matchApp(a.name, a.meta))
                 .map((a) => (
                   <div
@@ -328,6 +396,7 @@ export function DashboardScreen() {
                 ))
             }
           </Async>
+          <NewAppTile />
         </div>
 
         <div style={s("margin-top:40px")}>
@@ -348,7 +417,7 @@ export function DashboardScreen() {
                 "font:400 10.5px 'Inter',ui-sans-serif;color:var(--muted-4)",
               )}
             >
-              EDITED IN THE LAST 30 DAYS
+              NEWEST FIRST
             </span>
           </div>
           <div
@@ -361,83 +430,36 @@ export function DashboardScreen() {
               skeleton={<Shimmer style="height:250px;border-radius:0" />}
             >
               {(rows) => {
-                const visible = rows.filter((r) => matchApp(r.name, r.sub));
+                // Every set, most recently edited first (the list isn't cut
+                // to a date range, so it doesn't claim one).
+                const visible = newestFirst(rows).filter((r) => matchApp(r.name, r.sub));
                 if (!visible.length)
                   return (
                     <div style={s("padding:34px;text-align:center")}>
                       <div style={s("font-size:13.5px;font-weight:500")}>
-                        No sets match that
+                        {rows.length ? "No sets match that" : "No sets yet"}
                       </div>
                       <div
                         style={s(
                           "margin-top:5px;font-size:12.5px;color:var(--muted-2)",
                         )}
                       >
-                        Try a different name, template or locale.
+                        {rows.length
+                          ? "Try a different name, template or locale."
+                          : "A set is one app, one store size, and the frames inside it. Start one with New set."}
                       </div>
                     </div>
                   );
-                return visible.map((r, i) => {
-                  const [bg, fg] = statusTint(r.status);
-                  return (
-                    <div
-                      key={r.id}
-                      onClick={() =>
-                        router.push(
-                          r.status === "Draft" ? "/editor" : "/project",
-                        )
-                      }
-                      style={s(
-                        `display:flex;align-items:center;gap:14px;padding:11px 14px;cursor:pointer;background:${
-                          i % 2 ? "rgba(var(--ink-rgb),.014)" : "transparent"
-                        };border-bottom:${
-                          i < rows.length - 1
-                            ? "1px solid rgba(var(--ink-rgb),.06)"
-                            : "none"
-                        }`,
-                      )}
-                    >
-                      <div
-                        style={s(
-                          `flex:none;width:30px;height:38px;border-radius:4px;background:${r.swatch}`,
-                        )}
-                      />
-                      <div style={s("min-width:0;flex:1")}>
-                        <div style={s("font-size:13.5px;font-weight:500")}>
-                          {r.name}
-                        </div>
-                        <div
-                          style={s(
-                            "margin-top:2px;font-size:12px;color:var(--muted-3)",
-                          )}
-                        >
-                          {r.sub}
-                        </div>
-                      </div>
-                      <span
-                        style={s(
-                          "font:400 11px 'Inter',ui-sans-serif;color:var(--muted-4)",
-                        )}
-                      >
-                        {r.frameCount} FRAMES
-                      </span>
-                      <span
-                        style={s(
-                          `width:106px;text-align:center;padding:3px 8px;border-radius:4px;font-size:11.5px;font-weight:500;background:${bg};color:${fg}`,
-                        )}
-                      >
-                        {r.status}
-                      </span>
-                      <span
-                        style={s(
-                          "font-size:12px;color:var(--muted-4);width:76px;text-align:right",
-                        )}
-                      >
-                        {r.updatedAt}
-                      </span>
-                    </div>
-                  );
-                });
+                // Each row opens its own set, by id (SCREENSB-1).
+                return visible.map((r, i) => (
+                  <SetRow
+                    key={r.id}
+                    set={r}
+                    index={i}
+                    last={i === visible.length - 1}
+                    onClick={() => router.push(openSetHref(r.id))}
+                  />
+                ));
               }}
             </Async>
           </div>

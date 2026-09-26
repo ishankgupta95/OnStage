@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { s } from "@/lib/onstage/css";
 import { DEVICES, TILT_PRESETS, bgCss, capInk } from "@/lib/onstage/data";
-import { DEFAULT_SET_ID, openSet, useOnstage } from "@/store/onstage";
+import { useOnstage } from "@/store/onstage";
 import { BrandMark, ThemeButton } from "../chrome";
 import { setHref } from "@/lib/onstage/setLinks";
+import { useSetRoute } from "@/lib/onstage/useSetRoute";
+import { SetUnavailable } from "../SetUnavailable";
 import { ModeSwitch } from "../editor/EditorScreen";
 import { SaveBadge } from "../editor/SaveBadge";
 import { NarrowBlock } from "../editor/NarrowBlock";
@@ -84,16 +85,18 @@ const SECTION_LABEL =
 export function GuidedScreen() {
   const st = useOnstage();
   const router = useRouter();
-  const setId = useSearchParams().get("set") ?? DEFAULT_SET_ID;
   const step = st.gStep;
   const f = st.frames[st.active] ?? st.frames[0];
 
-  // The same set the canvas edits, opened by the id in the URL. Frames and
-  // step controls wait for it: before then they would edit a placeholder.
-  useEffect(() => {
-    void openSet(setId);
-  }, [setId]);
-  const loaded = st.loadedSetId === setId;
+  // The same set the canvas edits, opened by the id in the URL (a bare
+  // /guided first finds the last one). Frames and step controls wait for
+  // it: before then they would edit a placeholder.
+  const route = useSetRoute("guided");
+  const setId = route.setId ?? "";
+  const loaded =
+    route.setId !== null &&
+    st.loadedSetId === route.setId &&
+    (route.status === "ready" || route.status === "checking");
 
   const next = () => {
     if (step < 3) st.setState({ gStep: step + 1 });
@@ -104,6 +107,10 @@ export function GuidedScreen() {
   };
   const back = () =>
     step ? st.setState({ gStep: step - 1 }) : router.push("/dashboard");
+
+  if (route.status === "missing" || route.status === "error") {
+    return <SetUnavailable status={route.status} error={route.error} retry={route.retry} />;
+  }
 
   return (
     <>
@@ -140,7 +147,7 @@ export function GuidedScreen() {
                   "font-size:13.5px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis",
                 )}
               >
-                Trailhead — 6.9″ set
+                {route.set?.name}
               </span>
               <SaveBadge />
             </div>

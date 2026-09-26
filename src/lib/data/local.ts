@@ -1,9 +1,12 @@
 import type { Backend } from "./backend";
 import { FEATURES } from "../features";
+import { defaultDoc } from "../onstage/docOps";
 import { randomId } from "./ids";
+import { docImageIds, imageIdsInJson } from "./imageRefs";
 import * as images from "./imageStore";
 import { SET_DOCS_KEY, migrateScreenshotsToImages } from "./migrateImages";
 import * as sample from "./sample";
+import { summarizeDoc } from "./setSummary";
 import type {
   App,
   BrandKit,
@@ -57,6 +60,8 @@ const KEY = {
   members: "onstage:members:v1",
   exports: "onstage:exports-used:v1",
   cancelled: "onstage:cancelled:v1",
+  lastSet: "onstage:last-set:v1",
+  seeded: "onstage:seeded:v1",
 };
 
 function readJson<T>(key: string, fallback: T): T {
@@ -189,6 +194,116 @@ function whenDocsReady(): Promise<unknown> {
   return docsReady;
 }
 
+/** A key's raw stored value, to put back exactly if a later write fails. */
+function rawValue(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch (e) {
+    throw storageRefused(e);
+  }
+}
+
+/** Put a key back to a raw value from `rawValue` (null: it was absent). */
+function restoreRaw(key: string, raw: string | null) {
+  if (raw === null) removeKey(key);
+  else writeRaw(key, raw);
+}
+
+/* ── the sample, as ordinary records (plan D2) ─────────────────────────────
+   Trailhead used to be fixture rows prepended to every list, which could be
+   neither opened as themselves nor deleted. It is now written once, under
+   its old ids so a document saved at `onstage:set-docs:v1['trailhead-69']`
+   stays attached, and then belongs to the user like any other set.        */
+
+const SEED_APP_ID = "trailhead";
+const SEED_SET_ID = "trailhead-69";
+
+/** The sample app's record. Its fixture tags and set count describe a
+ *  listing this browser doesn't have, so they aren't carried over. */
+function seedApp(): App {
+  const app = sample.APPS.find((a) => a.id === SEED_APP_ID)!;
+  return { ...app, meta: "1 SET", tags: [] };
+}
+
+/** The sample set's record, describing the document it will open: the one
+ *  already saved under its id, if any, else the default. Only read — seeding
+ *  never writes or creates a document. */
+function seedSet(): ScreenshotSet {
+  let saved: SetDoc | undefined;
+  try {
+    saved = readDocs()[SEED_SET_ID];
+  } catch {
+    saved = undefined;
+  }
+  const usable = !!saved && Array.isArray(saved.frames) && saved.frames.length > 0;
+  const set = sample.SETS.find((x) => x.id === SEED_SET_ID)!;
+  return {
+    ...set,
+    ...summarizeDoc(usable ? saved! : defaultDoc()),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/** True while the sample couldn't be stored this page load: the lists then
+ *  show it from memory instead of failing. */
+let seedUnstored = false;
+
+/**
+ * Write the sample app and set once, before anything reads or changes the
+ * library. Guarded by `onstage:seeded:v1`, which stays set even after the
+ * user deletes the sample, so it never comes back. Idempotent by id: a
+ * retry after a partial failure adds only what is missing.
+ */
+function ensureSeeded() {
+  if (typeof window === "undefined") return;
+  let marker: string | null;
+  try {
+    marker = localStorage.getItem(KEY.seeded);
+  } catch {
+    seedUnstored = true;
+    return;
+  }
+  if (marker !== null) {
+    seedUnstored = false;
+    return;
+  }
+  try {
+    const apps = readForUpdate<App[]>(KEY.apps, []);
+    const sets = readForUpdate<ScreenshotSet[]>(KEY.sets, []);
+    if (!apps.some((a) => a.id === SEED_APP_ID)) writeJson(KEY.apps, [seedApp(), ...apps]);
+    if (!sets.some((x) => x.id === SEED_SET_ID)) writeJson(KEY.sets, [seedSet(), ...sets]);
+    writeJson(KEY.seeded, new Date().toISOString());
+    seedUnstored = false;
+  } catch (e) {
+    seedUnstored = true;
+    console.warn("[onstage] couldn't store the sample set; showing it from memory", e);
+  }
+}
+
+/** The stored apps — plus the sample from memory if it couldn't be stored. */
+function libraryApps(): App[] {
+  ensureSeeded();
+  const apps = readJson<App[]>(KEY.apps, []);
+  const list = Array.isArray(apps) ? apps : [];
+  return seedUnstored && !list.some((a) => a.id === SEED_APP_ID) ? [seedApp(), ...list] : list;
+}
+
+/** The stored sets — plus the sample from memory if it couldn't be stored. */
+function librarySets(): ScreenshotSet[] {
+  ensureSeeded();
+  const sets = readJson<ScreenshotSet[]>(KEY.sets, []);
+  const list = Array.isArray(sets) ? sets : [];
+  return seedUnstored && !list.some((x) => x.id === SEED_SET_ID) ? [seedSet(), ...list] : list;
+}
+
+/** Why a set can't be changed: gone — or, for the sample while it could
+ *  only be shown from memory, because storage refused it. */
+function notStored(setId: string): Error {
+  return setId === SEED_SET_ID && seedUnstored
+    ? new Error("This browser's storage is full or blocked, so the sample set couldn't be stored.")
+    : new Error("That set isn't in this browser any more.");
+}
+
 /**
  * Drop localStorage written by a surface that is now flagged off. Idempotent
  * and safe to call on every boot: each key is only removed while its feature
@@ -260,19 +375,17 @@ export const localBackend: Backend = {
     writeRaw(KEY.session, "out");
   },
 
-  /* ── library ─────────────────────────────────────────────────────────── */
-  listApps: async () => [...sample.APPS, ...readJson<App[]>(KEY.apps, [])],
+  /* ── library ───────────────────────────────────────────────────────────
+     Records only — the sample is seeded once as ordinary records, never
+     prepended (plan D2).                                                   */
+  listApps: async () => libraryApps(),
   listSets: async (appId) => {
-    const all = [...sample.SETS, ...readJson<ScreenshotSet[]>(KEY.sets, [])];
-    const removed = readJson<string[]>(`${KEY.sets}:deleted`, []);
-    const renamed = readJson<Record<string, string>>(`${KEY.sets}:names`, {});
-    const live = all
-      .filter((s) => !removed.includes(s.id))
-      .map((s) => (renamed[s.id] ? { ...s, name: renamed[s.id] } : s));
-    return appId ? live.filter((s) => s.appId === appId) : live;
+    const sets = librarySets();
+    return appId ? sets.filter((x) => x.appId === appId) : sets;
   },
 
   createApp: async ({ name }) => {
+    ensureSeeded();
     const app: App = {
       id: `app_${randomId()}`,
       name,
@@ -288,15 +401,16 @@ export const localBackend: Backend = {
 
   createSet: async ({ appId, name, doc }) => {
     if (doc) await whenDocsReady();
+    ensureSeeded();
     const set: ScreenshotSet = {
       id: `set_${randomId()}`,
       appId,
       name,
-      sub: "New set · EN",
-      frameCount: doc?.frames.length ?? 5,
-      status: "Draft",
-      updatedAt: "Just now",
-      swatch: "linear-gradient(150deg,#ff6b53,#c9315f)",
+      // Without a document the set opens on the default one.
+      ...summarizeDoc(doc ?? defaultDoc()),
+      // A timestamp, not a display string: lists order by it (the newest set
+      // is what a bare /editor falls back to) and format it when shown.
+      updatedAt: new Date().toISOString(),
     };
     const sets = readForUpdate<ScreenshotSet[]>(KEY.sets, []);
     // The document first: a library record must never point at a document
@@ -321,13 +435,114 @@ export const localBackend: Backend = {
   },
 
   renameSet: async (setId, name) => {
-    const names = readForUpdate<Record<string, string>>(`${KEY.sets}:names`, {});
-    writeJson(`${KEY.sets}:names`, { ...names, [setId]: name });
+    ensureSeeded();
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error("A set needs a name.");
+    const sets = readForUpdate<ScreenshotSet[]>(KEY.sets, []);
+    if (!sets.some((x) => x.id === setId)) throw notStored(setId);
+    writeJson(
+      KEY.sets,
+      sets.map((x) => (x.id === setId ? { ...x, name: trimmed } : x)),
+    );
   },
 
-  deleteSet: async (setId) => {
-    const removed = readForUpdate<string[]>(`${KEY.sets}:deleted`, []);
-    writeJson(`${KEY.sets}:deleted`, [...new Set([...removed, setId])]);
+  duplicateSet: async (setId) => {
+    await whenDocsReady();
+    ensureSeeded();
+    const sets = readForUpdate<ScreenshotSet[]>(KEY.sets, []);
+    const source = sets.find((x) => x.id === setId);
+    if (!source) throw notStored(setId);
+    const docs = readDocs();
+    const doc = docs[setId];
+    const copy: ScreenshotSet = {
+      ...source,
+      id: `set_${randomId()}`,
+      name: `${source.name} copy`,
+      updatedAt: new Date().toISOString(),
+    };
+    // The same order as createSet: the document (the same image refs — the
+    // copy shares its screenshots), then the record; a failed record puts
+    // the documents back exactly. A set never saved has no document, and
+    // neither does its copy: both open on the default.
+    const docsBefore = rawValue(KEY.docs);
+    if (doc !== undefined) writeDocs({ ...docs, [copy.id]: doc });
+    try {
+      writeJson(KEY.sets, [...sets, copy]);
+    } catch (e) {
+      if (doc !== undefined) {
+        try {
+          restoreRaw(KEY.docs, docsBefore);
+        } catch {
+          /* an orphaned document is invisible and harmless */
+        }
+      }
+      throw e;
+    }
+    return copy;
+  },
+
+  // The set's record and document go, then each screenshot only it used
+  // (plan S2.2, GAP-11). A screenshot another stored document mentions — in
+  // any field, even one this code doesn't know yet — or that the caller
+  // still holds (the open set's undo history) stays: a duplicate shares its
+  // original's screenshots, and undo can bring a removed one back.
+  deleteSet: async (setId, options) => {
+    await whenDocsReady();
+    ensureSeeded();
+    // Deleting the sample settles seeding for good, even if the marker
+    // couldn't be stored before: otherwise the next list read would seed it
+    // again (or keep showing it from memory).
+    if (setId === SEED_SET_ID) {
+      if (rawValue(KEY.seeded) === null) writeJson(KEY.seeded, new Date().toISOString());
+      seedUnstored = false;
+    }
+    const sets = readForUpdate<ScreenshotSet[]>(KEY.sets, []);
+    const docs = readDocs();
+    const listed = sets.some((x) => x.id === setId);
+    const hasDoc = Object.prototype.hasOwnProperty.call(docs, setId);
+    if (!listed && !hasDoc) return;
+    const doc = docs[setId];
+    const rest = { ...docs };
+    delete rest[setId];
+
+    // Record first, then document, as one change: if the document can't be
+    // removed, the record comes back, so a listed set never loses its doc.
+    const setsBefore = rawValue(KEY.sets);
+    if (listed) writeJson(KEY.sets, sets.filter((x) => x.id !== setId));
+    if (hasDoc) {
+      try {
+        writeDocs(rest);
+      } catch (e) {
+        if (listed) {
+          try {
+            restoreRaw(KEY.sets, setsBefore);
+          } catch {
+            /* the record is gone but its document stayed: invisible, harmless */
+          }
+        }
+        throw e;
+      }
+    }
+
+    const keep = imageIdsInJson(JSON.stringify(rest));
+    for (const id of options?.keepImages ?? []) keep.add(id);
+    const unshared = [...docImageIds(doc)].filter((id) => !keep.has(id));
+    if (!unshared.length) return;
+    try {
+      await images.deleteImages(unshared);
+    } catch {
+      throw new Error("The set was deleted, but its screenshots couldn't be removed from this browser's storage.");
+    }
+  },
+
+  // SUPABASE SEAM: a per-device preference — it can stay in localStorage
+  // even with a server, since "the set I was just in" is about this browser.
+  getLastSetId: async () => {
+    const id = readJson<unknown>(KEY.lastSet, null);
+    return typeof id === "string" && id ? id : null;
+  },
+  rememberLastSet: async (setId) => {
+    writeJson(KEY.lastSet, setId);
   },
 
   loadSetDoc: async (setId) => {
@@ -337,9 +552,33 @@ export const localBackend: Backend = {
 
   // A failed write rejects and leaves what was stored untouched — never a
   // partial save. Screenshots are `img:` refs now, so a document is a few KB.
+  // The set's library record follows its document (GAP-10): frame count,
+  // swatch, status and the time of this save.
   saveSetDoc: async (setId, doc) => {
     await whenDocsReady();
-    writeDocs({ ...readDocs(), [setId]: doc });
+    ensureSeeded();
+    const docs = readDocs();
+    const sets = readForUpdate<ScreenshotSet[]>(KEY.sets, []);
+    const i = sets.findIndex((x) => x.id === setId);
+    if (i < 0) {
+      // No record (a document from before sets were real): the doc alone.
+      writeDocs({ ...docs, [setId]: doc });
+      return;
+    }
+    const setsBefore = rawValue(KEY.sets);
+    const next = sets.slice();
+    next[i] = { ...sets[i], ...summarizeDoc(doc), updatedAt: new Date().toISOString() };
+    writeJson(KEY.sets, next);
+    try {
+      writeDocs({ ...docs, [setId]: doc });
+    } catch (e) {
+      try {
+        restoreRaw(KEY.sets, setsBefore);
+      } catch {
+        /* a record a save ahead of its document: corrected by the next save */
+      }
+      throw e;
+    }
   },
 
   /* ── screenshots ─────────────────────────────────────────────────────

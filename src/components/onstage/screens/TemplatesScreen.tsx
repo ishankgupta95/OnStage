@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { s } from "@/lib/onstage/css";
 import { LIGHT_TEMPLATES, TEMPLATES, TEMPLATE_FILTERS } from "@/lib/onstage/data";
-import { editorHref } from "@/lib/onstage/setLinks";
+import { createSetFromTemplate } from "@/lib/onstage/sets";
+import { useCreateAndOpen } from "@/lib/onstage/useCreateAndOpen";
 import { IcoBack, IcoSearch } from "../icons";
+import { WarnLine } from "../WarnLine";
 
 export function TemplatesScreen() {
-  const router = useRouter();
+  const create = useCreateAndOpen();
   const [filter, setFilter] = useState("All");
   const [query, setQuery] = useState("");
 
@@ -118,19 +119,21 @@ export function TemplatesScreen() {
                   )}
                 />
                 {/* The card opens the template; the hover overlay is the
-                    shortcut that restyles the set and jumps to the canvas. */}
+                    shortcut that makes a new set in it — your screens,
+                    restyled — and opens it. The set you had stays as it was. */}
                 <button
                   type="button"
                   className="reveal"
+                  disabled={create.busy !== null}
                   onClick={(e) => {
                     e.preventDefault();
-                    router.push(editorHref(`template:${t.slug}`));
+                    void create.run(t.slug, () => createSetFromTemplate(t.slug));
                   }}
                   style={s(
                     "position:absolute;inset:0;display:grid;place-items:center;border:none;background:var(--scrim-soft);color:#fff;font-size:13px;font-weight:600;opacity:0;transition:opacity .16s ease;cursor:pointer",
                   )}
                 >
-                  Use this set
+                  {create.busy === t.slug ? "Creating…" : "Use this set"}
                 </button>
                 {t.badge ? (
                   <span
@@ -151,6 +154,9 @@ export function TemplatesScreen() {
                 </span>
               </div>
               <div style={s("margin-top:3px;font-size:11.5px;color:var(--muted-3)")}>{t.tagline}</div>
+              {create.error?.key === t.slug && (
+                <WarnLine style="margin-top:6px;align-items:flex-start">{create.error.message}</WarnLine>
+              )}
             </Link>
           ))}
         </div>

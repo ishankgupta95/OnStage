@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { s } from "@/lib/onstage/css";
+import { createFirstSet } from "@/lib/onstage/sets";
+import { useCreateAndOpen } from "@/lib/onstage/useCreateAndOpen";
 import { useOnstage } from "@/store/onstage";
 import { BrandMark } from "../chrome";
 import { StoreUrlField } from "../StoreUrlField";
+import { WarnLine } from "../WarnLine";
 import { IcoGlobe, IcoGrid, IcoUpload } from "../icons";
 
 export const ROUTE_CARD =
@@ -46,20 +49,25 @@ const SHOT_BGS = [
   "linear-gradient(160deg,#1a1917,#0b0b0a)",
 ];
 
-const STYLES: [string, string, string, number][] = [
-  ["Moss", "MATCHES YOUR TEAL", "linear-gradient(155deg,#1b6f6a,#0f3a3d)", -12],
-  ["Cold Open", "HIGH CONTRAST", "linear-gradient(160deg,#1f2b4d,#0e1424)", 0],
+/** The three looks on offer, each a template the new set is made in. */
+const STYLES: [string, string, string, number, string][] = [
+  ["Moss", "MATCHES YOUR TEAL", "linear-gradient(155deg,#1b6f6a,#0f3a3d)", -12, "moss"],
+  ["Cold Open", "HIGH CONTRAST", "linear-gradient(160deg,#1f2b4d,#0e1424)", 0, "cold-open"],
   [
     "Field Notes",
     "LIGHT, EDITORIAL",
     "linear-gradient(160deg,#f4f1ea,#ded8cb)",
     12,
+    "field-notes",
   ],
 ];
 
 export function OnboardingScreen() {
   const router = useRouter();
   const setState = useOnstage((st) => st.setState);
+  // First run ends in a new set (plan D10): the look picked, or the plain
+  // default, opened in the chosen mode. It never restyles an existing set.
+  const create = useCreateAndOpen();
   const [step, setStep] = useState(0);
   const [picked, setPicked] = useState([0, 1, 2, 3, 4]);
   const [urlOpen, setUrlOpen] = useState(false);
@@ -344,11 +352,11 @@ export function OnboardingScreen() {
                   "display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px",
                 )}
               >
-                {STYLES.map(([name, meta, bg, ty]) => (
+                {STYLES.map(([name, meta, bg, ty, slug]) => (
                   <div
                     key={name}
-                    onClick={() => router.push("/editor")}
-                    style={s("cursor:pointer")}
+                    onClick={() => void create.run(slug, () => createFirstSet({ slug }))}
+                    style={s(`cursor:${create.busy ? "progress" : "pointer"}`)}
                   >
                     <div
                       style={s(
@@ -383,12 +391,13 @@ export function OnboardingScreen() {
                           "font:400 10.5px 'Inter',ui-sans-serif;color:var(--muted-4)",
                         )}
                       >
-                        {meta}
+                        {create.busy === slug ? "CREATING…" : meta}
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
+              {create.error && <WarnLine style="margin-top:14px">{create.error.message}</WarnLine>}
               <div
                 style={s(
                   "display:flex;align-items:center;gap:11px;margin-top:26px",
@@ -397,10 +406,8 @@ export function OnboardingScreen() {
                 <button
                   type="button"
                   className="hov-accent"
-                  onClick={() => {
-                    setState({ workMode: "canvas" });
-                    router.push("/editor");
-                  }}
+                  disabled={create.busy !== null}
+                  onClick={() => void create.run("canvas", () => createFirstSet({ workMode: "canvas" }))}
                   style={s(
                     "height:42px;padding:0 19px;border:1px solid var(--accent);border-radius:7px;background:transparent;color:var(--accent);font-size:14px;font-weight:500;cursor:pointer",
                   )}
@@ -410,9 +417,10 @@ export function OnboardingScreen() {
                 <button
                   type="button"
                   className="hov-ink"
+                  disabled={create.busy !== null}
                   onClick={() => {
-                    setState({ workMode: "guided", gStep: 0 });
-                    router.push("/guided");
+                    setState({ gStep: 0 });
+                    void create.run("guided", () => createFirstSet({ workMode: "guided" }), "guided");
                   }}
                   style={s(
                     "height:42px;padding:0 16px;border:1px solid rgba(var(--ink-rgb),.13);border-radius:7px;background:transparent;color:var(--text);font-size:14px;cursor:pointer",

@@ -77,8 +77,14 @@ export type ScreenshotSet = {
   sub: string;
   frameCount: number;
   status: SetStatus;
+  /** When the set was last saved — an ISO timestamp. Records from before
+   *  sets were real hold a display string ("2h ago"), shown as it is. */
   updatedAt: string;
   swatch: string;
+  /** The store the set targets, from its document. Absent on older records. */
+  store?: "apple" | "play";
+  /** Up to four frames' backgrounds, first frame first. Absent on older records. */
+  swatches?: string[];
 };
 
 export type SizeRowStatus = "Ready" | "Missing" | "Draft";

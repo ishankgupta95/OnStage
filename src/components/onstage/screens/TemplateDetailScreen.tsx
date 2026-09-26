@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { s } from "@/lib/onstage/css";
 import { CAPTIONS, TEMPLATES, bgCss, capInk } from "@/lib/onstage/data";
 import { useSetPreview } from "@/lib/onstage/useSetPreview";
 import { StoredScreenshot } from "../device";
-import { editorHref } from "@/lib/onstage/setLinks";
+import { createSetFromTemplate } from "@/lib/onstage/sets";
+import { useCreateAndOpen } from "@/lib/onstage/useCreateAndOpen";
 import { IcoBack } from "../icons";
+import { WarnLine } from "../WarnLine";
 
 const facts = (tpl: (typeof TEMPLATES)[number]) => [
   { label: "FRAMES", value: String(tpl.frames) },
@@ -35,8 +36,8 @@ const paletteOf = (css: string) => {
 /** One template, seen whole, before it is applied to your set. */
 export function TemplateDetailScreen({ slug }: { slug: string }) {
   const tpl = TEMPLATES.find((t) => t.slug === slug) ?? TEMPLATES[0];
-  const router = useRouter();
-  const { frames } = useSetPreview();
+  const { frames, set } = useSetPreview();
+  const create = useCreateAndOpen();
   const [mine, setMine] = useState(false);
 
   // The strip shows the template's own sample captions, or yours against it.
@@ -44,7 +45,10 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
     ? frames.map((f) => ({ caption: f.caption, screenshot: f.screenshot }))
     : CAPTIONS.map((c) => ({ caption: c, screenshot: null as string | null }));
 
-  const apply = () => router.push(editorHref(`template:${tpl.slug}`));
+  // A new set: your screens (the ones "My screens" previews) in this
+  // template, opened in the canvas. The set they came from is untouched.
+  const apply = () => void create.run(tpl.slug, () => createSetFromTemplate(tpl.slug));
+  const busy = create.busy !== null;
 
   return (
     <div
@@ -84,12 +88,13 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
         <button
           type="button"
           onClick={apply}
+          disabled={busy}
           className="hov-accent"
           style={s(
             "margin-left:auto;display:inline-flex;align-items:center;height:32px;padding:0 14px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-size:12.5px;font-weight:500;cursor:pointer",
           )}
         >
-          Use this set
+          {busy ? "Creating…" : "Use this set"}
         </button>
       </div>
 
@@ -286,26 +291,29 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
             )}
           >
             <div style={s("font-size:13.5px;font-weight:500")}>
-              Applying to Trailhead
+              {set ? `A new set from ${set.name}` : "A new set"}
             </div>
             <div
               style={s(
                 "margin-top:7px;font-size:12.5px;line-height:1.55;color:var(--muted-2)",
               )}
             >
-              Your five screens map one to one. Headlines carry over; the
-              gradient replaces your current backgrounds.
+              {set
+                ? `Its ${frames.length} frames, screens and headlines carry over into a new ${tpl.name} set; ${set.name} itself stays as it is.`
+                : `The sample frames in ${tpl.name}, as a new set.`}
             </div>
             <button
               type="button"
               onClick={apply}
+              disabled={busy}
               className="hov-accent"
               style={s(
                 "width:100%;margin-top:12px;height:36px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-size:13px;font-weight:500;cursor:pointer",
               )}
             >
-              Apply and open canvas
+              {busy ? "Creating…" : "Apply and open canvas"}
             </button>
+            {create.error && <WarnLine style="margin-top:9px;align-items:flex-start">{create.error.message}</WarnLine>}
             <button
               type="button"
               onClick={() => setMine(true)}

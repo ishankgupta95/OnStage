@@ -11,9 +11,10 @@ export const IMAGE_REF_PREFIX = "img:";
 
 export const toImageRef = (id: string): string => `${IMAGE_REF_PREFIX}${id}`;
 
-/** The image-store id behind a ref, or null for anything that isn't `img:`. */
-export function imageIdFromRef(ref: string | null | undefined): string | null {
-  if (!ref || !ref.startsWith(IMAGE_REF_PREFIX)) return null;
+/** The image-store id behind a ref, or null for anything that isn't `img:`
+ *  (including a value of the wrong type in a damaged document). */
+export function imageIdFromRef(ref: unknown): string | null {
+  if (typeof ref !== "string" || !ref.startsWith(IMAGE_REF_PREFIX)) return null;
   const id = ref.slice(IMAGE_REF_PREFIX.length);
   return id || null;
 }
@@ -25,14 +26,30 @@ export function imageIdFromRef(ref: string | null | undefined): string | null {
  */
 export const FRAME_IMAGE_FIELDS = ["screenshot"] as const satisfies readonly (keyof SetFrame)[];
 
-/** Every image-store id a document references. */
+/** Every image-store id a document references through its ref fields.
+ *  A damaged document (frames not a list) references nothing this can see. */
 export function docImageIds(doc: Pick<SetDoc, "frames"> | null | undefined): Set<string> {
   const ids = new Set<string>();
-  for (const frame of doc?.frames ?? []) {
+  const frames: unknown = doc?.frames;
+  if (!Array.isArray(frames)) return ids;
+  for (const frame of frames as (Partial<SetFrame> | null)[]) {
     for (const field of FRAME_IMAGE_FIELDS) {
       const id = imageIdFromRef(frame?.[field]);
       if (id) ids.add(id);
     }
   }
+  return ids;
+}
+
+/**
+ * Every image id mentioned anywhere in stored JSON — any field, any shape,
+ * damaged or not. `deleteSet` keeps whatever this finds in the documents it
+ * isn't deleting: over-keeping only leaves a Blob behind, while missing a
+ * reference (a field added later, a document it can't parse) would break a
+ * set. Ids are random UUIDs, so a match is a reference.
+ */
+export function imageIdsInJson(json: string): Set<string> {
+  const ids = new Set<string>();
+  for (const m of json.matchAll(/"img:([^"\\]+)"/g)) ids.add(m[1]);
   return ids;
 }

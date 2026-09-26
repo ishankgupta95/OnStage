@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { DEFAULT_SET_ID, applyIntent, openSet, useOnstage } from "@/store/onstage";
+import { useOnstage } from "@/store/onstage";
 import { s } from "@/lib/onstage/css";
 import { setHref } from "@/lib/onstage/setLinks";
+import { useSetRoute } from "@/lib/onstage/useSetRoute";
+import { SetUnavailable } from "../SetUnavailable";
 import { BrandMark, ThemeButton } from "../chrome";
 import {
   IcoExport,
@@ -72,13 +74,14 @@ const modeTab = (on: boolean) =>
   };cursor:pointer`;
 
 /** Guided ⇄ Canvas, shared with the guided screen's top bar. `setId` is the
- *  set in the page's URL, which may still be loading. */
+ *  set in the page's URL, which may still be loading (empty while the page
+ *  is still finding which set to open — the other mode then finds it too). */
 export function ModeSwitch({ mode, setId }: { mode: "guided" | "canvas"; setId: string }) {
   const router = useRouter();
   const setState = useOnstage((st) => st.setState);
   const go = (m: "guided" | "canvas") => {
     // Work mode is saved with the set, so only once it has loaded.
-    if (useOnstage.getState().loadedSetId === setId) setState({ workMode: m });
+    if (setId && useOnstage.getState().loadedSetId === setId) setState({ workMode: m });
     router.push(setHref(m, setId));
   };
   return (
@@ -117,28 +120,16 @@ const TOOLS = [
 export function EditorScreen() {
   const st = useOnstage();
   const router = useRouter();
-  const params = useSearchParams();
-  const setId = params.get("set") ?? DEFAULT_SET_ID;
-  const apply = params.get("apply");
+  // The set in the URL, opened by id (a bare /editor first finds the last
+  // one). Until it has loaded, the canvas shows no frames: anything on
+  // screen before then is a placeholder, and an edit to it would be lost.
+  const route = useSetRoute("canvas");
+  const setId = route.setId ?? "";
   useUndoRedo(setId);
-
-  // Opening a different set swaps the document under the canvas. Until it
-  // has loaded, the canvas shows no frames: anything on screen before then
-  // is a placeholder, and an edit to it would be lost. An `?apply=` intent
-  // from another screen lands on the loaded set as one undo step, then
-  // leaves the URL so a reload doesn't apply it again.
-  useEffect(() => {
-    let alive = true;
-    void openSet(setId).then(() => {
-      if (!alive || !apply || useOnstage.getState().loadedSetId !== setId) return;
-      applyIntent(apply);
-      router.replace(setHref("canvas", setId));
-    });
-    return () => {
-      alive = false;
-    };
-  }, [setId, apply, router]);
-  const loaded = st.loadedSetId === setId;
+  const loaded =
+    route.setId !== null &&
+    st.loadedSetId === route.setId &&
+    (route.status === "ready" || route.status === "checking");
 
   const toolActive = (id: string) =>
     (id === "bg" && st.sel === "bg") ||
@@ -157,6 +148,10 @@ export function EditorScreen() {
     else if (id === "text") st.setState({ sel: "caption", pop: null });
     else st.setState({ sel: "device", pop: null });
   };
+
+  if (route.status === "missing" || route.status === "error") {
+    return <SetUnavailable status={route.status} error={route.error} retry={route.retry} />;
+  }
 
   return (
     <>
@@ -194,7 +189,7 @@ export function EditorScreen() {
                   "font-size:13.5px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis",
                 )}
               >
-                Trailhead — 6.9″ set
+                {route.set?.name}
               </span>
               <SaveBadge />
             </div>

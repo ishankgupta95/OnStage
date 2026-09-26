@@ -51,7 +51,23 @@ export interface Backend {
   createApp(input: { name: string }): Promise<App>;
   createSet(input: { appId: string; name: string; doc?: SetDoc }): Promise<ScreenshotSet>;
   renameSet(setId: string, name: string): Promise<void>;
-  deleteSet(setId: string): Promise<void>;
+  /** A copy of a set in the same app — its document as stored, sharing its
+   *  screenshots (`deleteSet` keeps any another set still uses). */
+  duplicateSet(setId: string): Promise<ScreenshotSet>;
+  /**
+   * Delete a set's record and document, and each of its screenshots that no
+   * other stored document references. `keepImages` names screenshots the
+   * caller can still reach outside storage (the open set's undo history),
+   * which are kept too.
+   */
+  deleteSet(setId: string, options?: { keepImages?: string[] }): Promise<void>;
+
+  /** The set this browser last opened, for a bare `/editor` to return to.
+   *  Null if none was recorded. It may since have been deleted — check the
+   *  library before opening it. */
+  getLastSetId(): Promise<string | null>;
+  /** Record the set just opened as the one to return to. */
+  rememberLastSet(setId: string): Promise<void>;
 
   /* the editable document — what the canvas edits and export renders */
   loadSetDoc(setId: string): Promise<SetDoc | null>;

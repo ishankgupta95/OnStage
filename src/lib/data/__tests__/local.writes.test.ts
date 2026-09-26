@@ -29,6 +29,7 @@ const WRITES: [string, () => Promise<unknown>][] = [
   ["renameSet", () => localBackend.renameSet("trailhead-69", "Renamed")],
   ["deleteSet", () => localBackend.deleteSet("trailhead-69")],
   ["saveSetDoc", () => localBackend.saveSetDoc("trailhead-69", doc([frame()]))],
+  ["rememberLastSet", () => localBackend.rememberLastSet("trailhead-69")],
   ["connectStore", () => localBackend.connectStore("apple")],
   ["disconnectStore", () => localBackend.disconnectStore("google")],
   ["resolveComment", () => localBackend.resolveComment("c1", true)],
@@ -98,25 +99,43 @@ describe("local backend — ids and shapes", () => {
   });
 
   it("a failed createSet puts the documents back exactly, even when there were none", async () => {
+    // The first library call seeds the sample app and set (S2.2); do that
+    // before the refusal, so what follows is only createSet's own writes.
+    await localBackend.listSets();
+    const before = snapshot();
+    expect(before["onstage:sets:v1"]).toBeTruthy();
+    expect(localStorage.getItem("onstage:set-docs:v1")).toBeNull();
     const real = Storage.prototype.setItem;
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key: string, value: string) {
       if (key === "onstage:sets:v1") throw new DOMException("refused", "QuotaExceededError");
       return real.call(this, key, value);
     });
-    await expect(localBackend.createSet({ appId: "trailhead", name: "B", doc: doc([frame()]) })).rejects.toThrow();
+    await expect(localBackend.createSet({ appId: "trailhead", name: "B", doc: doc([frame()]) })).rejects.toThrow(
+      "This browser's storage is full.",
+    );
     vi.restoreAllMocks();
-    expect(Object.keys(localStorage)).toEqual([]);
+    expect(localStorage.getItem("onstage:set-docs:v1")).toBeNull();
+    expect(snapshot()).toEqual(before);
   });
 
   it("won't coerce a stored value of the wrong kind into the one it expects", async () => {
+    // Since S2.2 a rename is stored on the set's own record in the library
+    // list (no separate names map), so the list is what must not be coerced
+    // — by the call, or by the seeding that runs before it.
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     for (const [key, value, call] of [
       ["onstage:brand-kits:v1", "{}", () => localBackend.createBrandKit("Night")],
-      ["onstage:sets:v1:names", '["a"]', () => localBackend.renameSet("trailhead-69", "X")],
+      ["onstage:sets:v1", '{"trailhead-69":"a"}', () => localBackend.renameSet("trailhead-69", "X")],
+      ["onstage:sets:v1", "{}", () => localBackend.createSet({ appId: "trailhead", name: "New", doc: doc([frame()]) })],
+      ["onstage:sets:v1", "{}", () => localBackend.saveSetDoc("trailhead-69", doc([frame()]))],
+      ["onstage:sets:v1", "{}", () => localBackend.deleteSet("trailhead-69")],
+      ["onstage:apps:v1", "{}", () => localBackend.createApp({ name: "Ferry" })],
       ["onstage:resolved-comments:v1", "5", () => localBackend.resolveComment("c1", true)],
     ] as const) {
       localStorage.setItem(key, value);
       await expect(call()).rejects.toThrow(/unreadable/);
       expect(localStorage.getItem(key)).toBe(value);
+      expect(localStorage.getItem("onstage:set-docs:v1")).toBeNull();
       localStorage.clear();
     }
   });

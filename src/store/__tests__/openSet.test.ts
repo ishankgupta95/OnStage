@@ -349,3 +349,179 @@ describe("apply intents (D10)", () => {
     expect(applyIntent("nonsense")).toBe(false);
   });
 });
+
+describe("the last opened set (S2.1)", () => {
+  const LAST_KEY = "onstage:last-set:v1";
+
+  it("opening a set remembers it for a bare /editor, and opening another replaces it", async () => {
+    seed({ A: setA, B: setB });
+    const { openSet } = await boot();
+    expect(localStorage.getItem(LAST_KEY)).toBeNull();
+
+    await openSet("A");
+    expect(localStorage.getItem(LAST_KEY)).toBe(JSON.stringify("A"));
+
+    await openSet("B");
+    expect(localStorage.getItem(LAST_KEY)).toBe(JSON.stringify("B"));
+  });
+
+  it("reopening the set already on screen remembers it again — another tab may have opened a different one", async () => {
+    seed({ A: setA, B: setB });
+    const { openSet, localBackend } = await boot();
+    await openSet("A");
+    // Another tab opens B meanwhile.
+    localStorage.setItem(LAST_KEY, JSON.stringify("B"));
+    const load = vi.spyOn(localBackend, "loadSetDoc");
+
+    await openSet("A");
+
+    expect(load).not.toHaveBeenCalled(); // still nothing to load
+    expect(localStorage.getItem(LAST_KEY)).toBe(JSON.stringify("A"));
+  });
+
+  for (const order of [
+    ["B", "A"],
+    ["A", "B"],
+  ] as const) {
+    it(`of two overlapping opens (reads finishing ${order.join(" then ")}), only the one shown is remembered`, async () => {
+      seed({ A: setA, B: setB });
+      const { openSet, localBackend } = await boot();
+      const loads = gateLoads(localBackend);
+      const remember = vi.spyOn(localBackend, "rememberLastSet");
+
+      const openingB = openSet("B");
+      await loads.started("B");
+      const openingA = openSet("A");
+      await loads.started("A");
+      for (const id of order) await loads.release(id);
+      await Promise.all([openingA, openingB]);
+
+      expect(localStorage.getItem(LAST_KEY)).toBe(JSON.stringify("A"));
+      expect(remember.mock.calls).toEqual([["A"]]);
+    });
+  }
+
+  it("a set that can't be remembered still opens, saves, and shows no save error", async () => {
+    seed({ A: setA });
+    const { openSet, useOnstage, localBackend } = await boot();
+    vi.spyOn(localBackend, "rememberLastSet").mockRejectedValue(new Error("Storage is full."));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await openSet("A");
+    await vi.advanceTimersByTimeAsync(0); // let the rejected remember settle
+
+    let st = useOnstage.getState();
+    expect(st.loadedSetId).toBe("A");
+    expect(st.frames.map((f) => f.caption)).toEqual(["A one", "A two"]);
+    expect(st.saveState).toBe("saved");
+    expect(st.saveError).toBeNull();
+    expect(warn).toHaveBeenCalled();
+
+    // The set is fully usable: its edits autosave as usual.
+    st.patchFrame({ caption: "A edited" });
+    await vi.advanceTimersByTimeAsync(1000);
+    st = useOnstage.getState();
+    expect(stored().A.frames[0].caption).toBe("A edited");
+    expect(st.saveState).toBe("saved");
+    expect(st.saveError).toBeNull();
+  });
+});
+
+describe("currentDoc (S2.1)", () => {
+  it("is null before a set loads, then the open set as it is now, unsaved edit included", async () => {
+    seed({ A: setA });
+    const { openSet, useOnstage, currentDoc } = await boot();
+    expect(currentDoc()).toBeNull();
+
+    await openSet("A");
+    useOnstage.getState().patchFrame({ caption: "not stored yet" });
+
+    const d = currentDoc()!;
+    expect(d.frames.map((f) => f.caption)).toEqual(["not stored yet", "A two"]);
+    expect(d.device).toBe("px9");
+    expect(stored().A.frames[0].caption).toBe("A one"); // still inside the debounce
+  });
+});
+
+describe("apply intents after a load (S2.1)", () => {
+  const history = (useOnstage: { temporal: { getState: () => { pastStates: unknown[] } } }) =>
+    useOnstage.temporal.getState().pastStates.length;
+
+  it("panel:export opens the export dialog without an undo entry or a save", async () => {
+    seed({ A: setA });
+    const { openSet, useOnstage, applyIntent, localBackend } = await boot();
+    await openSet("A");
+    const save = vi.spyOn(localBackend, "saveSetDoc");
+    expect(useOnstage.getState().overlay).toBeNull();
+    expect(history(useOnstage)).toBe(0);
+
+    expect(applyIntent("panel:export")).toBe(true);
+
+    expect(useOnstage.getState().overlay).toBe("export");
+    expect(history(useOnstage)).toBe(0);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(save).not.toHaveBeenCalled();
+    expect(stored().A).toEqual(setA);
+    expect(useOnstage.getState().saveState).toBe("saved");
+  });
+
+  it("panel:localize opens the localise drawer without an undo entry", async () => {
+    seed({ A: setA });
+    const { openSet, useOnstage, applyIntent } = await boot();
+    await openSet("A");
+    expect(applyIntent("panel:localize")).toBe(true);
+    expect(useOnstage.getState().overlay).toBe("ai");
+    expect(useOnstage.getState().aiTab).toBe("Localize");
+    expect(history(useOnstage)).toBe(0);
+  });
+
+  it("an unknown template (or panel) is refused and changes nothing", async () => {
+    seed({ A: setA });
+    const { openSet, useOnstage, applyIntent, currentDoc, localBackend } = await boot();
+    await openSet("A");
+    const save = vi.spyOn(localBackend, "saveSetDoc");
+    const before = currentDoc();
+    const overlay = useOnstage.getState().overlay;
+
+    expect(applyIntent("template:nope")).toBe(false);
+    expect(applyIntent("panel:nope")).toBe(false);
+
+    expect(currentDoc()).toEqual(before);
+    expect(useOnstage.getState().overlay).toBe(overlay);
+    expect(history(useOnstage)).toBe(0);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(save).not.toHaveBeenCalled();
+    expect(stored().A).toEqual(setA);
+  });
+
+  it("brand:<kitId> is exactly one undo entry, even when it changes frames, frame colour and alignment", async () => {
+    const offBrand = doc([frame({ caption: "C one", tiltY: 12 }), frame({ caption: "C two" })], {
+      frameColor: "silver",
+      align: "left",
+    });
+    seed({ C: offBrand });
+    const { openSet, useOnstage, applyIntent } = await boot();
+    await openSet("C");
+    expect(history(useOnstage)).toBe(0);
+
+    expect(applyIntent("brand:x")).toBe(true);
+
+    let st = useOnstage.getState();
+    expect(history(useOnstage)).toBe(1);
+    expect(st.frameColor).toBe("graphite");
+    expect(st.align).toBe("center");
+    expect(st.frames.map((f) => f.tiltY)).toEqual([-17, -17]);
+    expect(st.frames.map((f) => f.caption)).toEqual(["C one", "C two"]);
+    // It is an edit of the open set, so it autosaves.
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(stored().C.frameColor).toBe("graphite");
+
+    // One undo puts every part of it back.
+    useOnstage.getState().undo();
+    st = useOnstage.getState();
+    expect(history(useOnstage)).toBe(0);
+    expect(st.frameColor).toBe("silver");
+    expect(st.align).toBe("left");
+    expect(st.frames).toEqual(offBrand.frames);
+  });
+});

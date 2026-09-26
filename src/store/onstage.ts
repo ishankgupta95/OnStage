@@ -2,8 +2,9 @@
 
 import { create } from "zustand";
 import { temporal } from "zundo";
-import { CAPTIONS, TEMPLATES } from "@/lib/onstage/data";
+import { applyBrandDefaultsToDoc, applyTemplateToDoc, defaultDoc, isTemplate } from "@/lib/onstage/docOps";
 import { getBackend } from "@/lib/data/backend";
+import { docImageIds } from "@/lib/data/imageRefs";
 import { FEATURES } from "@/lib/features";
 import type { SetDoc, SetFrame } from "@/lib/data/types";
 
@@ -200,42 +201,14 @@ function reselect(selected: Frame | undefined, index: number) {
   };
 }
 
-/** The set the canvas opens when nothing else is asked for. */
-export const DEFAULT_SET_ID = "trailhead-69";
-
 /** The last successful render, kept out of state because blobs don't belong there. */
 let lastRender: { files: { path: string; blob: Blob }[]; zipBlob: Blob } | null = null;
 /** The export in progress, cancelled if another set is opened under it. */
 let exportRun: { cancelled: boolean } | null = null;
 
-/**
- * A new set's document: the Trailhead sample cut the canvas has always
- * opened with. Opening a set with no saved document starts here; so do new
- * sets (S2.2). S5.4 replaces it with the Ridgeline cut.
- */
-export function defaultDoc(): SetDoc {
-  return {
-    frames: CAPTIONS.map((c, i) => ({
-      caption: c,
-      bg: i === 0 ? "ember" : i === 1 ? "dusk" : i === 2 ? "moss" : i === 3 ? "ember" : "ink",
-      tiltX: i === 0 ? 0 : i === 1 ? 6 : i === 2 ? 0 : i === 3 ? 6 : 0,
-      tiltY: i === 0 ? 0 : i === 1 ? -16 : i === 2 ? 15 : i === 3 ? -22 : 0,
-      depth: i === 0 ? 0 : i === 1 ? 42 : i === 2 ? 38 : i === 3 ? 66 : 0,
-      scale: 1,
-      screenshot: null,
-    })),
-    device: "ip16pm",
-    frameColor: "graphite",
-    captionFont: "Inter",
-    align: "center",
-    captionSize: 44,
-    panorama: false,
-    shadow: true,
-    lang: "EN",
-    store: "apple",
-    workMode: "canvas",
-  };
-}
+/** A new set's document (the default cut). Lives in docOps so screens that
+ *  build a new set's document can use it without the store. */
+export { defaultDoc };
 
 export const useOnstage = create<OnstageState>()(
     temporal(
@@ -259,7 +232,7 @@ export const useOnstage = create<OnstageState>()(
     exportTotal: 0,
     exportError: null,
     exportBytes: 0,
-    setId: DEFAULT_SET_ID,
+    setId: "",
     loadedSetId: null,
     saveState: "saved",
     saveError: null,
@@ -548,29 +521,16 @@ export const useOnstage = create<OnstageState>()(
 
     applyTemplate: (slug) =>
       set((st) => {
-        const tpl = TEMPLATES.find((t) => t.slug === slug);
-        if (!tpl) return {};
-        return {
-          frames: st.frames.map((f) => ({
-            ...f,
-            bg: tpl.bg,
-            tiltY: tpl.ty,
-            tiltX: 0,
-            depth: tpl.ty === 0 ? 0 : 40,
-          })),
-          panorama: tpl.panoramic,
-          sel: "bg" as Selection,
-          pop: null,
-        };
+        const next = applyTemplateToDoc(readDoc(st), slug);
+        if (!next) return {};
+        return { frames: next.frames, panorama: next.panorama, sel: "bg" as Selection, pop: null };
       }),
 
     applyBrandDefaults: () =>
-      set((st) => ({
-        // The kit's Defaults panel: Graphite frame, Right 17°, caption on top.
-        frameColor: "graphite",
-        align: "center" as const,
-        frames: st.frames.map((f) => ({ ...f, tiltX: 0, tiltY: -17, depth: 40 })),
-      })),
+      set((st) => {
+        const next = applyBrandDefaultsToDoc(readDoc(st));
+        return { frameColor: next.frameColor, align: next.align, frames: next.frames };
+      }),
   }),
     {
       // Undo/redo covers the document only — selection, popovers and export
@@ -709,6 +669,8 @@ let saving: Promise<void> = Promise.resolve();
  * are never written, so the stored copy survives for a later fix.
  */
 const readOnly = new Map<string, string>();
+/** Sets deleted in this tab. Nothing of theirs is ever written again. */
+const deleted = new Set<string>();
 
 /** Show where saving stands: an error if a write just failed or the open set
  *  can't be saved; SAVED only when every edit, the newest included, is stored. */
@@ -724,6 +686,11 @@ function report(failure: string | null) {
 async function writeAll() {
   let failure: string | null = null;
   for (const job of [...unsaved.values()]) {
+    // Deleted while the write was queued: writing it would bring it back.
+    if (deleted.has(job.setId)) {
+      unsaved.delete(job.setId);
+      continue;
+    }
     try {
       await getBackend().saveSetDoc(job.setId, readDoc(job.state));
       if (unsaved.get(job.setId)?.seq === job.seq) unsaved.delete(job.setId);
@@ -732,6 +699,12 @@ async function writeAll() {
     }
   }
   report(failure);
+}
+
+/** Write every unsaved edit now, and resolve once stored (or refused) —
+ *  e.g. before copying a set, so the copy has its newest edit. */
+export function flushSaves(): Promise<void> {
+  return flushNow();
 }
 
 /** Write every unsaved edit now instead of after the debounce. */
@@ -771,15 +744,19 @@ function installAutosave() {
 /** Bumped by every openSet call; a load applies only if no later call has
  *  started since, so the last set asked for is the one shown. */
 let openToken = 0;
+/** The set the latest openSet call asked for. */
+let opening: string | null = null;
 
 const DAMAGED = "This set's saved copy is damaged, so Onstage opened a fresh one.";
 
 /**
  * Load a set into the canvas (by id — plan D10: only the editor and guided
- * screens call this) and autosave it from then on. Safe to call on every
- * mount: asking for the set that is already loaded changes nothing.
+ * screens call this, and only for a set the library lists) and autosave it
+ * from then on. Safe to call on every mount: asking for the set that is
+ * already loaded changes nothing. The set becomes the one a bare `/editor`
+ * reopens.
  */
-export async function openSet(setId: string = DEFAULT_SET_ID) {
+export async function openSet(setId: string) {
   if (typeof window === "undefined") return;
   if (process.env.NODE_ENV === "development") {
     (window as Window & { __onstage?: typeof useOnstage }).__onstage = useOnstage;
@@ -787,7 +764,16 @@ export async function openSet(setId: string = DEFAULT_SET_ID) {
   installAutosave();
 
   const token = ++openToken;
-  if (useOnstage.getState().loadedSetId === setId) return;
+  opening = setId;
+  // Being deleted (or deleted) in this tab: never shown again, so no edit
+  // can be made that would silently go nowhere.
+  if (deleted.has(setId)) return;
+  // Already on screen: nothing to load, but it is still the set opened last
+  // (another tab may have opened a different one since).
+  if (useOnstage.getState().loadedSetId === setId) {
+    rememberOpened(setId);
+    return;
+  }
 
   // Store what is waiting first — the set being left, and any earlier edit
   // of this one — so the load below reads the newest stored copy.
@@ -863,25 +849,143 @@ export async function openSet(setId: string = DEFAULT_SET_ID) {
   }
   resetHistory();
   report(null);
+  rememberOpened(setId);
+}
+
+/** Record `setId` as the set a bare /editor returns to. A convenience, not
+ *  the user's work: failing to store it costs that shortcut, nothing else. */
+function rememberOpened(setId: string) {
+  getBackend()
+    .rememberLastSet(setId)
+    .catch((e: unknown) => console.warn("[onstage] couldn't remember the last set", e));
+}
+
+/**
+ * Every screenshot this tab can still reach outside storage: the open set,
+ * its undo and redo history, a drag's starting point, and edits waiting to
+ * be saved. Deleting a set must keep these, or undo would bring back a ref
+ * to a screenshot that no longer exists.
+ */
+function liveImageIds(): string[] {
+  const ids = new Set<string>();
+  const add = (frames: Frame[] | undefined) => {
+    for (const id of docImageIds({ frames: frames ?? [] })) ids.add(id);
+  };
+  const st = useOnstage.getState();
+  if (st.loadedSetId !== null) add(st.frames);
+  const { pastStates, futureStates } = useOnstage.temporal.getState();
+  for (const h of [...pastStates, ...futureStates]) add(h.frames);
+  if (gesture) add(gesture.before.frames);
+  for (const job of unsaved.values()) add(job.state.frames);
+  return [...ids];
+}
+
+/**
+ * Delete a set from this browser (plan S2.2): close it here if it is open,
+ * drop its queued edits so no save brings it back, then delete its record,
+ * document and the screenshots nothing else uses. If storage refuses, the
+ * set stays as it was and its newest queued edit is queued again.
+ */
+export async function removeSet(setId: string): Promise<void> {
+  deleted.add(setId);
+  const queued = unsaved.get(setId);
+  unsaved.delete(setId);
+  // An open of this set still loading must not land.
+  if (opening === setId) openToken++;
+
+  if (useOnstage.getState().loadedSetId === setId) {
+    if (exportRun) exportRun.cancelled = true;
+    exportRun = null;
+    lastRender = null;
+    loading = true;
+    try {
+      useOnstage.setState({
+        setId: "",
+        loadedSetId: null,
+        active: 0,
+        pop: null,
+        overlay: null,
+        exportState: null,
+        exportDone: 0,
+        exportTotal: 0,
+        exportError: null,
+        exportBytes: 0,
+        exportDeliveredTo: null,
+      });
+    } finally {
+      loading = false;
+    }
+    resetHistory();
+  }
+  readOnly.delete(setId);
+  if (!unsaved.size) {
+    clearTimeout(timer);
+    timer = undefined;
+  }
+  // Its dropped edit no longer holds the pill at SAVING….
+  report(null);
+
+  // A write already under way lands before the delete, never after it.
+  await saving;
+  try {
+    await getBackend().deleteSet(setId, { keepImages: liveImageIds() });
+  } catch (e) {
+    const still = await getBackend()
+      .listSets()
+      .then((sets) => sets.some((x) => x.id === setId))
+      .catch(() => true);
+    if (still) {
+      deleted.delete(setId);
+      if (queued && !unsaved.has(setId)) {
+        unsaved.set(setId, queued);
+        void flushNow();
+      }
+    }
+    throw e;
+  }
+}
+
+/** Whether this tab has deleted `setId` (or is deleting it). The editor
+ *  treats such a set as not in this browser, whatever the library lists. */
+export function isSetDeleted(setId: string): boolean {
+  return deleted.has(setId);
+}
+
+/** The open set's document as it is now — newer than storage while an edit
+ *  waits for the autosave. Null until a set has loaded. */
+export function currentDoc(): SetDoc | null {
+  const st = useOnstage.getState();
+  return st.loadedSetId === null ? null : readDoc(st);
 }
 
 /**
  * Carry out an `?apply=` intent from another screen on the set that is open:
- * `template:<slug>` or `brand:<kitId>`. Screens outside the editor never
- * change a document themselves (D10); they send the editor here instead.
+ * `template:<slug>` or `brand:<kitId>` (one undo step each), or
+ * `panel:export` / `panel:localize` (opens the export dialog / the localise
+ * drawer — not edits, so no undo step).
+ * Screens outside the editor never change a document themselves (D10); they
+ * send the editor here instead.
  */
 export function applyIntent(intent: string): boolean {
   const colon = intent.indexOf(":");
   const kind = colon < 0 ? intent : intent.slice(0, colon);
   const id = colon < 0 ? "" : intent.slice(colon + 1);
   const st = useOnstage.getState();
-  if (kind === "template" && TEMPLATES.some((t) => t.slug === id)) {
+  if (kind === "template" && isTemplate(id)) {
     st.applyTemplate(id);
     return true;
   }
   if (kind === "brand") {
     // Every kit applies the same defaults until brand kits are real (S10.4).
     st.applyBrandDefaults();
+    return true;
+  }
+  if (kind === "panel" && id === "export") {
+    st.setState({ overlay: "export" });
+    return true;
+  }
+  if (kind === "panel" && id === "localize") {
+    st.setState({ overlay: "ai", aiTab: "Localize" });
     return true;
   }
   return false;
