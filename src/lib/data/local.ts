@@ -1,5 +1,8 @@
 import type { Backend } from "./backend";
 import { FEATURES } from "../features";
+import { randomId } from "./ids";
+import * as images from "./imageStore";
+import { SET_DOCS_KEY, migrateScreenshotsToImages } from "./migrateImages";
 import * as sample from "./sample";
 import type {
   App,
@@ -16,9 +19,9 @@ import type {
 } from "./types";
 
 /**
- * The in-browser implementation: sample content, plus the few things the user
- * changes (resolved comments, sign-in) kept in localStorage so they survive a
- * reload. Replaced wholesale by a Supabase backend.
+ * The in-browser implementation: sample content, plus what the user changes
+ * kept in this browser — small JSON records in localStorage, screenshot bytes
+ * in IndexedDB (imageStore.ts). Replaced wholesale by a Supabase backend.
  */
 
 const ok = <T>(value: T): Promise<T> => Promise.resolve(value);
@@ -46,7 +49,7 @@ const KEY = {
   resolved: "onstage:resolved-comments:v1",
   replies: "onstage:comment-replies:v1",
   session: "onstage:session:v1",
-  docs: "onstage:set-docs:v1",
+  docs: SET_DOCS_KEY,
   sets: "onstage:sets:v1",
   apps: "onstage:apps:v1",
   kits: "onstage:brand-kits:v1",
@@ -66,13 +69,71 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-function writeJson(key: string, value: unknown): boolean {
+/**
+ * Why the browser refused a write, in words a person can act on. Every
+ * mutating method rejects with one of these instead of carrying on as if the
+ * change had been kept (DATA-5).
+ */
+function storageRefused(e: unknown): Error {
+  const { name, code } = (e ?? {}) as { name?: string; code?: number };
+  const full =
+    name === "QuotaExceededError" || name === "NS_ERROR_DOM_QUOTA_REACHED" || code === 22 || code === 1014;
+  return new Error(full ? "This browser's storage is full." : "This browser is blocking storage for this site.");
+}
+
+function writeRaw(key: string, value: string) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    return false;
+    localStorage.setItem(key, value);
+  } catch (e) {
+    throw storageRefused(e);
   }
+}
+
+function writeJson(key: string, value: unknown) {
+  writeRaw(key, JSON.stringify(value));
+}
+
+function removeKey(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {
+    throw storageRefused(e);
+  }
+}
+
+/**
+ * The stored value an update starts from. Missing reads as `fallback`; a
+ * value that can't be parsed throws, so an update never writes over (and
+ * destroys) something it couldn't read.
+ */
+function readForUpdate<T>(key: string, fallback: T): T {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(key);
+  } catch (e) {
+    throw storageRefused(e);
+  }
+  if (raw === null) return fallback;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = undefined;
+  }
+  if (!sameShape(parsed, fallback)) {
+    throw new Error("Something Onstage saved in this browser is unreadable, so it won't write over it.");
+  }
+  return parsed as T;
+}
+
+/** A stored value is only updated if it is the kind of thing the update
+ *  expects — a list, a record, a number — never coerced into one. */
+function sameShape(value: unknown, like: unknown): boolean {
+  if (Array.isArray(like)) return Array.isArray(value);
+  if (typeof like === "number") return typeof value === "number" && Number.isFinite(value);
+  if (typeof like === "boolean") return typeof value === "boolean";
+  if (like && typeof like === "object") return !!value && typeof value === "object" && !Array.isArray(value);
+  return value !== undefined;
 }
 
 function readSet(key: string): Set<string> {
@@ -84,12 +145,48 @@ function readSet(key: string): Set<string> {
   }
 }
 
-function writeSet(key: string, value: Set<string>) {
+/**
+ * Every set document, keyed by set id. Missing storage reads as no documents;
+ * a stored value that can't be parsed throws, so nothing ever writes over
+ * (and destroys) sets it couldn't read.
+ */
+function readDocs(): Record<string, SetDoc> {
+  if (typeof window === "undefined") return {};
+  let raw: string | null;
   try {
-    localStorage.setItem(key, JSON.stringify([...value]));
+    raw = localStorage.getItem(KEY.docs);
   } catch {
-    /* storage full or blocked — the change simply doesn't outlive the tab */
+    throw new Error("This browser is blocking storage, so Onstage can't read or save sets.");
   }
+  if (!raw) return {};
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("The sets saved in this browser are unreadable, so Onstage won't write over them.");
+  }
+  return parsed as Record<string, SetDoc>;
+}
+
+function writeDocs(docs: Record<string, SetDoc>) {
+  writeJson(KEY.docs, docs);
+}
+
+/**
+ * Screenshots used to live inside the documents as data URLs. Move them to
+ * the image store once per page load, before the first document read or
+ * write, so nothing reads a half-migrated value or saves over one.
+ */
+let docsReady: Promise<unknown> | null = null;
+function whenDocsReady(): Promise<unknown> {
+  if (typeof window === "undefined") return Promise.resolve();
+  docsReady ??= migrateScreenshotsToImages().catch((e) =>
+    console.warn("[onstage] screenshot migration failed; the stored sets were left as they were", e),
+  );
+  return docsReady;
 }
 
 /**
@@ -151,28 +248,16 @@ export const localBackend: Backend = {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       return { sent: false, message: "That doesn't look like an email address." };
     }
-    try {
-      localStorage.removeItem(KEY.session);
-    } catch {
-      /* ignore */
-    }
+    removeKey(KEY.session);
     return { sent: true };
   },
   signInWithProvider: async () => {
-    try {
-      localStorage.removeItem(KEY.session);
-    } catch {
-      /* ignore */
-    }
+    removeKey(KEY.session);
     // Supabase returns an OAuth URL here; locally we just land on the app.
     return { redirectTo: "/dashboard" };
   },
   signOut: async () => {
-    try {
-      localStorage.setItem(KEY.session, "out");
-    } catch {
-      /* ignore */
-    }
+    writeRaw(KEY.session, "out");
   },
 
   /* ── library ─────────────────────────────────────────────────────────── */
@@ -189,7 +274,7 @@ export const localBackend: Backend = {
 
   createApp: async ({ name }) => {
     const app: App = {
-      id: `app_${Date.now().toString(36)}`,
+      id: `app_${randomId()}`,
       name,
       initial: name.charAt(0).toUpperCase() || "?",
       meta: "0 SETS · DRAFT",
@@ -197,13 +282,14 @@ export const localBackend: Backend = {
       thumbs: Array(4).fill("linear-gradient(160deg,#1f2b4d,#0e1424)"),
       tags: [{ label: "Draft", kind: "neutral" }],
     };
-    writeJson(KEY.apps, [...readJson<App[]>(KEY.apps, []), app]);
+    writeJson(KEY.apps, [...readForUpdate<App[]>(KEY.apps, []), app]);
     return app;
   },
 
   createSet: async ({ appId, name, doc }) => {
+    if (doc) await whenDocsReady();
     const set: ScreenshotSet = {
-      id: `set_${Date.now().toString(36)}`,
+      id: `set_${randomId()}`,
       appId,
       name,
       sub: "New set · EN",
@@ -212,34 +298,56 @@ export const localBackend: Backend = {
       updatedAt: "Just now",
       swatch: "linear-gradient(150deg,#ff6b53,#c9315f)",
     };
-    writeJson(KEY.sets, [...readJson<ScreenshotSet[]>(KEY.sets, []), set]);
-    if (doc) writeJson(KEY.docs, { ...readJson(KEY.docs, {}), [set.id]: doc });
+    const sets = readForUpdate<ScreenshotSet[]>(KEY.sets, []);
+    // The document first: a library record must never point at a document
+    // that wasn't stored. If the record then fails, put the documents back
+    // exactly as they were.
+    const docsBefore = doc ? localStorage.getItem(KEY.docs) : null;
+    if (doc) writeDocs({ ...readDocs(), [set.id]: doc });
+    try {
+      writeJson(KEY.sets, [...sets, set]);
+    } catch (e) {
+      if (doc) {
+        try {
+          if (docsBefore === null) removeKey(KEY.docs);
+          else writeRaw(KEY.docs, docsBefore);
+        } catch {
+          /* an orphaned document is invisible and harmless */
+        }
+      }
+      throw e;
+    }
     return set;
   },
 
   renameSet: async (setId, name) => {
-    const names = readJson<Record<string, string>>(`${KEY.sets}:names`, {});
+    const names = readForUpdate<Record<string, string>>(`${KEY.sets}:names`, {});
     writeJson(`${KEY.sets}:names`, { ...names, [setId]: name });
   },
 
   deleteSet: async (setId) => {
-    const removed = readJson<string[]>(`${KEY.sets}:deleted`, []);
+    const removed = readForUpdate<string[]>(`${KEY.sets}:deleted`, []);
     writeJson(`${KEY.sets}:deleted`, [...new Set([...removed, setId])]);
   },
 
-  loadSetDoc: async (setId) => readJson<Record<string, SetDoc>>(KEY.docs, {})[setId] ?? null,
-
-  saveSetDoc: async (setId, doc) => {
-    const all = readJson<Record<string, SetDoc>>(KEY.docs, {});
-    if (writeJson(KEY.docs, { ...all, [setId]: doc })) return;
-    // Dropped screenshots are data URLs and can blow the 5MB quota. Keep the
-    // layout rather than losing everything, and let the caller report it.
-    const stripped = { ...doc, frames: doc.frames.map((f) => ({ ...f, screenshot: null })) };
-    if (writeJson(KEY.docs, { ...all, [setId]: stripped })) {
-      throw new Error("This browser's storage is full — the layout was saved, screenshots were not.");
-    }
-    throw new Error("This browser refused to store the set.");
+  loadSetDoc: async (setId) => {
+    await whenDocsReady();
+    return readDocs()[setId] ?? null;
   },
+
+  // A failed write rejects and leaves what was stored untouched — never a
+  // partial save. Screenshots are `img:` refs now, so a document is a few KB.
+  saveSetDoc: async (setId, doc) => {
+    await whenDocsReady();
+    writeDocs({ ...readDocs(), [setId]: doc });
+  },
+
+  /* ── screenshots ─────────────────────────────────────────────────────
+     SUPABASE SEAM: a Storage bucket. Locally the bytes live in IndexedDB
+     (imageStore.ts), keyed by random ids.                                 */
+  putImage: (blob) => images.putImage(blob),
+  getImage: (id) => images.getImage(id),
+  deleteImages: (ids) => images.deleteImages(ids),
 
   importFromStoreUrl: async (url) => {
     if (!/^https?:\/\/(apps\.apple\.com|play\.google\.com)\//i.test(url.trim())) {
@@ -279,12 +387,12 @@ export const localBackend: Backend = {
   connectStore: async (id) => {
     // SUPABASE SEAM: return the provider's OAuth URL. Locally we mark it
     // connected so the rest of the export path can be walked.
-    writeJson(KEY.connections, { ...readJson(KEY.connections, {}), [id]: true });
+    writeJson(KEY.connections, { ...readForUpdate(KEY.connections, {}), [id]: true });
     return { redirectTo: "/settings?tab=Store+connections" };
   },
 
   disconnectStore: async (id) => {
-    writeJson(KEY.connections, { ...readJson(KEY.connections, {}), [id]: false });
+    writeJson(KEY.connections, { ...readForUpdate(KEY.connections, {}), [id]: false });
   },
   listJobs: () => ok(sample.JOBS),
   uploadToStore: async ({ destination }): Promise<UploadResult> => {
@@ -321,14 +429,14 @@ export const localBackend: Backend = {
     );
   },
   resolveComment: async (commentId, resolved) => {
-    const set = readSet(KEY.resolved);
+    const set = new Set(readForUpdate<string[]>(KEY.resolved, []));
     if (resolved) set.add(commentId);
     else set.delete(commentId);
-    writeSet(KEY.resolved, set);
+    writeJson(KEY.resolved, [...set]);
   },
 
   replyToComment: async (commentId, body) => {
-    writeJson(KEY.replies, { ...readJson(KEY.replies, {}), [commentId]: body });
+    writeJson(KEY.replies, { ...readForUpdate(KEY.replies, {}), [commentId]: body });
   },
 
   /* ── account ─────────────────────────────────────────────────────────── */
@@ -348,12 +456,12 @@ export const localBackend: Backend = {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       return { ok: false, message: "That doesn't look like an email address." };
     }
-    const invited = readJson<Member[]>(KEY.members, []);
+    const invited = readForUpdate<Member[]>(KEY.members, []);
     if ([...sample.MEMBERS, ...invited].some((m) => m.email === email)) {
       return { ok: false, message: "They're already on the team." };
     }
     const member: Member = {
-      id: `m_${Date.now().toString(36)}`,
+      id: `m_${randomId()}`,
       name: email.split("@")[0],
       email,
       role,
@@ -365,7 +473,7 @@ export const localBackend: Backend = {
   },
 
   setMemberRole: async (memberId, role) => {
-    const roles = readJson<Record<string, MemberRole>>(`${KEY.members}:roles`, {});
+    const roles = readForUpdate<Record<string, MemberRole>>(`${KEY.members}:roles`, {});
     writeJson(`${KEY.members}:roles`, { ...roles, [memberId]: role });
   },
 
@@ -379,7 +487,7 @@ export const localBackend: Backend = {
   listBrandKits: async () => [...sample.BRAND_KITS, ...readJson<BrandKit[]>(KEY.kits, [])],
   createBrandKit: async (name) => {
     const kit: BrandKit = {
-      id: `kit_${Date.now().toString(36)}`,
+      id: `kit_${randomId()}`,
       name,
       setCount: 0,
       tint: "#5d5294",
@@ -397,7 +505,7 @@ export const localBackend: Backend = {
         { label: "Safe margins", sub: "Store-safe padding", value: "On" },
       ],
     };
-    writeJson(KEY.kits, [...readJson<BrandKit[]>(KEY.kits, []), kit]);
+    writeJson(KEY.kits, [...readForUpdate<BrandKit[]>(KEY.kits, []), kit]);
     return kit;
   },
 
@@ -406,7 +514,7 @@ export const localBackend: Backend = {
     // No metering while exports are free. If this kept counting, the day
     // billing comes back every returning user would already be over quota.
     if (!FEATURES.exportQuota) return unmetered();
-    const used = readJson<number>(KEY.exports, 0) + 1;
+    const used = readForUpdate<number>(KEY.exports, 0) + 1;
     writeJson(KEY.exports, used);
     return { ...sample.SESSION, exportsUsed: sample.SESSION.exportsUsed + used };
   },

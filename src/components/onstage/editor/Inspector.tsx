@@ -1,6 +1,6 @@
 "use client";
 
-import { useOnstage } from "@/store/onstage";
+import { beginHistoryGesture, endHistoryGesture, historyGestureLive, useOnstage } from "@/store/onstage";
 import { s } from "@/lib/onstage/css";
 import { BGS, FRAME_COLORS, TILT_PRESETS } from "@/lib/onstage/data";
 import { DropZone } from "../DropZone";
@@ -19,18 +19,25 @@ export function Inspector() {
   })();
   const tiltReadout = `${f.tiltY > 0 ? "+" : ""}${f.tiltY}° / ${f.tiltX > 0 ? "+" : ""}${f.tiltX}°`;
 
+  // One drag of the size slider is one undo step.
   const sizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
+    const gesture = beginHistoryGesture();
     const move = (ev: PointerEvent | React.PointerEvent) => {
+      // The set changed mid-drag: the rest of the drag changes nothing.
+      if (!historyGestureLive(gesture)) return;
       const t = Math.max(0, Math.min(1, (ev.clientX - box.left) / box.width));
       st.setState({ captionSize: Math.round(24 + t * 48) });
     };
     const up = () => {
       window.removeEventListener("pointermove", move as EventListener);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      endHistoryGesture(gesture);
     };
     window.addEventListener("pointermove", move as EventListener);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
     move(e);
   };
 
@@ -78,7 +85,7 @@ export function Inspector() {
               <div style={s(LABEL)}>HEADLINE</div>
               <textarea
                 value={f.caption}
-                onChange={(e) => st.patchFrame({ caption: e.target.value })}
+                onChange={(e) => st.typeCaption(e.target.value)}
                 style={s(
                   "width:100%;min-height:64px;padding:9px;border-radius:6px;border:1px solid rgba(var(--ink-rgb),.11);background:var(--bg);color:var(--text);font:500 13px/1.4 'Inter',sans-serif;resize:vertical",
                 )}

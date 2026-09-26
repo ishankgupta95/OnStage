@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import { DEFAULT_SET_ID, openSet, useOnstage } from "@/store/onstage";
+import { DEFAULT_SET_ID, applyIntent, openSet, useOnstage } from "@/store/onstage";
 import { s } from "@/lib/onstage/css";
+import { setHref } from "@/lib/onstage/setLinks";
 import { BrandMark, ThemeButton } from "../chrome";
 import {
   IcoExport,
@@ -33,24 +34,27 @@ import { SaveBadge } from "./SaveBadge";
 
 /**
  * ⌘Z / ⌘⇧Z over the canvas. The design's top bar has no undo buttons, so the
- * history is keyboard-only — zundo's `temporal` tracks the document slice.
+ * history is keyboard-only — zundo's `temporal` tracks the document slice,
+ * and the store's undo/redo keep the selection on a frame that exists.
  */
-function useUndoRedo() {
+function useUndoRedo(setId: string) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
+      // Nothing to undo in a set that hasn't loaded yet.
+      if (useOnstage.getState().loadedSetId !== setId) return;
       const el = e.target as HTMLElement | null;
       const tag = el?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || el?.isContentEditable)
         return;
       e.preventDefault();
-      const history = useOnstage.temporal.getState();
-      if (e.shiftKey) history.redo();
-      else history.undo();
+      const st = useOnstage.getState();
+      if (e.shiftKey) st.redo();
+      else st.undo();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setId]);
 }
 
 const storeTab = (on: boolean) =>
@@ -67,13 +71,15 @@ const modeTab = (on: boolean) =>
     on ? 600 : 400
   };cursor:pointer`;
 
-/** Guided ⇄ Canvas, shared with the guided screen's top bar. */
-export function ModeSwitch({ mode }: { mode: "guided" | "canvas" }) {
+/** Guided ⇄ Canvas, shared with the guided screen's top bar. `setId` is the
+ *  set in the page's URL, which may still be loading. */
+export function ModeSwitch({ mode, setId }: { mode: "guided" | "canvas"; setId: string }) {
   const router = useRouter();
   const setState = useOnstage((st) => st.setState);
   const go = (m: "guided" | "canvas") => {
-    setState({ workMode: m });
-    router.push(m === "guided" ? "/guided" : "/editor");
+    // Work mode is saved with the set, so only once it has loaded.
+    if (useOnstage.getState().loadedSetId === setId) setState({ workMode: m });
+    router.push(setHref(m, setId));
   };
   return (
     <div
@@ -111,13 +117,28 @@ const TOOLS = [
 export function EditorScreen() {
   const st = useOnstage();
   const router = useRouter();
-  const setId = useSearchParams().get("set") ?? DEFAULT_SET_ID;
-  useUndoRedo();
+  const params = useSearchParams();
+  const setId = params.get("set") ?? DEFAULT_SET_ID;
+  const apply = params.get("apply");
+  useUndoRedo(setId);
 
-  // Opening a different set swaps the document under the canvas.
+  // Opening a different set swaps the document under the canvas. Until it
+  // has loaded, the canvas shows no frames: anything on screen before then
+  // is a placeholder, and an edit to it would be lost. An `?apply=` intent
+  // from another screen lands on the loaded set as one undo step, then
+  // leaves the URL so a reload doesn't apply it again.
   useEffect(() => {
-    void openSet(setId);
-  }, [setId]);
+    let alive = true;
+    void openSet(setId).then(() => {
+      if (!alive || !apply || useOnstage.getState().loadedSetId !== setId) return;
+      applyIntent(apply);
+      router.replace(setHref("canvas", setId));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [setId, apply, router]);
+  const loaded = st.loadedSetId === setId;
 
   const toolActive = (id: string) =>
     (id === "bg" && st.sel === "bg") ||
@@ -125,6 +146,10 @@ export function EditorScreen() {
     (id === "screens" && st.sel === "device");
 
   const onTool = (id: string) => {
+    // Every tool acts on the set, so none does anything until it has loaded
+    // (Templates and Brand kit would otherwise send their result to whatever
+    // set was loaded before).
+    if (!loaded) return;
     if (id === "ai") st.setState({ overlay: "ai" });
     else if (id === "templates") router.push("/templates");
     else if (id === "brand") router.push("/brand");
@@ -164,7 +189,11 @@ export function EditorScreen() {
             <div
               style={s("display:flex;align-items:center;gap:8px;min-width:0")}
             >
-              <span style={s("font-size:13.5px;font-weight:500")}>
+              <span
+                style={s(
+                  "font-size:13.5px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis",
+                )}
+              >
                 Trailhead — 6.9″ set
               </span>
               <SaveBadge />
@@ -176,6 +205,7 @@ export function EditorScreen() {
             >
               <button
                 type="button"
+                disabled={!loaded}
                 onClick={() => st.setState({ store: "apple" })}
                 style={s(storeTab(st.store === "apple"))}
               >
@@ -183,6 +213,7 @@ export function EditorScreen() {
               </button>
               <button
                 type="button"
+                disabled={!loaded}
                 onClick={() => st.setState({ store: "play" })}
                 style={s(storeTab(st.store === "play"))}
               >
@@ -195,7 +226,7 @@ export function EditorScreen() {
                 "margin-left:auto;display:flex;align-items:center;gap:8px",
               )}
             >
-              <ModeSwitch mode="canvas" />
+              <ModeSwitch mode="canvas" setId={setId} />
               <ThemeButton radius={6} />
               <div
                 style={s(
@@ -303,20 +334,24 @@ export function EditorScreen() {
                 )}
               />
 
-              <CanvasStage />
-              <ContextBar />
-              {st.pop === "persp" && <PerspectivePopover />}
-              {st.pop === "device" && <DevicePopover />}
-              {st.pop === "font" && <FontPopover />}
-              <Filmstrip />
+              {loaded && (
+                <>
+                  <CanvasStage />
+                  <ContextBar />
+                  {st.pop === "persp" && <PerspectivePopover />}
+                  {st.pop === "device" && <DevicePopover />}
+                  {st.pop === "font" && <FontPopover />}
+                  <Filmstrip />
+                </>
+              )}
             </div>
 
-            {st.sel && <Inspector />}
+            {loaded && st.sel && <Inspector />}
           </div>
 
-          {st.overlay === "export" && <ExportOverlay />}
-          {st.overlay === "ai" && <AiOverlay />}
-          {st.overlay === "store" && <StoreOverlay />}
+          {loaded && st.overlay === "export" && <ExportOverlay />}
+          {loaded && st.overlay === "ai" && <AiOverlay />}
+          {loaded && st.overlay === "store" && <StoreOverlay />}
         </div>
       </div>
     </>

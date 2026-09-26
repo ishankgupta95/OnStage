@@ -1,6 +1,6 @@
 "use client";
 
-import { useOnstage } from "@/store/onstage";
+import { beginHistoryGesture, endHistoryGesture, historyGestureLive, useOnstage } from "@/store/onstage";
 import { s } from "@/lib/onstage/css";
 import { BGS, DEVICES, TILT_PRESETS, bgCss } from "@/lib/onstage/data";
 import {
@@ -254,9 +254,14 @@ export function PerspectivePopover() {
   const st = useOnstage();
   const f = st.frames[st.active] ?? st.frames[0];
 
+  // Each drag is one undo step: history pauses at pointerdown and records
+  // the whole drag at pointerup (or when the pointer is cancelled).
   const padDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
+    const gesture = beginHistoryGesture();
     const move = (ev: PointerEvent | React.PointerEvent) => {
+      // The set changed mid-drag: the rest of the drag changes nothing.
+      if (!historyGestureLive(gesture)) return;
       const nx = Math.max(-1, Math.min(1, ((ev.clientX - box.left) / box.width - 0.5) * 2));
       const ny = Math.max(-1, Math.min(1, ((ev.clientY - box.top) / box.height - 0.5) * 2));
       st.patchFrame({ tiltY: Math.round(nx * -34), tiltX: Math.round(ny * -22) });
@@ -264,24 +269,33 @@ export function PerspectivePopover() {
     const up = () => {
       window.removeEventListener("pointermove", move as EventListener);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      endHistoryGesture(gesture);
     };
     window.addEventListener("pointermove", move as EventListener);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
     move(e);
   };
 
   const depthDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const box = e.currentTarget.getBoundingClientRect();
+    const gesture = beginHistoryGesture();
     const move = (ev: PointerEvent | React.PointerEvent) => {
+      // The set changed mid-drag: the rest of the drag changes nothing.
+      if (!historyGestureLive(gesture)) return;
       const t = Math.max(0, Math.min(1, (ev.clientX - box.left) / box.width));
       st.patchFrame({ depth: Math.round(t * 100) });
     };
     const up = () => {
       window.removeEventListener("pointermove", move as EventListener);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      endHistoryGesture(gesture);
     };
     window.addEventListener("pointermove", move as EventListener);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
     move(e);
   };
 

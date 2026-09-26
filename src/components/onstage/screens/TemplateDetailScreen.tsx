@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { s } from "@/lib/onstage/css";
 import { CAPTIONS, TEMPLATES, bgCss, capInk } from "@/lib/onstage/data";
-import { useOnstage } from "@/store/onstage";
+import { useSetPreview } from "@/lib/onstage/useSetPreview";
+import { StoredScreenshot } from "../device";
+import { editorHref } from "@/lib/onstage/setLinks";
 import { IcoBack } from "../icons";
 
 const facts = (tpl: (typeof TEMPLATES)[number]) => [
@@ -34,8 +36,7 @@ const paletteOf = (css: string) => {
 export function TemplateDetailScreen({ slug }: { slug: string }) {
   const tpl = TEMPLATES.find((t) => t.slug === slug) ?? TEMPLATES[0];
   const router = useRouter();
-  const applyTemplate = useOnstage((st) => st.applyTemplate);
-  const frames = useOnstage((st) => st.frames);
+  const { frames } = useSetPreview();
   const [mine, setMine] = useState(false);
 
   // The strip shows the template's own sample captions, or yours against it.
@@ -43,10 +44,7 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
     ? frames.map((f) => ({ caption: f.caption, screenshot: f.screenshot }))
     : CAPTIONS.map((c) => ({ caption: c, screenshot: null as string | null }));
 
-  const apply = () => {
-    applyTemplate(tpl.slug);
-    router.push("/editor");
-  };
+  const apply = () => router.push(editorHref(`template:${tpl.slug}`));
 
   return (
     <div
@@ -172,16 +170,10 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
                       `position:relative;width:120px;height:246px;border-radius:18px;overflow:hidden;background:linear-gradient(150deg,#3a3833,#141312);box-shadow:0 18px 34px rgba(0,0,0,.5);transform:rotateY(${tpl.ty}deg)`,
                     )}
                   >
-                    {frame.screenshot && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={frame.screenshot}
-                        alt=""
-                        style={s(
-                          "position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);border-radius:14px;object-fit:cover",
-                        )}
-                      />
-                    )}
+                    <StoredScreenshot
+                      shot={frame.screenshot}
+                      style="position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);border-radius:14px;object-fit:cover"
+                    />
                   </div>
                 </div>
                 <span

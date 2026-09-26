@@ -81,17 +81,26 @@ export function SettingsScreen() {
 
   const connections = useQuery("connections", () => getBackend().listConnections());
   const [connBusy, setConnBusy] = useState<string | null>(null);
+  const [connError, setConnError] = useState<{ id: string; message: string } | null>(null);
 
+  // A change the backend refused shows why on that store's card, instead of
+  // the card quietly flipping back on the refetch.
   const toggleConnection = async (id: "apple" | "google", connected: boolean) => {
     setConnBusy(id);
-    if (connected) await getBackend().disconnectStore(id);
-    else {
-      const res = await getBackend().connectStore(id);
-      // SUPABASE SEAM: a real provider returns an OAuth URL to send them to.
-      if ("redirectTo" in res && res.redirectTo.startsWith("http")) {
-        window.location.assign(res.redirectTo);
-        return;
+    setConnError(null);
+    try {
+      if (connected) await getBackend().disconnectStore(id);
+      else {
+        const res = await getBackend().connectStore(id);
+        // SUPABASE SEAM: a real provider returns an OAuth URL to send them to.
+        if ("redirectTo" in res && res.redirectTo.startsWith("http")) {
+          window.location.assign(res.redirectTo);
+          return;
+        }
+        if ("error" in res) setConnError({ id, message: res.error });
       }
+    } catch (e) {
+      setConnError({ id, message: e instanceof Error ? e.message : "Something went wrong." });
     }
     setConnBusy(null);
     connections.refetch();
@@ -316,13 +325,14 @@ export function SettingsScreen() {
                             {connBusy === c.id ? "…" : c.connected ? "Disconnect" : "Reconnect"}
                           </button>
                         </div>
-                        {c.warning ? (
+                        {connError?.id === c.id || c.warning ? (
                           <div
+                            role={connError?.id === c.id ? "alert" : undefined}
                             style={s(
                               "margin-top:12px;padding-top:12px;border-top:1px solid rgba(var(--warn-rgb),.2);font-size:12.5px;line-height:1.55;color:var(--warn)",
                             )}
                           >
-                            {c.warning}
+                            {connError?.id === c.id ? connError.message : c.warning}
                           </div>
                         ) : null}
                       </div>

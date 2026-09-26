@@ -57,6 +57,16 @@ export interface Backend {
   loadSetDoc(setId: string): Promise<SetDoc | null>;
   saveSetDoc(setId: string, doc: SetDoc): Promise<void>;
 
+  /* screenshots — the bytes behind a frame's `img:<id>` ref */
+  /** Store a screenshot as-is (no downscaling); returns a fresh random id. */
+  putImage(blob: Blob): Promise<string>;
+  /** The screenshot stored under `id`, or null if there is none. */
+  getImage(id: string): Promise<Blob | null>;
+  /** Remove screenshots. Only `deleteSet` (after a reference check) and an
+   *  explicit "clear all data" call this — never undo, frame removal or a
+   *  replaced screenshot, because undo can bring a ref back. */
+  deleteImages(ids: string[]): Promise<void>;
+
   /** Pull an existing listing in from its store URL. */
   importFromStoreUrl(url: string): Promise<ImportedListing | { error: string }>;
 

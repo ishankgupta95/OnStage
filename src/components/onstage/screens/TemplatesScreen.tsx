@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { s } from "@/lib/onstage/css";
 import { LIGHT_TEMPLATES, TEMPLATES, TEMPLATE_FILTERS } from "@/lib/onstage/data";
-import { useOnstage } from "@/store/onstage";
+import { editorHref } from "@/lib/onstage/setLinks";
 import { IcoBack, IcoSearch } from "../icons";
 
 export function TemplatesScreen() {
   const router = useRouter();
-  const applyTemplate = useOnstage((st) => st.applyTemplate);
   const [filter, setFilter] = useState("All");
   const [query, setQuery] = useState("");
 
@@ -125,8 +124,7 @@ export function TemplatesScreen() {
                   className="reveal"
                   onClick={(e) => {
                     e.preventDefault();
-                    applyTemplate(t.slug);
-                    router.push("/editor");
+                    router.push(editorHref(`template:${t.slug}`));
                   }}
                   style={s(
                     "position:absolute;inset:0;display:grid;place-items:center;border:none;background:var(--scrim-soft);color:#fff;font-size:13px;font-weight:600;opacity:0;transition:opacity .16s ease;cursor:pointer",

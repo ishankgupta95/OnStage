@@ -57,19 +57,31 @@ type OnstageState = {
 
   /** Which set the canvas is editing. */
   setId: string;
+  /** The set whose saved document is on screen — null until openSet has
+   *  loaded one. Until then the frames are placeholders: nothing is saved,
+   *  and the editor and guided screens don't offer them for editing. */
+  loadedSetId: string | null;
   /** Whether the set on screen is safely stored. */
   saveState: SaveState;
   /** What went wrong the last time a save was attempted. */
   saveError: string | null;
 
   setState: (patch: Partial<OnstageState>) => void;
+  /** ⌘Z / ⌘⇧Z. Always use these, not the temporal store directly: they keep
+   *  the selection on a frame that exists. */
+  undo: () => void;
+  redo: () => void;
   patchFrame: (patch: Partial<Frame>) => void;
+  /** A keystroke in a headline field. Keystrokes into one caption fold into
+   *  one undo step; anything else (a suggestion click) is its own step. */
+  typeCaption: (caption: string) => void;
   addFrame: () => void;
   removeFrame: (index: number) => void;
   moveFrame: (from: number, to: number) => void;
   select: (index: number, sel?: Selection) => void;
-  /** Drop screenshots in, starting at `from` — one per frame, in order. */
-  setScreenshots: (from: number, urls: string[]) => void;
+  /** Drop screenshot refs in, starting at `from` — one per frame, in order;
+   *  a null leaves that frame's screenshot as it was. */
+  setScreenshots: (from: number, refs: (string | null)[]) => void;
   applyBgToAll: () => void;
   rewriteAllCaptions: () => void;
   runExport: () => Promise<void>;
@@ -89,41 +101,151 @@ type OnstageState = {
 
 type SaveState = "saved" | "saving" | "error";
 
+/** The fields undo/redo covers. Selection, popovers and export progress are
+ *  not edits and never land in the history. */
+const HISTORY_KEYS = [
+  "frames",
+  "device",
+  "frameColor",
+  "captionFont",
+  "align",
+  "captionSize",
+  "panorama",
+  "shadow",
+] as const satisfies readonly (keyof SetDoc)[];
+
+/** Every field the saved document holds: the history fields plus the set's
+ *  language, store target and work mode. */
+const DOC_KEYS = [...HISTORY_KEYS, "lang", "store", "workMode"] as const satisfies readonly (keyof SetDoc)[];
+
+type HistoryDoc = Pick<SetDoc, (typeof HISTORY_KEYS)[number]>;
+
+/** How many edits ⌘Z can walk back. */
+const HISTORY_LIMIT = 80;
+
+const historyOf = (st: HistoryDoc): HistoryDoc => ({
+  frames: st.frames,
+  device: st.device,
+  frameColor: st.frameColor,
+  captionFont: st.captionFont,
+  align: st.align,
+  captionSize: st.captionSize,
+  panorama: st.panorama,
+  shadow: st.shadow,
+});
+
+/** Same frames, by content: an action that rebuilds the array without
+ *  changing anything (the swatch that is already selected, Reset on a flat
+ *  frame) is not an edit and must not record an entry or clear redo. */
+function sameFrames(a: Frame[] | undefined, b: Frame[] | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  return a.every((f, i) => {
+    const g = b[i];
+    if (f === g) return true;
+    if (!f || !g) return false;
+    const keys = new Set([...Object.keys(f), ...Object.keys(g)]) as Set<keyof Frame>;
+    for (const k of keys) if (f[k] !== g[k]) return false;
+    return true;
+  });
+}
+
+const sameHistory = (a: Partial<HistoryDoc>, b: Partial<HistoryDoc>) =>
+  HISTORY_KEYS.every((k) => (k === "frames" ? sameFrames(a.frames, b.frames) : a[k] === b[k]));
+
+/* ── one gesture, one history entry ────────────────────────────────────────
+   A tilt drag fires a patch per pointermove; a headline gets one per
+   keystroke. Recording each would make ⌘Z crawl back through tiny deltas
+   and push real edits out of the 80-step history (EDITOR-2).              */
+
+/** Typing pauses longer than this start a new undo step. */
+const TYPING_BURST_MS = 1000;
+
+/** The caption being typed, if the change from `a` to `b` is exactly one
+ *  frame's caption and nothing else. */
+function typingTarget(a: Partial<HistoryDoc>, b: Partial<HistoryDoc>): string | null {
+  if (!a.frames || !b.frames || a.frames === b.frames || a.frames.length !== b.frames.length) return null;
+  if (!HISTORY_KEYS.every((k) => k === "frames" || a[k] === b[k])) return null;
+  let index = -1;
+  for (let i = 0; i < a.frames.length; i++) {
+    if (a.frames[i] === b.frames[i]) continue;
+    if (index >= 0) return null;
+    index = i;
+  }
+  const before = a.frames[index];
+  const after = b.frames[index];
+  if (!before || !after) return null;
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]) as Set<keyof Frame>;
+  for (const k of keys) if (k !== "caption" && before[k] !== after[k]) return null;
+  return `caption:${index}`;
+}
+
+/** The typing burst in progress: later keystrokes on the same caption fold
+ *  into the entry its first keystroke recorded. */
+let burst: { target: string; at: number } | null = null;
+/** True only while a keystroke (typeCaption) is being applied. */
+let typing = false;
+
+/** A drag in progress: the document as it was at pointerdown. */
+let gesture: { before: HistoryDoc } | null = null;
+
+/** The frame that was selected, followed by identity through an undo/redo:
+ *  `active` isn't part of the history, and after undoing a reorder or a
+ *  removal the same index is a different frame (EDITOR-1, EDITOR-12). */
+function reselect(selected: Frame | undefined, index: number) {
+  return (st: OnstageState): Partial<OnstageState> => {
+    const found = selected ? st.frames.indexOf(selected) : -1;
+    const active = found >= 0 ? found : Math.max(0, Math.min(index, st.frames.length - 1));
+    return active === st.active ? {} : { active };
+  };
+}
+
 /** The set the canvas opens when nothing else is asked for. */
 export const DEFAULT_SET_ID = "trailhead-69";
 
 /** The last successful render, kept out of state because blobs don't belong there. */
 let lastRender: { files: { path: string; blob: Blob }[]; zipBlob: Blob } | null = null;
+/** The export in progress, cancelled if another set is opened under it. */
+let exportRun: { cancelled: boolean } | null = null;
 
-const initialFrames: Frame[] = CAPTIONS.map((c, i) => ({
-  caption: c,
-  bg: i === 0 ? "ember" : i === 1 ? "dusk" : i === 2 ? "moss" : i === 3 ? "ember" : "ink",
-  tiltX: i === 0 ? 0 : i === 1 ? 6 : i === 2 ? 0 : i === 3 ? 6 : 0,
-  tiltY: i === 0 ? 0 : i === 1 ? -16 : i === 2 ? 15 : i === 3 ? -22 : 0,
-  depth: i === 0 ? 0 : i === 1 ? 42 : i === 2 ? 38 : i === 3 ? 66 : 0,
-  scale: 1,
-  screenshot: null,
-}));
-
-export const useOnstage = create<OnstageState>()(
-    temporal(
-      (set, get) => ({
-    frames: initialFrames,
-    active: 0,
-    sel: "device",
-    pop: null,
-    overlay: null,
-    zoom: 72,
-    panorama: false,
-    shadow: true,
+/**
+ * A new set's document: the Trailhead sample cut the canvas has always
+ * opened with. Opening a set with no saved document starts here; so do new
+ * sets (S2.2). S5.4 replaces it with the Ridgeline cut.
+ */
+export function defaultDoc(): SetDoc {
+  return {
+    frames: CAPTIONS.map((c, i) => ({
+      caption: c,
+      bg: i === 0 ? "ember" : i === 1 ? "dusk" : i === 2 ? "moss" : i === 3 ? "ember" : "ink",
+      tiltX: i === 0 ? 0 : i === 1 ? 6 : i === 2 ? 0 : i === 3 ? 6 : 0,
+      tiltY: i === 0 ? 0 : i === 1 ? -16 : i === 2 ? 15 : i === 3 ? -22 : 0,
+      depth: i === 0 ? 0 : i === 1 ? 42 : i === 2 ? 38 : i === 3 ? 66 : 0,
+      scale: 1,
+      screenshot: null,
+    })),
     device: "ip16pm",
     frameColor: "graphite",
     captionFont: "Inter",
     align: "center",
     captionSize: 44,
+    panorama: false,
+    shadow: true,
     lang: "EN",
     store: "apple",
     workMode: "canvas",
+  };
+}
+
+export const useOnstage = create<OnstageState>()(
+    temporal(
+      (set, get) => ({
+    ...defaultDoc(),
+    active: 0,
+    sel: "device",
+    pop: null,
+    overlay: null,
+    zoom: 72,
     gStep: 0,
     aiTab: "Captions",
     aiTone: "Direct",
@@ -138,17 +260,56 @@ export const useOnstage = create<OnstageState>()(
     exportError: null,
     exportBytes: 0,
     setId: DEFAULT_SET_ID,
+    loadedSetId: null,
     saveState: "saved",
     saveError: null,
 
     setState: (patch) => set(patch),
 
+    // zundo's undo/redo restore the document but not `active`, which isn't
+    // part of it — after undoing an added frame the selection would point
+    // past the end, and the next edit would create a malformed frame there
+    // (EDITOR-1). Keep the selection on the same frame, or clamp it onto one
+    // that exists. A drag still in progress (⌘Z with the button held) is
+    // committed first and continues as a fresh gesture, so its remaining
+    // moves stay one entry.
+    undo: () => {
+      const { frames, active } = get();
+      const dragging = gesture !== null;
+      endHistoryGesture();
+      burst = null;
+      useOnstage.temporal.getState().undo();
+      set(reselect(frames[active], active));
+      if (dragging) beginHistoryGesture();
+    },
+    redo: () => {
+      const { frames, active } = get();
+      const dragging = gesture !== null;
+      endHistoryGesture();
+      burst = null;
+      useOnstage.temporal.getState().redo();
+      set(reselect(frames[active], active));
+      if (dragging) beginHistoryGesture();
+    },
+
+    // Every edit to "the selected frame" is a no-op if there isn't one —
+    // never a partial frame at frames[active].
     patchFrame: (patch) =>
       set((st) => {
+        if (!st.frames[st.active]) return {};
         const frames = st.frames.slice();
         frames[st.active] = { ...frames[st.active], ...patch };
         return { frames };
       }),
+
+    typeCaption: (caption) => {
+      typing = true;
+      try {
+        get().patchFrame({ caption });
+      } finally {
+        typing = false;
+      }
+    },
 
     addFrame: () =>
       set((st) => ({
@@ -170,14 +331,18 @@ export const useOnstage = create<OnstageState>()(
     removeFrame: (index) =>
       set((st) => {
         // A set always has at least one frame; emptying it has no meaning.
-        if (st.frames.length <= 1) return {};
+        if (st.frames.length <= 1 || !st.frames[index]) return {};
         const frames = st.frames.filter((_, i) => i !== index);
-        return { frames, active: Math.min(st.active, frames.length - 1) };
+        // Keep the selection on the frame it was on (EDITOR-12); if that was
+        // the one removed, stay at the same place, or the new last frame.
+        const active =
+          index < st.active ? st.active - 1 : Math.max(0, Math.min(st.active, frames.length - 1));
+        return { frames, active };
       }),
 
     moveFrame: (from, to) =>
       set((st) => {
-        if (from === to || to < 0 || to >= st.frames.length) return {};
+        if (from === to || !st.frames[from] || to < 0 || to >= st.frames.length) return {};
         const frames = st.frames.slice();
         const [moved] = frames.splice(from, 1);
         frames.splice(to, 0, moved);
@@ -195,18 +360,22 @@ export const useOnstage = create<OnstageState>()(
 
     select: (index, sel = "device") => set({ active: index, sel, pop: null }),
 
-    setScreenshots: (from, urls) =>
+    setScreenshots: (from, refs) =>
       set((st) => {
         const frames = st.frames.slice();
-        urls.forEach((url, n) => {
+        refs.forEach((ref, n) => {
           const i = from + n;
-          if (frames[i]) frames[i] = { ...frames[i], screenshot: url };
+          if (ref && frames[i]) frames[i] = { ...frames[i], screenshot: ref };
         });
         return { frames };
       }),
 
     applyBgToAll: () =>
-      set((st) => ({ frames: st.frames.map((f) => ({ ...f, bg: st.frames[st.active].bg })) })),
+      set((st) => {
+        const bg = st.frames[st.active]?.bg;
+        if (!bg) return {};
+        return { frames: st.frames.map((f) => ({ ...f, bg })) };
+      }),
 
     rewriteAllCaptions: () =>
       set((st) => ({
@@ -261,6 +430,10 @@ export const useOnstage = create<OnstageState>()(
       exportDeliveredTo: null,
       exportBlockedByQuota: false,
     });
+    // Opening another set cancels this run: its files and progress belong
+    // to the set it started on, not the one on screen.
+    const run = { cancelled: false };
+    exportRun = run;
     try {
       const { renderSet } = await import("@/lib/onstage/export/renderSet");
       const { files, bytes, zipBlob } = await renderSet({
@@ -281,19 +454,29 @@ export const useOnstage = create<OnstageState>()(
               : Promise.resolve(null),
           ),
         ),
-        onProgress: (done, total) => set({ exportDone: done, exportTotal: total }),
+        onProgress: (done, total) => {
+          if (!run.cancelled) set({ exportDone: done, exportTotal: total });
+        },
+        signal: run,
       });
+      if (run.cancelled) return;
 
       lastRender = { files, zipBlob };
       set({ exportDone: files.length, exportTotal: files.length, exportBytes: bytes });
       // Metering happens once the files exist, never on a failed render — and
       // not at all while exports are free, so the stored counter stays clean
       // for the day billing comes back.
-      if (FEATURES.exportQuota) void getBackend().recordExport(files.length);
+      // A metering failure is not an export failure: the files exist.
+      if (FEATURES.exportQuota) {
+        void getBackend()
+          .recordExport(files.length)
+          .catch((e: unknown) => console.warn("[onstage] couldn't record the export", e));
+      }
 
       const dest = st.exportDest;
       if (dest === "zip") {
         const { downloadBlob } = await import("@/lib/onstage/export/download");
+        if (run.cancelled) return;
         downloadBlob(zipBlob, "trailhead-store-assets.zip");
         set({ exportState: "done", exportDeliveredTo: "zip" });
         return;
@@ -308,14 +491,18 @@ export const useOnstage = create<OnstageState>()(
         destination,
         files,
       });
+      if (run.cancelled) return;
       if (result.ok) set({ exportState: "done", exportDeliveredTo: destination });
       else set({ exportState: "error", exportError: result.message });
     } catch (e) {
+      if (run.cancelled) return;
       console.error("[onstage] export failed", e);
       set({
         exportState: "error",
         exportError: e instanceof Error ? e.message : "Export failed",
       });
+    } finally {
+      if (exportRun === run) exportRun = null;
     }
   },
 
@@ -335,6 +522,7 @@ export const useOnstage = create<OnstageState>()(
       set((st) => {
         const frames = st.frames.slice();
         const cur = frames[st.active];
+        if (!cur) return {};
         const next = +(cur.scale + delta).toFixed(2);
         frames[st.active] = { ...cur, scale: Math.max(0.7, Math.min(1.3, next)) };
         return { frames };
@@ -387,32 +575,89 @@ export const useOnstage = create<OnstageState>()(
     {
       // Undo/redo covers the document only — selection, popovers and export
       // progress are not edits and must not land in the history.
-      limit: 80,
-      partialize: (st) => ({
-        frames: st.frames,
-        device: st.device,
-        frameColor: st.frameColor,
-        captionFont: st.captionFont,
-        align: st.align,
-        captionSize: st.captionSize,
-        panorama: st.panorama,
-        shadow: st.shadow,
-      }),
+      limit: HISTORY_LIMIT,
+      partialize: (st: OnstageState): HistoryDoc => historyOf(st),
       // Without this, every unrelated setState (the save-state pill, export
       // progress) records a duplicate entry, because partialize hands back a
       // fresh object each time and the default check is by reference.
-      equality: (a, b) =>
-        a.frames === b.frames &&
-        a.device === b.device &&
-        a.frameColor === b.frameColor &&
-        a.captionFont === b.captionFont &&
-        a.align === b.align &&
-        a.captionSize === b.captionSize &&
-        a.panorama === b.panorama &&
-        a.shadow === b.shadow,
+      equality: sameHistory,
+      // Keystrokes into one caption (typeCaption), with no pause longer
+      // than TYPING_BURST_MS, are one entry: the first records the text
+      // before typing started, the rest extend the burst without recording.
+      // Any other change records normally and ends the burst.
+      handleSet: (record) => (pastState, replace, currentState) => {
+        const target = typing ? typingTarget(pastState as Partial<HistoryDoc>, currentState) : null;
+        const now = Date.now();
+        if (target && burst?.target === target && now - burst.at < TYPING_BURST_MS) {
+          burst.at = now;
+          return;
+        }
+        burst = target ? { target, at: now } : null;
+        record(pastState, replace);
+      },
     },
   ),
 );
+
+/** Bumped when a drag is cancelled from outside (the set changed under it),
+ *  so the drag's pointer handlers stop acting on the new document. */
+let gestureGen = 0;
+
+/**
+ * Start a drag (tilt pad, depth or caption-size slider). History is paused
+ * until `endHistoryGesture`, which records the whole drag as one entry. The
+ * returned id goes to `historyGestureLive` in each move and to
+ * `endHistoryGesture` on release.
+ */
+export function beginHistoryGesture(): number {
+  if (!gesture) {
+    gesture = { before: historyOf(useOnstage.getState()) };
+    burst = null;
+    useOnstage.temporal.getState().pause();
+  }
+  return gestureGen;
+}
+
+/** False once the drag was cancelled: its moves must change nothing. */
+export function historyGestureLive(id: number): boolean {
+  return id === gestureGen;
+}
+
+/** A set switch ends any drag in progress, recording nothing: its remaining
+ *  moves belong to a document that is no longer on screen. */
+function cancelHistoryGesture() {
+  gestureGen++;
+  if (!gesture) return;
+  gesture = null;
+  useOnstage.temporal.getState().resume();
+}
+
+/** Finish the drag started by `beginHistoryGesture`. Safe to call twice, and
+ *  a no-op for a drag that was cancelled. */
+export function endHistoryGesture(id?: number) {
+  if (id !== undefined && id !== gestureGen) return;
+  if (!gesture) return;
+  const { before } = gesture;
+  gesture = null;
+  const history = useOnstage.temporal.getState();
+  history.resume();
+  if (sameHistory(before, historyOf(useOnstage.getState()))) return;
+  useOnstage.temporal.setState({
+    pastStates: [...history.pastStates, before].slice(-HISTORY_LIMIT),
+    futureStates: [],
+  });
+}
+
+/**
+ * A different document was just installed: forget the old history, and end
+ * any drag — its pre-drag snapshot is the old document, which undo would
+ * otherwise write over the new set.
+ */
+function resetHistory() {
+  cancelHistoryGesture();
+  burst = null;
+  useOnstage.temporal.getState().clear();
+}
 
 /* ── persistence ───────────────────────────────────────────────────────────
    The top bar claims the set is SAVED, so it has to actually be saved. Writes
@@ -433,54 +678,211 @@ const readDoc = (st: OnstageState): SetDoc => ({
   workMode: st.workMode,
 });
 
+/** No document field changed — compared by reference, the same test zundo's
+ *  `equality` uses, so a zoom change or an export progress tick costs nothing. */
+const sameDoc = (a: OnstageState, b: OnstageState) => DOC_KEYS.every((k) => a[k] === b[k]);
+
+/** How long an edit waits for the next one before it is written. */
+const SAVE_DEBOUNCE_MS = 400;
+
+type SaveJob = { setId: string; state: OnstageState; seq: number };
+
 let timer: ReturnType<typeof setTimeout> | undefined;
 let subscribed = false;
+/** Set while openSet installs a loaded document, which is not an edit. */
+let loading = false;
+/** Bumped on every document edit; each unsaved edit carries its number. */
+let editSeq = 0;
+/**
+ * Edits not yet stored, the newest per set — the store snapshot itself, so
+ * nothing is copied or serialised until a flush writes it. A job leaves only
+ * once written: a failed write keeps it for the next attempt, and one set's
+ * edit never displaces another's. SAVED shows only when this is empty.
+ */
+const unsaved = new Map<string, SaveJob>();
+/** Saves run one after another, so an older one can never land after (and
+ *  overwrite) a newer one, whatever the backend's latency. */
+let saving: Promise<void> = Promise.resolve();
+/**
+ * Sets whose saved copy couldn't be read (or is damaged), with the reason.
+ * They open on the default so the session still works — edit, export — but
+ * are never written, so the stored copy survives for a later fix.
+ */
+const readOnly = new Map<string, string>();
 
-async function flush(setId: string, doc: SetDoc) {
-  try {
-    await getBackend().saveSetDoc(setId, doc);
-    useOnstage.setState({ saveState: "saved", saveError: null });
-  } catch (e) {
-    useOnstage.setState({
-      saveState: "error",
-      saveError: e instanceof Error ? e.message : "Couldn't save this set.",
-    });
-  }
+/** Show where saving stands: an error if a write just failed or the open set
+ *  can't be saved; SAVED only when every edit, the newest included, is stored. */
+function report(failure: string | null) {
+  const open = useOnstage.getState().loadedSetId;
+  const locked = open ? readOnly.get(open) : undefined;
+  if (failure) useOnstage.setState({ saveState: "error", saveError: failure });
+  else if (locked) useOnstage.setState({ saveState: "error", saveError: locked });
+  else if (!unsaved.size) useOnstage.setState({ saveState: "saved", saveError: null });
+  // Otherwise newer edits are queued, and their flush reports.
 }
 
+async function writeAll() {
+  let failure: string | null = null;
+  for (const job of [...unsaved.values()]) {
+    try {
+      await getBackend().saveSetDoc(job.setId, readDoc(job.state));
+      if (unsaved.get(job.setId)?.seq === job.seq) unsaved.delete(job.setId);
+    } catch (e) {
+      failure = e instanceof Error ? e.message : "Couldn't save this set.";
+    }
+  }
+  report(failure);
+}
+
+/** Write every unsaved edit now instead of after the debounce. */
+function flushNow(): Promise<void> {
+  clearTimeout(timer);
+  timer = undefined;
+  saving = saving.then(writeAll);
+  return saving;
+}
+
+/** Start autosaving: once per page, before the first document is loaded. */
+function installAutosave() {
+  if (subscribed) return;
+  subscribed = true;
+
+  useOnstage.subscribe((st, prev) => {
+    // Only the loaded set's own edits are saved — never placeholder frames
+    // on screen before (or instead of) a loaded document, and never over a
+    // saved copy that couldn't be read.
+    if (loading || st.loadedSetId === null || st.setId !== st.loadedSetId || sameDoc(st, prev)) return;
+    if (readOnly.has(st.setId)) return;
+    unsaved.set(st.setId, { setId: st.setId, state: st, seq: ++editSeq });
+    if (st.saveState !== "saving") useOnstage.setState({ saveState: "saving" });
+    clearTimeout(timer);
+    timer = setTimeout(() => void flushNow(), SAVE_DEBOUNCE_MS);
+  });
+
+  // Closing or backgrounding the tab inside the debounce mustn't drop the
+  // last edit (EDITOR-24). The local backend writes within this task's
+  // microtasks, before the page goes away.
+  window.addEventListener("pagehide", () => void flushNow());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") void flushNow();
+  });
+}
+
+/** Bumped by every openSet call; a load applies only if no later call has
+ *  started since, so the last set asked for is the one shown. */
+let openToken = 0;
+
+const DAMAGED = "This set's saved copy is damaged, so Onstage opened a fresh one.";
+
 /**
- * Load a set into the canvas and start autosaving it. Safe to call on every
- * mount; only the first call installs the subscription.
+ * Load a set into the canvas (by id — plan D10: only the editor and guided
+ * screens call this) and autosave it from then on. Safe to call on every
+ * mount: asking for the set that is already loaded changes nothing.
  */
 export async function openSet(setId: string = DEFAULT_SET_ID) {
   if (typeof window === "undefined") return;
   if (process.env.NODE_ENV === "development") {
     (window as Window & { __onstage?: typeof useOnstage }).__onstage = useOnstage;
   }
+  installAutosave();
 
-  if (useOnstage.getState().setId !== setId || !subscribed) {
-    const doc = await getBackend().loadSetDoc(setId);
-    useOnstage.setState({
-      setId,
-      saveState: "saved",
-      saveError: null,
-      ...(doc && Array.isArray(doc.frames) && doc.frames.length ? doc : {}),
-    });
-    useOnstage.temporal.getState().clear();
+  const token = ++openToken;
+  if (useOnstage.getState().loadedSetId === setId) return;
+
+  // Store what is waiting first — the set being left, and any earlier edit
+  // of this one — so the load below reads the newest stored copy.
+  await flushNow();
+  if (token !== openToken) return;
+  // This set's newest edit, if it still couldn't be written. Nothing can
+  // replace it during this call (edits are recorded only for the loaded set,
+  // and this one isn't loaded), so it stays the newest copy even if the
+  // flush below writes it after the load read an older one.
+  const unwritten = unsaved.get(setId);
+
+  let doc: SetDoc | null = null;
+  let loadError: string | null = null;
+  try {
+    doc = await getBackend().loadSetDoc(setId);
+  } catch (e) {
+    loadError = e instanceof Error ? e.message : "Couldn't load this set.";
+  }
+  if (token !== openToken) return; // a later openSet wins
+
+  // Edits made to the previous set while this one loaded.
+  await flushNow();
+  if (token !== openToken) return;
+
+  const valid = doc !== null && Array.isArray(doc.frames) && doc.frames.length > 0;
+  const problem = loadError ?? (doc !== null && !valid ? DAMAGED : null);
+  // An edit of this set that couldn't be written is newer than any stored
+  // copy: reopen that, and keep trying to store it.
+  const newer = unsaved.get(setId) ?? unwritten;
+  if (problem && !newer) readOnly.set(setId, `${problem} Changes to this set won't be saved.`);
+  else readOnly.delete(setId);
+  const source = newer ? readDoc(newer.state) : valid ? doc : null;
+
+  const before = useOnstage.getState();
+  // Replacing another set's document (not the first load of the page): its
+  // drag, export run and export dialog don't carry over.
+  const switching = before.loadedSetId !== null;
+  if (switching) {
+    if (exportRun) exportRun.cancelled = true;
+    exportRun = null;
+    lastRender = null;
   }
 
-  if (subscribed) return;
-  subscribed = true;
+  loading = true;
+  try {
+    useOnstage.setState({
+      // No saved document: start from the default — never the previous
+      // set's frames (DATA-4). A saved one lies over the default, so a field
+      // an older document lacks gets the default too, not the previous
+      // set's value. Work mode is the person's, not the set's (S3.2 moves it
+      // out of the document), so it carries over unless the doc has one.
+      ...defaultDoc(),
+      workMode: before.workMode,
+      ...source,
+      setId,
+      loadedSetId: setId,
+      active: 0,
+      pop: null,
+      ...(switching
+        ? {
+            overlay: null,
+            exportState: null,
+            exportDone: 0,
+            exportTotal: 0,
+            exportError: null,
+            exportBytes: 0,
+            exportDeliveredTo: null,
+          }
+        : {}),
+    });
+  } finally {
+    loading = false;
+  }
+  resetHistory();
+  report(null);
+}
 
-  let prev = JSON.stringify(readDoc(useOnstage.getState()));
-  useOnstage.subscribe((st) => {
-    const doc = readDoc(st);
-    const next = JSON.stringify(doc);
-    if (next === prev) return;
-    prev = next;
-    if (st.saveState !== "saving") useOnstage.setState({ saveState: "saving" });
-    clearTimeout(timer);
-    const id = st.setId;
-    timer = setTimeout(() => void flush(id, doc), 400);
-  });
+/**
+ * Carry out an `?apply=` intent from another screen on the set that is open:
+ * `template:<slug>` or `brand:<kitId>`. Screens outside the editor never
+ * change a document themselves (D10); they send the editor here instead.
+ */
+export function applyIntent(intent: string): boolean {
+  const colon = intent.indexOf(":");
+  const kind = colon < 0 ? intent : intent.slice(0, colon);
+  const id = colon < 0 ? "" : intent.slice(colon + 1);
+  const st = useOnstage.getState();
+  if (kind === "template" && TEMPLATES.some((t) => t.slug === id)) {
+    st.applyTemplate(id);
+    return true;
+  }
+  if (kind === "brand") {
+    // Every kit applies the same defaults until brand kits are real (S10.4).
+    st.applyBrandDefaults();
+    return true;
+  }
+  return false;
 }

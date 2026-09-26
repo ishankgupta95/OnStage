@@ -6,15 +6,15 @@ import { s } from "@/lib/onstage/css";
 import { Async, Shimmer } from "@/components/onstage/Async";
 import { getBackend } from "@/lib/data/backend";
 import { useQuery } from "@/lib/data/useQuery";
-import { useOnstage } from "@/store/onstage";
+import { editorHref } from "@/lib/onstage/setLinks";
 import { BackButton } from "../chrome";
+import { IcoAlert } from "../icons";
 
 const PANEL =
   "padding:18px;border:1px solid rgba(var(--ink-rgb),.09);border-radius:14px;background:var(--surface)";
 
 export function BrandScreen() {
   const router = useRouter();
-  const applyBrandDefaults = useOnstage((st) => st.applyBrandDefaults);
   const kits = useQuery("brand-kits", () => getBackend().listBrandKits());
   const [kitId, setKitId] = useState("trailhead");
   const kit = kits.data?.find((k) => k.id === kitId) ?? kits.data?.[0];
@@ -24,13 +24,22 @@ export function BrandScreen() {
   const fontInput = useRef<HTMLInputElement>(null);
   const iconInput = useRef<HTMLInputElement>(null);
 
+  const [kitError, setKitError] = useState<string | null>(null);
+
+  // A kit the browser refused to store is not shown as created: the name
+  // stays in the field and the reason shows under it.
   const addKit = async () => {
     const name = newKit.trim();
     if (!name) return;
-    const created = await getBackend().createBrandKit(name);
-    setNewKit("");
-    setKitId(created.id);
-    kits.refetch();
+    setKitError(null);
+    try {
+      const created = await getBackend().createBrandKit(name);
+      setNewKit("");
+      setKitId(created.id);
+      kits.refetch();
+    } catch (e) {
+      setKitError(`Couldn't create the kit — ${e instanceof Error ? e.message : "something went wrong."}`);
+    }
   };
 
   return (
@@ -58,8 +67,7 @@ export function BrandScreen() {
         <button
           type="button"
           onClick={() => {
-            applyBrandDefaults();
-            router.push("/editor");
+            router.push(editorHref(`brand:${kit?.id ?? kitId}`));
           }}
           className="hov-accent"
           style={s(
@@ -138,6 +146,15 @@ export function BrandScreen() {
               +
             </button>
           </div>
+          {kitError && (
+            <div
+              role="alert"
+              style={s("display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--warn)")}
+            >
+              <IcoAlert size={13} w={2} style={s("flex:none")} />
+              {kitError}
+            </div>
+          )}
         </div>
 
         <div style={s("display:flex;flex-direction:column;gap:18px")}>

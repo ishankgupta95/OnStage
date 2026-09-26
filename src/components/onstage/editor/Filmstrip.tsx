@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useOnstage } from "@/store/onstage";
 import { s } from "@/lib/onstage/css";
 import { bgCss } from "@/lib/onstage/data";
+import { StoredScreenshot } from "../device";
 import { IcoClose, IcoPlus } from "../icons";
 
 const chip = (on: boolean) =>
@@ -98,11 +99,16 @@ export function Filmstrip() {
                 />
                 <div
                   style={s(
-                    `margin-top:6px;width:26px;height:56px;border-radius:5px;background:#111214;box-shadow:0 4px 9px rgba(0,0,0,.45);transform:rotateY(${
+                    `position:relative;margin-top:6px;width:26px;height:56px;border-radius:5px;background:#111214;box-shadow:0 4px 9px rgba(0,0,0,.45);transform:rotateY(${
                       fr.tiltY * 0.6
                     }deg) rotateX(${fr.tiltX * 0.6}deg)`,
                   )}
-                />
+                >
+                  <StoredScreenshot
+                    shot={fr.screenshot}
+                    style="position:absolute;inset:1px;width:calc(100% - 2px);height:calc(100% - 2px);border-radius:4px;object-fit:cover"
+                  />
+                </div>
               </div>
               <div
                 style={s(

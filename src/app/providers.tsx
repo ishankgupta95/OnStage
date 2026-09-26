@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { ThemeProvider } from "next-themes";
-import { openSet } from "@/store/onstage";
 import { clearStaleAccountKeys } from "@/lib/data/local";
 
 /**
@@ -12,12 +11,12 @@ import { clearStaleAccountKeys } from "@/lib/data/local";
  */
 export default function Providers({ children }: { children: React.ReactNode }) {
   // After mount, so the server-rendered markup and the first client render
-  // agree; the stored set then replaces the sample one.
+  // agree. No set is opened here: only the editor and guided screens open
+  // one, by the id in their URL (plan D10).
   useEffect(() => {
     // Before the first read, so a stale "out" sentinel or export meter from
     // the account era can't reach getSession().
     clearStaleAccountKeys();
-    void openSet();
   }, []);
 
   return (

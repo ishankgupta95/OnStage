@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { s } from "@/lib/onstage/css";
 import { DEVICES, TILT_PRESETS, bgCss, capInk } from "@/lib/onstage/data";
-import { useOnstage } from "@/store/onstage";
+import { DEFAULT_SET_ID, openSet, useOnstage } from "@/store/onstage";
 import { BrandMark, ThemeButton } from "../chrome";
+import { setHref } from "@/lib/onstage/setLinks";
 import { ModeSwitch } from "../editor/EditorScreen";
+import { SaveBadge } from "../editor/SaveBadge";
 import { NarrowBlock } from "../editor/NarrowBlock";
 import { DropZone } from "../DropZone";
+import { StoredScreenshot } from "../device";
 import { StoreUrlField } from "../StoreUrlField";
 import { IcoUpload } from "../icons";
 
@@ -80,14 +84,22 @@ const SECTION_LABEL =
 export function GuidedScreen() {
   const st = useOnstage();
   const router = useRouter();
+  const setId = useSearchParams().get("set") ?? DEFAULT_SET_ID;
   const step = st.gStep;
   const f = st.frames[st.active] ?? st.frames[0];
+
+  // The same set the canvas edits, opened by the id in the URL. Frames and
+  // step controls wait for it: before then they would edit a placeholder.
+  useEffect(() => {
+    void openSet(setId);
+  }, [setId]);
+  const loaded = st.loadedSetId === setId;
 
   const next = () => {
     if (step < 3) st.setState({ gStep: step + 1 });
     else {
       st.setState({ overlay: "export" });
-      router.push("/editor");
+      router.push(setHref("canvas", setId));
     }
   };
   const back = () =>
@@ -120,15 +132,24 @@ export function GuidedScreen() {
                 "width:1px;height:22px;background:rgba(var(--ink-rgb),.1)",
               )}
             />
-            <span style={s("font-size:13.5px;font-weight:500")}>
-              Trailhead — 6.9″ set
-            </span>
+            {/* The same set the canvas edits, saved the same way: its save
+                state shows here too, so a failed save is never silent. */}
+            <div style={s("display:flex;align-items:center;gap:8px;min-width:0")}>
+              <span
+                style={s(
+                  "font-size:13.5px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis",
+                )}
+              >
+                Trailhead — 6.9″ set
+              </span>
+              <SaveBadge />
+            </div>
             <div
               style={s(
                 "margin-left:auto;display:flex;align-items:center;gap:8px",
               )}
             >
-              <ModeSwitch mode="guided" />
+              <ModeSwitch mode="guided" setId={setId} />
               <ThemeButton radius={8} />
             </div>
           </div>
@@ -210,7 +231,7 @@ export function GuidedScreen() {
                   "position:relative;display:flex;align-items:center;gap:16px",
                 )}
               >
-                {st.frames.slice(0, 3).map((fr, i) => {
+                {loaded && st.frames.slice(0, 3).map((fr, i) => {
                   const on = i === st.active;
                   const w = i === 1 ? 226 : 200;
                   const h = i === 1 ? 470 : 418;
@@ -254,9 +275,16 @@ export function GuidedScreen() {
                           style={s(
                             step === 0
                               ? `width:${dw}px;height:${dh}px;border-radius:20px;background:transparent;border:1.5px dashed rgba(var(--ink-rgb),.2)`
-                              : `width:${dw}px;height:${dh}px;border-radius:20px;background:linear-gradient(150deg,#3a3833,#141312);box-shadow:0 20px 38px rgba(0,0,0,.5);transform:rotateX(${fr.tiltX}deg) rotateY(${fr.tiltY}deg);transition:transform .12s linear`,
+                              : `position:relative;width:${dw}px;height:${dh}px;border-radius:20px;background:linear-gradient(150deg,#3a3833,#141312);box-shadow:0 20px 38px rgba(0,0,0,.5);transform:rotateX(${fr.tiltX}deg) rotateY(${fr.tiltY}deg);transition:transform .12s linear`,
                           )}
-                        />
+                        >
+                          {step !== 0 && (
+                            <StoredScreenshot
+                              shot={fr.screenshot}
+                              style="position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);border-radius:16px;object-fit:cover"
+                            />
+                          )}
+                        </div>
                       </div>
                       <span
                         style={s(
@@ -310,7 +338,7 @@ export function GuidedScreen() {
                   {BODIES[step]}
                 </p>
 
-                {step === 0 && (
+                {loaded && step === 0 && (
                   <div style={s("margin-top:18px")}>
                     <DropZone
                       from={0}
@@ -377,7 +405,7 @@ export function GuidedScreen() {
                   </div>
                 )}
 
-                {step === 1 && (
+                {loaded && step === 1 && (
                   <div style={s("margin-top:18px")}>
                     <div style={s(SECTION_LABEL)}>DEVICE</div>
                     <div
@@ -474,7 +502,7 @@ export function GuidedScreen() {
                   </div>
                 )}
 
-                {step === 2 && (
+                {loaded && step === 2 && (
                   <div style={s("margin-top:18px")}>
                     <div style={s(SECTION_LABEL)}>
                       FRAME {String(st.active + 1).padStart(2, "0")} OF{" "}
@@ -483,7 +511,7 @@ export function GuidedScreen() {
                     <textarea
                       value={f.caption}
                       onChange={(e) =>
-                        st.patchFrame({ caption: e.target.value })
+                        st.typeCaption(e.target.value)
                       }
                       style={s(
                         "width:100%;min-height:70px;margin-top:9px;padding:10px;border-radius:8px;border:1px solid rgba(var(--ink-rgb),.12);background:var(--surface-2);color:var(--text);font:500 14px/1.4 'Inter',sans-serif;resize:vertical",
@@ -551,7 +579,7 @@ export function GuidedScreen() {
                   </div>
                 )}
 
-                {step === 3 && (
+                {loaded && step === 3 && (
                   <div style={s("margin-top:18px")}>
                     <div
                       style={s(
@@ -643,8 +671,8 @@ export function GuidedScreen() {
               <div style={s("flex:none;padding:0 20px 14px;text-align:center")}>
                 <span
                   onClick={() => {
-                    st.setState({ workMode: "canvas" });
-                    router.push("/editor");
+                    if (loaded) st.setState({ workMode: "canvas" });
+                    router.push(setHref("canvas", setId));
                   }}
                   style={s(
                     "font-size:12px;color:var(--muted-3);cursor:pointer",

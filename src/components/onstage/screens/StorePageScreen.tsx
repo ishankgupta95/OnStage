@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { s } from "@/lib/onstage/css";
 import { bgCss, capInk } from "@/lib/onstage/data";
-import { useOnstage } from "@/store/onstage";
+import { useSetPreview } from "@/lib/onstage/useSetPreview";
 import { BackButton } from "../chrome";
 
 const CHECKS = [
@@ -39,8 +40,12 @@ const tab = (on: boolean) =>
 
 /** The listing as each store actually renders it, plus what would get flagged. */
 export function StorePageScreen() {
-  const st = useOnstage();
-  const play = st.store === "play";
+  // Previews the set without editing it: the store toggle is this page's own
+  // view, starting from the set's target (plan D10 — only the editor and
+  // guided screens change a set).
+  const { frames, store } = useSetPreview();
+  const [view, setView] = useState<"apple" | "play" | null>(null);
+  const play = (view ?? store) === "play";
 
   return (
     <div style={s("min-height:var(--screen-h,100vh);background:var(--bg);color:var(--text)")}>
@@ -58,10 +63,10 @@ export function StorePageScreen() {
             "display:flex;gap:2px;margin-left:10px;padding:2px;border:1px solid rgba(var(--ink-rgb),.09);border-radius:8px",
           )}
         >
-          <button type="button" onClick={() => st.setState({ store: "apple" })} style={s(tab(!play))}>
+          <button type="button" onClick={() => setView("apple")} style={s(tab(!play))}>
             App Store
           </button>
-          <button type="button" onClick={() => st.setState({ store: "play" })} style={s(tab(play))}>
+          <button type="button" onClick={() => setView("play")} style={s(tab(play))}>
             Play Store
           </button>
         </div>
@@ -148,7 +153,7 @@ export function StorePageScreen() {
 
             <div style={s("position:relative;margin-top:26px")}>
               <div style={s("display:flex;gap:12px;overflow:hidden")}>
-                {st.frames.map((fr, i) => (
+                {frames.map((fr, i) => (
                   <div
                     key={i}
                     style={s(
@@ -258,7 +263,7 @@ export function StorePageScreen() {
                 : "Search results show two frames. Anything past frame 03 needs a tap."}
             </div>
             <div style={s("display:flex;gap:6px;margin-top:12px")}>
-              {st.frames.map((fr, i) => (
+              {frames.map((fr, i) => (
                 <div
                   key={i}
                   style={s(

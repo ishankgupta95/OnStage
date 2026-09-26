@@ -2,6 +2,7 @@
 
 import { s } from "@/lib/onstage/css";
 import { FRAME_COLORS, SCREEN_INK } from "@/lib/onstage/data";
+import { useImageUrl } from "@/lib/data/useImageUrl";
 
 const BARS = [38, 52, 44, 70, 58, 82, 64, 48, 76, 100, 66, 54, 72, 46];
 const ROWS = [
@@ -95,6 +96,21 @@ export function PhoneScreenUI() {
   );
 }
 
+/**
+ * A frame's screenshot, drawn only once its bytes are available. `shot` is
+ * the stored ref (`img:<id>`, or a legacy `data:` URL); while it loads, or if
+ * it is missing, nothing is drawn and the caller's own screen shows through.
+ */
+export function StoredScreenshot({ shot, style }: { shot: string | null | undefined; style: string }) {
+  const url = useImageUrl(shot);
+  if (!url) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" style={s(style)} />;
+}
+
+const CANVAS_SHOT =
+  "position:absolute;inset:5px;border-radius:26px;width:calc(100% - 10px);height:calc(100% - 10px);object-fit:cover;background:#0f1114";
+
 /** The full device: bevel, screen, notch. */
 export function CanvasDevice({
   style,
@@ -105,9 +121,10 @@ export function CanvasDevice({
   style: string;
   notchStyle: string;
   frameColor?: string;
-  /** A dropped screenshot replaces the sample screen. */
+  /** A dropped screenshot's ref; it replaces the sample screen. */
   screenshot?: string | null;
 }) {
+  const url = useImageUrl(screenshot);
   return (
     <div style={s(style)}>
       <div
@@ -115,15 +132,12 @@ export function CanvasDevice({
           `position:absolute;inset:0;border-radius:30px;background:${canvasFrameCss(frameColor)};box-shadow:0 26px 60px -18px rgba(0,0,0,.75)`,
         )}
       />
-      {screenshot ? (
+      {url ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={screenshot}
-          alt=""
-          style={s(
-            "position:absolute;inset:5px;border-radius:26px;width:calc(100% - 10px);height:calc(100% - 10px);object-fit:cover;background:#0f1114",
-          )}
-        />
+        <img src={url} alt="" style={s(CANVAS_SHOT)} />
+      ) : screenshot ? (
+        // Loading (or missing): a dark screen, never a flash of the sample app.
+        <div style={s(CANVAS_SHOT)} />
       ) : (
         <PhoneScreenUI />
       )}
