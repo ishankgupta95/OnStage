@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { s } from "@/lib/onstage/css";
 import { DEVICES, TILT_PRESETS, bgCss, capInk } from "@/lib/onstage/data";
-import { useOnstage } from "@/store/onstage";
+import { setWorkMode, useOnstage } from "@/store/onstage";
 import { BrandMark, ThemeButton } from "../chrome";
 import { setHref } from "@/lib/onstage/setLinks";
 import { useSetRoute } from "@/lib/onstage/useSetRoute";
@@ -14,8 +15,12 @@ import { SaveBadge } from "../editor/SaveBadge";
 import { NarrowBlock } from "../editor/NarrowBlock";
 import { DropZone } from "../DropZone";
 import { StoredScreenshot } from "../device";
+import { FEATURES } from "@/lib/features";
 import { StoreUrlField } from "../StoreUrlField";
 import { IcoUpload } from "../icons";
+import { EXPORT_ROOT, exportPlan, formatMB, tabletNote } from "@/lib/onstage/export/plan";
+import { MAX_FRAMES, usableLocales } from "@/lib/onstage/export/slots";
+import { plural } from "@/lib/onstage/words";
 
 const STEPS = ["Upload", "Frame", "Caption", "Export"];
 
@@ -34,42 +39,21 @@ const TITLES = [
 const BODIES = [
   "Five screens is the sweet spot. The first two are what people actually see in search.",
   "One device and one angle for the whole set. Consistency reads as intentional.",
-  "Short and specific beats clever. Onstage suggests alternatives and flags anything that won't fit.",
-  "Both stores, every required size, in each language you ship.",
+  FEATURES.aiAssist
+    ? "Short and specific beats clever. Onstage suggests alternatives and flags anything that won't fit."
+    : "Short and specific beats clever.",
+  "Every size and language picked for export, in one zip.",
 ];
 const CANVAS_HINTS = [
   "Your screens go inside these frames",
   "The angle applies to every frame",
   "Click a frame to edit its headline",
-  "This is exactly what gets rendered",
+  "Every frame the export will render",
 ];
 const NEXT_LABELS = [
   "Next — pick the phone",
   "Next — write headlines",
   "Next — check the files",
-  "Export 40 files",
-];
-
-const UPLOADS = [
-  "01-today.png",
-  "02-pace.png",
-  "03-trails.png",
-  "04-share.png",
-  "05-season.png",
-];
-const UPLOAD_TINTS = [
-  "linear-gradient(150deg,#ff6b53,#c9315f)",
-  "linear-gradient(160deg,#1f2b4d,#0e1424)",
-  "linear-gradient(155deg,#1b6f6a,#0f3a3d)",
-  "linear-gradient(150deg,#ff6b53,#c9315f)",
-  "linear-gradient(160deg,#1a1917,#0b0b0a)",
-];
-
-const EXPORT_ROWS = [
-  { label: "Apple — iPhone 6.9″ + 6.5″", meta: "20 files", ok: true },
-  { label: "Google — Phone", meta: "10 files", ok: true },
-  { label: "Google — Tablet 7″", meta: "stretched", ok: false },
-  { label: "Locales — EN, DE", meta: "×2", ok: true },
 ];
 
 const SUGGESTIONS = [
@@ -81,12 +65,35 @@ const SUGGESTIONS = [
 const SECTION_LABEL =
   "font-size:11px;letter-spacing:.09em;color:var(--muted-3)";
 
+/** Where a guided drop starts: after the last frame that has a screenshot, as
+ *  the frames are when the drop lands — so a second drop appends instead of
+ *  replacing the first, and never fills a frame another drop just filled
+ *  (GAP-1). */
+const afterLastScreenshot = () =>
+  useOnstage.getState().frames.reduce((n, fr, i) => (fr.screenshot ? i : n), -1) + 1;
+
 /** Four steps, one decision each — the route for people who don't want a canvas. */
 export function GuidedScreen() {
   const st = useOnstage();
   const router = useRouter();
   const step = st.gStep;
   const f = st.frames[st.active] ?? st.frames[0];
+  // The names of the files dropped in this visit, by the screenshot each
+  // became (a set stores the pictures, not their file names).
+  const [names, setNames] = useState<Record<string, string>>({});
+  // The canvas shows every frame; keep the one being worked on in view.
+  const tiles = useRef<(HTMLDivElement | null)[]>([]);
+  useEffect(() => {
+    tiles.current[st.active]?.scrollIntoView?.({ block: "nearest", inline: "center" });
+  }, [st.active]);
+  // What the export will write: the export dialog's own numbers (SCREENSA-8).
+  const plan = exportPlan({
+    picks: st.exportPicks,
+    langs: usableLocales(st.frames, st.exportLangs),
+    frameCount: st.frames.length,
+    root: EXPORT_ROOT,
+  });
+  const note = tabletNote(plan, st.device);
 
   // The same set the canvas edits, opened by the id in the URL (a bare
   // /guided first finds the last one). Frames and step controls wait for
@@ -100,10 +107,8 @@ export function GuidedScreen() {
 
   const next = () => {
     if (step < 3) st.setState({ gStep: step + 1 });
-    else {
-      st.setState({ overlay: "export" });
-      router.push(setHref("canvas", setId));
-    }
+    // The export dialog opens on this set once the canvas has loaded it.
+    else router.push(setHref("canvas", setId, "panel:export"));
   };
   const back = () =>
     step ? st.setState({ gStep: step - 1 }) : router.push("/dashboard");
@@ -225,7 +230,7 @@ export function GuidedScreen() {
           >
             <div
               style={s(
-                "position:relative;display:grid;place-items:center;padding:26px;overflow:hidden",
+                "position:relative;display:grid;place-items:center;padding:26px;overflow:hidden;min-width:0",
               )}
             >
               <div
@@ -233,20 +238,27 @@ export function GuidedScreen() {
                   "position:absolute;inset:0;background-image:radial-gradient(rgba(var(--ink-rgb),.06) 1px, transparent 1px);background-size:26px 26px",
                 )}
               />
+              {/* Every frame — the export renders them all (GAP-1). The one
+                  being worked on is the large one; the row scrolls when the
+                  set is wider than the canvas. */}
               <div
                 style={s(
-                  "position:relative;display:flex;align-items:center;gap:16px",
+                  "position:relative;display:flex;align-items:center;gap:16px;max-width:100%;overflow-x:auto;padding:30px 2px 70px;margin:-26px 0 -66px",
                 )}
               >
-                {loaded && st.frames.slice(0, 3).map((fr, i) => {
+                {loaded && st.frames.map((fr, i) => {
                   const on = i === st.active;
-                  const w = i === 1 ? 226 : 200;
-                  const h = i === 1 ? 470 : 418;
-                  const dw = i === 1 ? 140 : 124;
-                  const dh = i === 1 ? 286 : 254;
+                  const w = on ? 226 : 200;
+                  const h = on ? 470 : 418;
+                  const dw = on ? 140 : 124;
+                  const dh = on ? 286 : 254;
+                  const empty = step === 0 && !fr.screenshot;
                   return (
                     <div
                       key={i}
+                      ref={(el) => {
+                        tiles.current[i] = el;
+                      }}
                       onClick={() => st.setState({ active: i })}
                       style={s(
                         `position:relative;flex:none;width:${w}px;height:${h}px;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;background:${
@@ -267,7 +279,7 @@ export function GuidedScreen() {
                       <div
                         style={s(
                           `flex:none;padding:24px 20px 0;text-align:center;font:500 ${
-                            i === 1 ? 19 : 17
+                            on ? 19 : 17
                           }px/1.16 'Inter',sans-serif;letter-spacing:-.026em;color:${capInk(fr.bg)}`,
                         )}
                       >
@@ -280,12 +292,14 @@ export function GuidedScreen() {
                       >
                         <div
                           style={s(
-                            step === 0
+                            empty
                               ? `width:${dw}px;height:${dh}px;border-radius:20px;background:transparent;border:1.5px dashed rgba(var(--ink-rgb),.2)`
                               : `position:relative;width:${dw}px;height:${dh}px;border-radius:20px;background:linear-gradient(150deg,#3a3833,#141312);box-shadow:0 20px 38px rgba(0,0,0,.5);transform:rotateX(${fr.tiltX}deg) rotateY(${fr.tiltY}deg);transition:transform .12s linear`,
                           )}
                         >
-                          {step !== 0 && (
+                          {/* Your own screenshot, on every step — the upload
+                              step included (SCREENSA-7). */}
+                          {!empty && (
                             <StoredScreenshot
                               shot={fr.screenshot}
                               style="position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);border-radius:16px;object-fit:cover"
@@ -348,8 +362,11 @@ export function GuidedScreen() {
                 {loaded && step === 0 && (
                   <div style={s("margin-top:18px")}>
                     <DropZone
-                      from={0}
+                      from={afterLastScreenshot}
                       multiple
+                      onPlaced={(placed) =>
+                        setNames((cur) => ({ ...cur, ...Object.fromEntries(placed.map((p) => [p.ref, p.name])) }))
+                      }
                       base="border:1px dashed rgba(var(--ink-rgb),.18);border-radius:10px;padding:22px 14px;text-align:center;background:var(--surface-2)"
                       hover="border-color:var(--accent);background:rgba(var(--accent-rgb),.07)"
                     >
@@ -361,40 +378,59 @@ export function GuidedScreen() {
                         <IcoUpload size={18} />
                       </div>
                       <div style={s("font-size:13.5px;font-weight:500")}>
-                        Drop 3–10 screenshots
+                        Drop up to {MAX_FRAMES[st.store]} screenshots
                       </div>
-                      <div
-                        style={s(
-                          "margin-top:4px;font-size:12px;color:var(--muted-2)",
-                        )}
-                      >
-                        Or paste your App Store link
-                      </div>
+                      {/* Reading a listing needs a server
+                          (`FEATURES.storeImport`, plan D3). */}
+                      {FEATURES.storeImport && (
+                        <div
+                          style={s(
+                            "margin-top:4px;font-size:12px;color:var(--muted-2)",
+                          )}
+                        >
+                          Or paste your App Store link
+                        </div>
+                      )}
                     </DropZone>
-                    <div style={s("margin-top:10px")}>
-                      <StoreUrlField
-                        cta="Import"
-                        onImported={() => st.setState({ gStep: 1 })}
-                      />
-                    </div>
+                    {FEATURES.storeImport && (
+                      <div style={s("margin-top:10px")}>
+                        <StoreUrlField
+                          cta="Import"
+                          onImported={() => st.setState({ gStep: 1 })}
+                        />
+                      </div>
+                    )}
                     <div
                       style={s(
                         "margin-top:14px;display:flex;flex-direction:column;gap:7px",
                       )}
                     >
-                      {UPLOADS.map((n, i) => (
+                      {/* The screens this set really holds (SCREENSA-9):
+                          each frame with a screenshot, by its file name when
+                          it was dropped in this visit. */}
+                      {!st.frames.some((fr) => fr.screenshot) && (
+                        <div style={s("font-size:12px;color:var(--muted-3)")}>No screens yet.</div>
+                      )}
+                      {st.frames.flatMap((fr, i) => (fr.screenshot ? [{ fr, i }] : [])).map(({ fr, i }) => (
                         <div
-                          key={n}
+                          key={`${i}:${fr.screenshot}`}
                           style={s(
                             "display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid rgba(var(--ink-rgb),.08);border-radius:8px;background:var(--surface)",
                           )}
                         >
                           <span
                             style={s(
-                              `flex:none;width:18px;height:26px;border-radius:3px;background:${UPLOAD_TINTS[i]}`,
+                              "position:relative;flex:none;width:18px;height:26px;border-radius:3px;overflow:hidden;background:rgba(var(--ink-rgb),.08)",
                             )}
-                          />
-                          <span style={s("flex:1;font-size:12.5px")}>{n}</span>
+                          >
+                            <StoredScreenshot
+                              shot={fr.screenshot}
+                              style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"
+                            />
+                          </span>
+                          <span style={s("flex:1;min-width:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>
+                            {(fr.screenshot && names[fr.screenshot]) || `Frame ${String(i + 1).padStart(2, "0")}`}
+                          </span>
                           <span
                             style={s(
                               `padding:2px 7px;border-radius:5px;font-size:10px;letter-spacing:.06em;background:${
@@ -524,57 +560,64 @@ export function GuidedScreen() {
                         "width:100%;min-height:70px;margin-top:9px;padding:10px;border-radius:8px;border:1px solid rgba(var(--ink-rgb),.12);background:var(--surface-2);color:var(--text);font:500 14px/1.4 'Inter',sans-serif;resize:vertical",
                       )}
                     />
-                    <div style={s("display:flex;gap:6px;margin-top:10px")}>
-                      {["Direct", "Benefit-led", "Playful"].map((t) => {
-                        const on = st.aiTone === t;
-                        return (
-                          <button
-                            key={t}
-                            type="button"
-                            onClick={() => st.setState({ aiTone: t })}
-                            style={s(
-                              `padding:5px 11px;border-radius:5px;border:1px solid ${
-                                on
-                                  ? "rgba(var(--accent-rgb),.4)"
-                                  : "rgba(var(--ink-rgb),.1)"
-                              };background:${on ? "rgba(var(--accent-rgb),.1)" : "transparent"};color:${
-                                on ? "var(--accent-hi)" : "var(--muted)"
-                              };font-size:12px;font-weight:500;cursor:pointer`,
-                            )}
-                          >
-                            {t}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div style={s(`margin-top:16px;${SECTION_LABEL}`)}>
-                      SUGGESTIONS
-                    </div>
-                    <div
-                      style={s(
-                        "margin-top:9px;display:flex;flex-direction:column;gap:7px",
-                      )}
-                    >
-                      {SUGGESTIONS.map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          className="hov-accent-border-solid"
-                          onClick={() => st.patchFrame({ caption: t })}
+                    {/* Tone chips and suggestions are the caption assistant
+                        (`FEATURES.aiAssist`, plan D3/D9): without it they were
+                        fixed sample-app headlines that ignored the tone. */}
+                    {FEATURES.aiAssist && (
+                      <>
+                        <div style={s("display:flex;gap:6px;margin-top:10px")}>
+                          {["Direct", "Benefit-led", "Playful"].map((t) => {
+                            const on = st.aiTone === t;
+                            return (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => st.setState({ aiTone: t })}
+                                style={s(
+                                  `padding:5px 11px;border-radius:5px;border:1px solid ${
+                                    on
+                                      ? "rgba(var(--accent-rgb),.4)"
+                                      : "rgba(var(--ink-rgb),.1)"
+                                  };background:${on ? "rgba(var(--accent-rgb),.1)" : "transparent"};color:${
+                                    on ? "var(--accent-hi)" : "var(--muted)"
+                                  };font-size:12px;font-weight:500;cursor:pointer`,
+                                )}
+                              >
+                                {t}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={s(`margin-top:16px;${SECTION_LABEL}`)}>
+                          SUGGESTIONS
+                        </div>
+                        <div
                           style={s(
-                            "text-align:left;padding:11px;border:1px solid rgba(var(--ink-rgb),.09);border-radius:8px;background:var(--surface);color:var(--text);font-size:13.5px;font-weight:500;cursor:pointer",
+                            "margin-top:9px;display:flex;flex-direction:column;gap:7px",
                           )}
                         >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
+                          {SUGGESTIONS.map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              className="hov-accent-border-solid"
+                              onClick={() => st.patchFrame({ caption: t })}
+                              style={s(
+                                "text-align:left;padding:11px;border:1px solid rgba(var(--ink-rgb),.09);border-radius:8px;background:var(--surface);color:var(--text);font-size:13.5px;font-weight:500;cursor:pointer",
+                              )}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                     <button
                       type="button"
                       onClick={() =>
                         st.setState({
                           active:
-                            (st.active + 1) % Math.min(3, st.frames.length),
+                            (st.active + 1) % st.frames.length,
                         })
                       }
                       style={s(
@@ -601,12 +644,12 @@ export function GuidedScreen() {
                             "font-size:26px;font-weight:500;letter-spacing:-.03em",
                           )}
                         >
-                          40
+                          {plan.files}
                         </span>
                         <span
                           style={s("font-size:12.5px;color:var(--muted-2)")}
                         >
-                          files · 16.8 MB
+                          {plan.files === 1 ? "file" : "files"} · ~{formatMB(plan.estBytes)}
                         </span>
                       </div>
                       <div
@@ -614,7 +657,13 @@ export function GuidedScreen() {
                           "margin-top:10px;display:flex;flex-direction:column;gap:6px",
                         )}
                       >
-                        {EXPORT_ROWS.map((r) => (
+                        {[
+                          ...plan.slots.map((p) => ({ label: p.slot.label, meta: plural(p.files, "file") })),
+                          {
+                            label: `Locales — ${plan.locales.join(", ")}`,
+                            meta: `×${plan.locales.length}`,
+                          },
+                        ].map((r) => (
                           <div
                             key={r.label}
                             style={s(
@@ -623,9 +672,7 @@ export function GuidedScreen() {
                           >
                             <span
                               style={s(
-                                `flex:none;width:7px;height:7px;border-radius:50%;background:${
-                                  r.ok ? "var(--ok)" : "var(--warn)"
-                                }`,
+                                "flex:none;width:7px;height:7px;border-radius:50%;background:var(--ok)",
                               )}
                             />
                             <span style={s("flex:1")}>{r.label}</span>
@@ -638,14 +685,16 @@ export function GuidedScreen() {
                         ))}
                       </div>
                     </div>
-                    <div
-                      style={s(
-                        "margin-top:12px;padding:11px;border:1px solid rgba(var(--warn-rgb),.24);border-radius:10px;background:rgba(var(--warn-rgb),.06);font-size:12px;line-height:1.55;color:var(--warn)",
-                      )}
-                    >
-                      Play&apos;s 7″ tablet size is missing frames. Onstage will
-                      stretch the phone frames unless you add them.
-                    </div>
+                    {note && (
+                      <div
+                        role="note"
+                        style={s(
+                          "margin-top:12px;padding:11px;border:1px solid rgba(var(--warn-rgb),.24);border-radius:10px;background:rgba(var(--warn-rgb),.06);font-size:12px;line-height:1.55;color:var(--warn)",
+                        )}
+                      >
+                        {note}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -672,13 +721,15 @@ export function GuidedScreen() {
                     "flex:1;height:40px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-size:14px;font-weight:500;cursor:pointer",
                   )}
                 >
-                  {NEXT_LABELS[step]}
+                  {step < 3 ? NEXT_LABELS[step] : `Export ${plural(plan.files, "file")}`}
                 </button>
               </div>
               <div style={s("flex:none;padding:0 20px 14px;text-align:center")}>
                 <span
                   onClick={() => {
-                    if (loaded) st.setState({ workMode: "canvas" });
+                    setWorkMode("canvas").catch((e: unknown) =>
+                      console.warn("[onstage] couldn't store the work mode", e),
+                    );
                     router.push(setHref("canvas", setId));
                   }}
                   style={s(

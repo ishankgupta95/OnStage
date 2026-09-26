@@ -99,6 +99,9 @@ function card(slug: string): HTMLAnchorElement {
   return a;
 }
 
+/** The card's grid item: its link (the template page) and the button under it. */
+const cardItem = (slug: string): HTMLElement => card(slug).parentElement!;
+
 function button(label: string, within: ParentNode = host): HTMLButtonElement {
   const b = [...within.querySelectorAll("button")].find((el) => el.textContent === label);
   if (!b) throw new Error(`no "${label}" button`);
@@ -122,10 +125,12 @@ describe("TemplatesScreen — Use this set", () => {
     const setsBefore = storedSets();
     await act(async () => root.render(<TemplatesScreen />));
 
-    const followed = await click(button("Use this set", card("moss")));
-    // The overlay is a shortcut inside the card: it must not also follow the
-    // card's link to the template page.
-    expect(followed).toBe(false);
+    // A visible button under the card, not an invisible overlay inside its
+    // link (GAP-12): a tap on the card opens the template page instead.
+    const use = button("Use this set", cardItem("moss"));
+    expect(card("moss").contains(use)).toBe(false);
+    expect(card("moss").querySelector("button")).toBeNull();
+    await click(use);
     await until(() => nav.push.mock.calls.length > 0);
 
     const created = addedSets(setsBefore);
@@ -167,7 +172,7 @@ describe("TemplatesScreen — Use this set", () => {
     const setsBefore = storedSets();
     await act(async () => root.render(<TemplatesScreen />));
 
-    await click(button("Use this set", card("moss")));
+    await click(button("Use this set", cardItem("moss")));
     await until(() => nav.push.mock.calls.length > 0);
 
     const created = addedSets(setsBefore);
@@ -200,16 +205,16 @@ describe("TemplatesScreen — Use this set", () => {
       throw new DOMException("refused", "QuotaExceededError");
     });
 
-    await click(button("Use this set", card("moss")));
+    await click(button("Use this set", cardItem("moss")));
     await until(() => host.querySelector('[role="alert"]') !== null);
 
     const alerts = host.querySelectorAll('[role="alert"]');
     expect(alerts).toHaveLength(1);
     expect(alerts[0].textContent!.startsWith("Couldn't create the set — This browser's storage is full.")).toBe(true);
-    expect(card("moss").contains(alerts[0])).toBe(true);
+    expect(cardItem("moss").contains(alerts[0])).toBe(true);
     expect(nav.push).not.toHaveBeenCalled();
     // Free to try again.
-    const retry = button("Use this set", card("moss"));
+    const retry = button("Use this set", cardItem("moss"));
     expect(retry.disabled).toBe(false);
 
     vi.restoreAllMocks();
@@ -254,5 +259,234 @@ describe("TemplateDetailScreen — Apply and open canvas", () => {
     expect(st.loadedSetId).toBeNull();
     expect(JSON.stringify(st.frames)).toBe(framesBefore);
     expect(localStorage.getItem(LAST_KEY)).toBe(JSON.stringify("trailhead-69"));
+  });
+});
+
+/**
+ * Plan S3.3 / GAP-12: the gallery card is a plain link to the template's page;
+ * making a set is a visible button after it — never an invisible overlay
+ * inside the link that a first tap (no hover on touch) would set off. The
+ * template page's own buttons are ordinary, visible buttons too.
+ */
+describe("Template cards — the link opens, the visible button creates (GAP-12)", () => {
+  /** A control hidden until hover: the reveal classes, or an inline opacity of 0. */
+  function hiddenUntilHover(el: HTMLElement): boolean {
+    const inline = (el.getAttribute("style") ?? "").replace(/\s+/g, "");
+    return (
+      el.closest(".reveal, .hov-reveal") !== null ||
+      /(^|;)opacity:0(?![.\d])/.test(inline) ||
+      el.style.opacity === "0" ||
+      el.style.visibility === "hidden" ||
+      el.style.display === "none"
+    );
+  }
+
+  /** A real, reachable, visible button — not an overlay over something else. */
+  function expectOrdinaryButton(b: HTMLButtonElement, label: string) {
+    expect(b.tagName, label).toBe("BUTTON");
+    expect(b.type, label).toBe("button");
+    expect(hiddenUntilHover(b), label).toBe(false);
+    expect(b.classList.contains("reveal"), label).toBe(false);
+    expect(b.style.position, label).not.toBe("absolute");
+    expect(b.style.inset, label).toBe("");
+    expect(b.tabIndex, label).toBe(0);
+    expect(b.getAttribute("aria-hidden"), label).toBeNull();
+    expect(b.closest("a"), label).toBeNull();
+  }
+
+  it("every card link holds no button, and every grid item has exactly one visible 'Use this set' after it", async () => {
+    const { TemplatesScreen } = await load();
+    const { TEMPLATES } = await import("@/lib/onstage/data");
+    await act(async () => root.render(<TemplatesScreen />));
+
+    // One grid item per template: the link, then its button.
+    const grid = cardItem(TEMPLATES[0].slug).parentElement!;
+    expect(grid.children).toHaveLength(TEMPLATES.length);
+
+    for (const t of TEMPLATES) {
+      const link = card(t.slug);
+      expect(link.getAttribute("href"), t.slug).toBe(`/templates/${t.slug}`);
+      // Nothing clickable nested in the link: no button, no role=button.
+      expect(link.querySelectorAll("button, [role='button'], input"), t.slug).toHaveLength(0);
+      // The link carries the preview, the name, the angle and the tagline.
+      expect(link.textContent, t.slug).toContain(t.name);
+      expect(link.textContent, t.slug).toContain(t.tagline);
+
+      const item = cardItem(t.slug);
+      expect(item.parentElement, t.slug).toBe(grid);
+      const uses = [...item.querySelectorAll("button")].filter((b) => b.textContent === "Use this set");
+      expect(uses, t.slug).toHaveLength(1);
+      const [use] = uses;
+      expect(link.contains(use), t.slug).toBe(false);
+      // After the link, in reading and tab order.
+      expect(link.compareDocumentPosition(use) & Node.DOCUMENT_POSITION_FOLLOWING, t.slug).toBeTruthy();
+      expectOrdinaryButton(use, t.slug);
+      expect(use.disabled, t.slug).toBe(false);
+    }
+
+    // No hover-revealed control anywhere in the gallery.
+    expect(host.querySelectorAll(".reveal, .hov-reveal")).toHaveLength(0);
+    for (const b of host.querySelectorAll("button")) expect(hiddenUntilHover(b), b.textContent ?? "").toBe(false);
+  });
+
+  it("clicking anywhere on the card's link creates no set and opens no canvas", async () => {
+    seedLastSet();
+    const { TemplatesScreen } = await load();
+    const { getBackend } = await import("@/lib/data/backend");
+    const createSet = vi.spyOn(getBackend(), "createSet");
+    const setsBefore = storedSets();
+    const docsBefore = localStorage.getItem(DOCS_KEY);
+    await act(async () => root.render(<TemplatesScreen />));
+
+    const link = card("moss");
+    // The link itself, and the preview / name / tagline inside it — what a
+    // first tap on a touch screen lands on.
+    const targets: HTMLElement[] = [link, link.firstElementChild as HTMLElement];
+    const name = [...link.querySelectorAll("span")].find((el) => el.textContent === "Moss");
+    expect(name).toBeTruthy();
+    targets.push(name!, link.lastElementChild as HTMLElement);
+
+    // After React (and Next's Link) have seen each click, note whether the
+    // page left it to the browser, then stop jsdom's own navigation attempt.
+    const leftToBrowser: boolean[] = [];
+    const follow = (e: Event) => {
+      leftToBrowser.push(!e.defaultPrevented);
+      e.preventDefault();
+    };
+    document.addEventListener("click", follow);
+    try {
+      for (const el of targets) await click(el);
+      // Give any (wrongly) started creation time to land.
+      await act(() => new Promise((r) => setTimeout(r, 50)));
+    } finally {
+      document.removeEventListener("click", follow);
+    }
+
+    expect(createSet).not.toHaveBeenCalled();
+    expect(addedSets(setsBefore)).toEqual([]);
+    expect(localStorage.getItem(DOCS_KEY)).toBe(docsBefore);
+    // A plain link: each click goes to /templates/moss — followed by the
+    // browser, or pushed by Next's router — and never to the canvas.
+    expect(leftToBrowser).toHaveLength(targets.length);
+    for (const [href] of nav.push.mock.calls) expect(href).toBe("/templates/moss");
+    leftToBrowser.forEach((followed, i) =>
+      expect(followed || nav.push.mock.calls.length > i, `click ${i}`).toBe(true),
+    );
+    expect(nav.replace).not.toHaveBeenCalled();
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    // Every card's "Use this set" is still free: nothing is in flight.
+    expect(button("Use this set", cardItem("moss")).disabled).toBe(false);
+  });
+
+  it("while one card's set is being created, every 'Use this set' waits — and only that card says so", async () => {
+    seedLastSet();
+    const { TemplatesScreen } = await load();
+    const { getBackend } = await import("@/lib/data/backend");
+    let release!: () => void;
+    const backend = getBackend();
+    const real = backend.createSet.bind(backend);
+    vi.spyOn(backend, "createSet").mockImplementation(async (...args) => {
+      await new Promise<void>((r) => (release = r));
+      return real(...args);
+    });
+    await act(async () => root.render(<TemplatesScreen />));
+
+    await click(button("Use this set", cardItem("moss")));
+    await until(() => cardItem("moss").textContent!.includes("Creating…"));
+    const buttons = [...host.querySelectorAll<HTMLButtonElement>("[href^='/templates/'] + button")];
+    expect(buttons.length).toBeGreaterThan(1);
+    expect(buttons.every((b) => b.disabled)).toBe(true);
+    expect(buttons.filter((b) => b.textContent === "Creating…")).toEqual([
+      button("Creating…", cardItem("moss")),
+    ]);
+
+    release();
+    await until(() => nav.push.mock.calls.length > 0);
+    expect(nav.push).toHaveBeenCalledTimes(1);
+    expect(nav.push.mock.calls[0][0]).toMatch(/^\/editor\?set=/);
+  });
+
+  it("the template page's 'Use this set' and 'Apply and open canvas' are ordinary visible buttons", async () => {
+    seedLastSet();
+    const { TemplateDetailScreen } = await load();
+    await act(async () => root.render(<TemplateDetailScreen slug="moss" />));
+    await until(() => host.textContent!.includes("A new set from"));
+
+    for (const label of ["Use this set", "Apply and open canvas"]) {
+      const b = button(label);
+      expectOrdinaryButton(b, label);
+      expect(b.disabled, label).toBe(false);
+    }
+    expect(host.querySelectorAll(".reveal, .hov-reveal")).toHaveLength(0);
+  });
+
+  it("the template page's header 'Use this set' makes the same new set as 'Apply and open canvas'", async () => {
+    seedLastSet();
+    const { TemplateDetailScreen } = await load();
+    const setsBefore = storedSets();
+    await act(async () => root.render(<TemplateDetailScreen slug="moss" />));
+    await until(() => host.textContent!.includes("A new set from"));
+
+    await click(button("Use this set"));
+    await until(() => nav.push.mock.calls.length > 0);
+
+    const created = addedSets(setsBefore);
+    expect(created).toHaveLength(1);
+    const [set] = created;
+    expect(set).toMatchObject({ appId: "trailhead", name: "Trailhead — Moss" });
+    expect(nav.push).toHaveBeenCalledTimes(1);
+    expect(nav.push).toHaveBeenCalledWith(`/editor?set=${set.id}`);
+    const made = storedDocs()[set.id];
+    expect(made.frames.every((f) => f.bg === "moss")).toBe(true);
+    expect(made.frames.map((f) => f.caption)).toEqual(["Mine one", "Mine two"]);
+    expect(JSON.stringify(storedDocs()["trailhead-69"])).toBe(JSON.stringify(mine));
+  });
+});
+
+/**
+ * Plan S3.2: a template never changes how many frames a set has, so its card
+ * says what it does do — the device angle — not the design file's "{n} FR".
+ */
+describe("Template cards — the angle, not a frame count", () => {
+  it("each gallery card shows its template's angle label in caps, never a frame count", async () => {
+    const { TemplatesScreen } = await load();
+    const { TEMPLATES } = await import("@/lib/onstage/data");
+    const { angleLabel } = await import("@/lib/onstage/templateFacts");
+    await act(async () => root.render(<TemplatesScreen />));
+
+    for (const t of TEMPLATES) {
+      const c = card(t.slug);
+      const name = [...c.querySelectorAll("span")].find((el) => el.textContent === t.name);
+      expect(name, t.slug).toBeTruthy();
+      expect(name!.nextElementSibling?.textContent, t.slug).toBe(angleLabel(t.ty).toUpperCase());
+      expect(c.textContent, t.slug).not.toContain(`${t.frames} FR`);
+    }
+    expect(card("ember").textContent).toContain("14° RIGHT");
+    expect(card("cold-open").textContent).toContain("FLAT");
+    expect(card("field-notes").textContent).toContain("12° LEFT");
+    expect(host.textContent).not.toMatch(/\d+\s*FR\b/);
+  });
+
+  it("the landing page's template strip shows each template's angle, never '{n} frames'", async () => {
+    const { LandingScreen } = await import("../LandingScreen");
+    const { TEMPLATES } = await import("@/lib/onstage/data");
+    const { angleLabel } = await import("@/lib/onstage/templateFacts");
+    await act(async () => root.render(<LandingScreen />));
+
+    // The strip sits under "Pick a look, not a layout", after its See all link.
+    const seeAll = [...host.querySelectorAll("a")].find((a) => a.textContent === "See all →");
+    expect(seeAll?.getAttribute("href")).toBe("/templates");
+    const grid = seeAll!.parentElement!.nextElementSibling!;
+    const cards = [...grid.children];
+    expect(cards).toHaveLength(6);
+    cards.forEach((el, i) => {
+      const t = TEMPLATES[i];
+      expect(el.children[1].textContent, t.slug).toBe(t.name);
+      expect(el.children[2].textContent, t.slug).toBe(angleLabel(t.ty));
+      expect(el.textContent, t.slug).not.toContain(`${t.frames} frames`);
+    });
+    expect(cards[0].children[2].textContent).toBe("14° right");
+    expect(cards[1].children[2].textContent).toBe("Flat");
+    expect(grid.textContent).not.toMatch(/\d+ frames/);
   });
 });

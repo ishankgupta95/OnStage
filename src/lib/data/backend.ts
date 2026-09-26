@@ -4,6 +4,7 @@ import type {
   CaptionTone,
   ImportedListing,
   MemberRole,
+  Prefs,
   SetDoc,
   AbStat,
   AbVariant,
@@ -69,6 +70,12 @@ export interface Backend {
   /** Record the set just opened as the one to return to. */
   rememberLastSet(setId: string): Promise<void>;
 
+  /* preferences — the person's, not a set's */
+  /** The person's preferences; defaults for anything not chosen yet. */
+  getPrefs(): Promise<Prefs>;
+  /** Change some preferences; resolves with all of them as now stored. */
+  setPrefs(patch: Partial<Prefs>): Promise<Prefs>;
+
   /* the editable document — what the canvas edits and export renders */
   loadSetDoc(setId: string): Promise<SetDoc | null>;
   saveSetDoc(setId: string, doc: SetDoc): Promise<void>;
@@ -121,6 +128,11 @@ export interface Backend {
   cancelSubscription(): Promise<void>;
   listBrandKits(): Promise<BrandKit[]>;
   createBrandKit(name: string): Promise<BrandKit>;
+  /** The email notifications the person has switched on (true) or off
+   *  (false), by id. An id with no entry keeps its default. */
+  getNotificationPrefs(): Promise<Record<string, boolean>>;
+  /** Switch one email notification on or off. */
+  setNotificationPref(id: string, enabled: boolean): Promise<void>;
 
   /* metering — the free plan's export allowance */
   recordExport(files: number): Promise<Session | null>;

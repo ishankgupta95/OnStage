@@ -1,12 +1,11 @@
 import type { App, AppTag, ScreenshotSet } from "@/lib/data/types";
 import { newestFirst } from "./sets";
+import { plural } from "./words";
 
 /**
  * The dashboard's words about the library, derived from the records it
  * lists (plan S2.3) — never a fixed string.
  */
-
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** "2 apps · 5 sets". */
 export const librarySummary = (apps: number, sets: number) =>

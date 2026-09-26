@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/onstage/screens/LegalPage";
+import { pageMetadata } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: "/terms",
   title: "Terms of Service — Onstage",
   description: "The terms you agree to when you use Onstage.",
-};
+});
 
 // Termly-hosted terms; see the note in /privacy for the env vars.
 export default function TermsPage() {

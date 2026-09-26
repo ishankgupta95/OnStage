@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { beginHistoryGesture, endHistoryGesture, historyGestureLive, useOnstage } from "@/store/onstage";
 import { s } from "@/lib/onstage/css";
 import { BGS, FRAME_COLORS, TILT_PRESETS } from "@/lib/onstage/data";
+import { MAX_BYTES } from "@/lib/onstage/readImageFile";
 import { DropZone } from "../DropZone";
 import { IcoClose, IcoCursor, IcoUpload } from "../icons";
 
@@ -95,8 +97,8 @@ export function Inspector() {
                   "display:flex;justify-content:space-between;margin-top:6px;font:400 10px 'Inter',ui-sans-serif;color:var(--muted-4)",
                 )}
               >
+                {/* No "fits" claim: nothing measures the wrap yet (S4.1). */}
                 <span>{f.caption.length} chars</span>
-                <span>fits 6.9″ · 6.5″</span>
               </div>
             </div>
             <div>
@@ -130,7 +132,10 @@ export function Inspector() {
           <>
             <div>
               <div style={s(LABEL)}>SCREENSHOT</div>
+              {/* One drop target per frame: a message about one frame's file
+                  doesn't stay on the next. */}
               <DropZone
+                key={st.active}
                 from={st.active}
                 base="border:1px dashed rgba(var(--ink-rgb),.16);border-radius:7px;padding:16px 12px;text-align:center;background:var(--bg)"
                 hover="border-color:var(--accent);background:rgba(var(--accent-rgb),.06)"
@@ -145,7 +150,10 @@ export function Inspector() {
                 <div style={s("font-size:12px;font-weight:500")}>
                   {f.screenshot ? "Replace this screen" : "Drop a screen"}
                 </div>
-                <div style={s("margin-top:3px;font-size:11px;color:var(--muted-2)")}>PNG up to 12 MB</div>
+                {/* What DropZone really checks (SCREENSB-9). */}
+                <div style={s("margin-top:3px;font-size:11px;color:var(--muted-2)")}>
+                  PNG, JPEG or WebP · up to {MAX_BYTES / 1024 / 1024} MB
+                </div>
               </DropZone>
             </div>
             <div>
@@ -163,7 +171,7 @@ export function Inspector() {
                 </span>
               </button>
               <div style={s("margin-top:6px;font-size:11px;line-height:1.5;color:var(--muted-2)")}>
-                Tilt lives on the phone itself. Select it on canvas and drag the handle.
+                Open Perspective above to drag the tilt pad or pick a preset.
               </div>
             </div>
             <div>
@@ -240,14 +248,14 @@ export function Inspector() {
             style={s("display:flex;align-items:center;justify-content:space-between;padding-top:12px")}
           >
             <span style={s("font-size:12px;color:var(--muted)")}>Brand kit</span>
-            <span style={s("display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500")}>
-              <span style={s("display:flex;gap:2px")}>
-                <span style={s("width:9px;height:9px;border-radius:2px;background:#1b6f6a")} />
-                <span style={s("width:9px;height:9px;border-radius:2px;background:#134f63")} />
-                <span style={s("width:9px;height:9px;border-radius:2px;background:#f0efe9")} />
-              </span>
-              Trailhead
-            </span>
+            {/* Nothing records which kit a set uses (S10.4), so no kit is
+                named here — only the way to the kits. */}
+            <Link
+              href="/brand"
+              style={s("display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--accent-hi)")}
+            >
+              Choose a kit
+            </Link>
           </div>
         </div>
       </div>

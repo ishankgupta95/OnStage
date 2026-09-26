@@ -5,34 +5,12 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { s } from "@/lib/onstage/css";
 import { bgCss, capInk } from "@/lib/onstage/data";
-import { openSetHref } from "@/lib/onstage/setLinks";
+import { setHref } from "@/lib/onstage/setLinks";
 import { useSetPreview } from "@/lib/onstage/useSetPreview";
+import { useSetApp } from "@/lib/onstage/useSetApp";
+import { FALLBACK_APP_NAME, appIdentity } from "@/lib/onstage/appName";
 import { BackButton } from "../chrome";
 import { NotFoundScreen } from "./NotFoundScreen";
-
-const CHECKS = [
-  {
-    label: "Caption legible at thumbnail size",
-    detail: "Smallest headline renders at 19px in search results.",
-    ok: true,
-  },
-  { label: "Contrast on every frame", detail: "Lowest pair is 5.8:1 on frame 03.", ok: true },
-  {
-    label: "First two frames carry the pitch",
-    detail: "Frames 01 and 02 name the benefit without the rest of the set.",
-    ok: true,
-  },
-  {
-    label: "Frame 01 tilt is flat",
-    detail: "Every other frame leans right. Reviewers read it as an error.",
-    ok: false,
-  },
-  {
-    label: "Feature graphic has no text",
-    detail: "Play crops it on tablets — keep the app name inside the middle 80%.",
-    ok: false,
-  },
-];
 
 const tab = (on: boolean) =>
   `padding:5px 11px;border:none;border-radius:4px;background:${
@@ -41,7 +19,7 @@ const tab = (on: boolean) =>
     on ? 600 : 400
   };cursor:pointer`;
 
-/** The listing as each store actually renders it, plus what would get flagged. */
+/** The listing as each store actually renders it. */
 export function StorePageScreen() {
   // Previews the set without editing it: the store toggle is this page's own
   // view, starting from the set's target (plan D10 — only the editor and
@@ -49,7 +27,13 @@ export function StorePageScreen() {
   // `?set=` names the set (the project board's "This set" card); without
   // it, the set a bare /editor would open.
   const setId = useSearchParams().get("set") || null;
-  const { frames, store, set, missing } = useSetPreview(setId);
+  const { frames, store, set, missing, appName } = useSetPreview(setId);
+  // The set's own app, never the sample's invented listing (S3.4).
+  const app = useSetApp(set?.id);
+  const id = appIdentity(appName, app);
+  const name = id.name;
+  const tint = id.tint;
+  const first = frames[0];
   const [view, setView] = useState<"apple" | "play" | null>(null);
   const play = (view ?? store) === "play";
 
@@ -88,7 +72,8 @@ export function StorePageScreen() {
           </button>
         </div>
         <Link
-          href={set ? openSetHref(set.id) : "/editor"}
+          // "Open in canvas" means the canvas, whatever the work mode.
+          href={set ? setHref("canvas", set.id) : "/editor"}
           className="hov-accent"
           style={s(
             "margin-left:auto;display:inline-flex;align-items:center;height:32px;padding:0 13px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-size:12.5px;font-weight:500",
@@ -108,18 +93,22 @@ export function StorePageScreen() {
             "border:1px solid rgba(var(--ink-rgb),.09);border-radius:14px;overflow:hidden;background:var(--paper);color:var(--paper-ink)",
           )}
         >
-          {play && (
+          {/* The feature graphic as the export makes it: frame 1's background
+              and caption, the app's name when something names it. */}
+          {play && first && (
             <div
               style={s(
-                "height:172px;background:linear-gradient(150deg,#1b6f6a,#134f63);display:flex;align-items:center;justify-content:space-between;padding:0 30px",
+                `height:172px;background:${bgCss(first.bg)};display:flex;align-items:center;justify-content:space-between;padding:0 30px`,
               )}
             >
-              <div>
-                <div style={s("font-size:24px;font-weight:600;letter-spacing:-.025em;color:#fff")}>
-                  Trailhead
-                </div>
-                <div style={s("margin-top:5px;font-size:13.5px;color:rgba(255,255,255,.78)")}>
-                  Every run, mapped
+              <div style={s("min-width:0")}>
+                {name && (
+                  <div style={s(`font-size:24px;font-weight:600;letter-spacing:-.025em;color:${capInk(first.bg)}`)}>
+                    {name}
+                  </div>
+                )}
+                <div style={s(`margin-top:5px;font-size:13.5px;color:${capInk(first.bg)};opacity:.78`)}>
+                  {first.caption}
                 </div>
               </div>
               <span
@@ -136,32 +125,25 @@ export function StorePageScreen() {
             <div style={s("display:flex;align-items:center;gap:16px")}>
               <span
                 style={s(
-                  "display:grid;place-items:center;width:74px;height:74px;border-radius:17px;background:#1b6f6a;color:#fff;font-size:29px;font-weight:600",
+                  `display:grid;place-items:center;width:74px;height:74px;border-radius:17px;background:${tint};color:#fff;font-size:29px;font-weight:600`,
                 )}
               >
-                T
+                {id.initial}
               </span>
+              {/* The app's name only: its subtitle, ratings, age rating and
+                  category live in the store listing, which Onstage doesn't
+                  have (they used to be the sample's). */}
               <div style={s("flex:1;min-width:0")}>
-                <div style={s("font-size:21px;font-weight:600;letter-spacing:-.025em")}>Trailhead</div>
-                <div style={s("margin-top:3px;font-size:13.5px;color:var(--paper-muted)")}>
-                  Run &amp; Trail Log
-                </div>
-                <div
-                  style={s(
-                    "display:flex;align-items:center;gap:14px;margin-top:9px;font-size:12px;color:var(--paper-muted)",
-                  )}
-                >
-                  <span>4.8 ★ · 1.2K ratings</span>
-                  <span>{play ? "Rated for 3+" : "Age 4+"}</span>
-                  <span>Health &amp; Fitness</span>
+                <div style={s("font-size:21px;font-weight:600;letter-spacing:-.025em")}>
+                  {name ?? FALLBACK_APP_NAME}
                 </div>
               </div>
               <button
                 type="button"
                 style={s(
                   play
-                    ? "flex:none;height:34px;padding:0 20px;border:none;border-radius:8px;background:#1b6f6a;color:#fff;font-size:13px;font-weight:600;cursor:pointer"
-                    : "flex:none;height:30px;padding:0 20px;border:none;border-radius:999px;background:#1b6f6a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer",
+                    ? `flex:none;height:34px;padding:0 20px;border:none;border-radius:8px;background:${tint};color:#fff;font-size:13px;font-weight:600;cursor:pointer`
+                    : `flex:none;height:30px;padding:0 20px;border:none;border-radius:999px;background:${tint};color:#fff;font-size:12.5px;font-weight:700;cursor:pointer`,
                 )}
               >
                 {play ? "Install" : "GET"}
@@ -217,57 +199,14 @@ export function StorePageScreen() {
               </div>
             </div>
 
-            <div style={s("margin-top:26px;max-width:64ch")}>
-              <div style={s("font-size:15px;font-weight:600;letter-spacing:-.015em")}>
-                About this app
-              </div>
-              <p
-                style={s(
-                  "margin:8px 0 0;font-size:13.5px;line-height:1.65;color:var(--paper-muted)",
-                )}
-              >
-                Trailhead logs every run and puts it on one map. Pace, elevation and splits for each
-                route, shareable in a tap, offline when you leave signal behind.
-              </p>
-            </div>
+            {/* No "About this app": the description is the store listing's,
+                not something a set holds (it was the sample app's). */}
           </div>
         </div>
 
         <div style={s("display:flex;flex-direction:column;gap:14px")}>
-          <div
-            style={s(
-              "padding:16px;border:1px solid rgba(var(--ink-rgb),.09);border-radius:14px;background:var(--surface)",
-            )}
-          >
-            <div style={s("display:flex;align-items:baseline;justify-content:space-between")}>
-              <span style={s("font-size:13.5px;font-weight:500")}>Listing checks</span>
-              <span style={s("font-size:11px;letter-spacing:.09em;color:var(--muted-4)")}>
-                3 PASS · 2 FLAGS
-              </span>
-            </div>
-            <div style={s("margin-top:12px;display:flex;flex-direction:column;gap:11px")}>
-              {CHECKS.map((c) => (
-                <div key={c.label} style={s("display:flex;gap:10px")}>
-                  <span
-                    style={s(
-                      `flex:none;margin-top:5px;width:7px;height:7px;border-radius:50%;background:${
-                        c.ok ? "var(--ok)" : "var(--warn)"
-                      }`,
-                    )}
-                  />
-                  <div style={s("min-width:0")}>
-                    <div style={s("font-size:12.5px;font-weight:500")}>{c.label}</div>
-                    <div
-                      style={s("margin-top:2px;font-size:11.5px;line-height:1.5;color:var(--muted-2)")}
-                    >
-                      {c.detail}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
+          {/* No "Listing checks" card: it was a fixed list that never looked
+              at the set (SCREENSB-8). Computed checks come back with S10.5. */}
           <div
             style={s(
               "padding:16px;border:1px solid rgba(var(--ink-rgb),.09);border-radius:14px;background:var(--surface)",

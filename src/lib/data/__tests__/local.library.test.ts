@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_APP_TINT } from "@/lib/onstage/appName";
 import { defaultDoc } from "@/lib/onstage/docOps";
 import { bgCss } from "@/lib/onstage/data";
 import { docImageIds, imageIdsInJson } from "../imageRefs";
@@ -400,6 +401,15 @@ describe("seeding the sample as ordinary records (S2.2, plan D2)", () => {
 });
 
 /* ── records follow their documents ──────────────────────────────────────── */
+
+describe("app records", () => {
+  it("a new app gets its initial and the default tint the store previews fall back to (S3.4)", async () => {
+    seedLibrary();
+    const app = await localBackend.createApp({ name: "harbour" });
+    expect(app).toMatchObject({ name: "harbour", initial: "H", tint: DEFAULT_APP_TINT });
+    expect((await localBackend.listApps()).find((a) => a.id === app.id)?.tint).toBe(DEFAULT_APP_TINT);
+  });
+});
 
 describe("set records (S2.2, GAP-10)", () => {
   it("createSet summarises its document; each saveSetDoc updates the record's summary and time", async () => {

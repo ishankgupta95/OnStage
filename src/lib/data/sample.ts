@@ -183,8 +183,9 @@ export const CONNECTIONS: StoreConnection[] = [
     name: "App Store Connect",
     initial: "A",
     connected: true,
-    // No address here: this row renders on the project board and in Settings,
-    // both of which survive every feature flag, so it must not name a person.
+    // No address here: this row renders on the project board and in Settings
+    // (both behind storeUpload), which don't depend on accounts, so it must
+    // not name a person.
     sub: "Token expires in 41 days",
     scopes: ["App metadata", "Screenshots"],
     warning: "",

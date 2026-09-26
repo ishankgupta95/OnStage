@@ -1,4 +1,7 @@
 import { ImageResponse } from "next/og";
+import { SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
+
+const SITE_HOST = SITE_URL.replace(/^https?:\/\//, "");
 
 // Site-wide OG image (used by Twitter / iMessage / Slack previews and any
 // route that doesn't override it). Statically generated at build time.
@@ -65,7 +68,7 @@ export default function OGImage() {
             Make a store screenshot right here.
           </div>
           <div style={{ fontSize: 28, color: "rgba(255,255,255,0.78)", maxWidth: 820 }}>
-            Drop a screen onto the phone, tilt it, pick a background. Every size the App Store and Google Play ask for, in one export.
+            {SITE_DESCRIPTION}
           </div>
         </div>
         <div
@@ -80,7 +83,9 @@ export default function OGImage() {
             textTransform: "uppercase",
           }}
         >
-          <span>onstage.app</span>
+          {/* Where the site really is, not a domain it doesn't have — as
+              written: the path is case-sensitive, so no uppercase here. */}
+          <span style={{ textTransform: "none", letterSpacing: 1 }}>{SITE_HOST}</span>
           <span>1320 × 2868 · 1242 × 2688 · 1080 × 1920</span>
         </div>
       </div>

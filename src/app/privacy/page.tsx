@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/onstage/screens/LegalPage";
+import { pageMetadata } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: "/privacy",
   title: "Privacy Policy — Onstage",
   description: "How Onstage handles your data.",
-};
+});
 
 // Termly-hosted policy. Drop the uuids into the env vars below and the embed
 // renders the live policy; otherwise the placeholder copy keeps the route

@@ -16,9 +16,9 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The screens live in `src/components/onstage/`; `src/app/` holds one route per screen. Pages auto-update as you edit them.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Fonts (Inter and the caption fonts the editor offers) load from Google Fonts through a `<link>` in `src/app/layout.tsx`, not `next/font`: the export draws captions on a canvas by font family name, so the real family names must be available in the page.
 
 ## Learn More
 
@@ -29,8 +29,6 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`master` deploys to GitHub Pages as a static export through `.github/workflows/deploy.yml`, which sets `NEXT_PUBLIC_STATIC_EXPORT`, `NEXT_PUBLIC_BASE_PATH=/OnStage` and `NEXT_PUBLIC_SITE_URL` (the canonical URL that metadata, the sitemap and robots.txt are built from).

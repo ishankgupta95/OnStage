@@ -3,6 +3,7 @@
 import { useOnstage } from "@/store/onstage";
 import { s } from "@/lib/onstage/css";
 import { bgCss, capInk } from "@/lib/onstage/data";
+import { panoramaSlice } from "@/lib/onstage/panorama";
 import { CanvasDevice } from "../device";
 
 /** The frames themselves — the artboards the whole editor is about. */
@@ -42,9 +43,9 @@ export function CanvasStage() {
                   `position:absolute;inset:0;border-radius:${Math.round(
                     14 * scale,
                   )}px;overflow:hidden;display:flex;flex-direction:column;background-image:${bg};background-size:${
-                    panorama ? `${frames.length * 100}% 100%` : "100% 100%"
+                    panorama ? panoramaSlice(i, frames.length).size : "100% 100%"
                   };background-position:${
-                    panorama ? `${(i / Math.max(1, frames.length - 1)) * 100}% 50%` : "50% 50%"
+                    panorama ? panoramaSlice(i, frames.length).position : "50% 50%"
                   }`,
                 )}
               >

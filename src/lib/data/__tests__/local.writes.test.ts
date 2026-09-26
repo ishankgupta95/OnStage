@@ -38,6 +38,7 @@ const WRITES: [string, () => Promise<unknown>][] = [
   ["setMemberRole", () => localBackend.setMemberRole("m1", "Reviewer")],
   ["cancelSubscription", () => localBackend.cancelSubscription()],
   ["createBrandKit", () => localBackend.createBrandKit("Night")],
+  ["setNotificationPref", () => localBackend.setNotificationPref("news", true)],
 ];
 
 describe("local backend — a refused write is reported, never swallowed (DATA-5)", () => {
@@ -131,6 +132,7 @@ describe("local backend — ids and shapes", () => {
       ["onstage:sets:v1", "{}", () => localBackend.deleteSet("trailhead-69")],
       ["onstage:apps:v1", "{}", () => localBackend.createApp({ name: "Ferry" })],
       ["onstage:resolved-comments:v1", "5", () => localBackend.resolveComment("c1", true)],
+      ["onstage:notification-prefs:v1", "[]", () => localBackend.setNotificationPref("news", true)],
     ] as const) {
       localStorage.setItem(key, value);
       await expect(call()).rejects.toThrow(/unreadable/);

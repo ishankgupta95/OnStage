@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { s } from "@/lib/onstage/css";
-import { BGS, TEMPLATES, bgCss } from "@/lib/onstage/data";
+import { BGS, TEMPLATES, TEMPLATE_COUNT, bgCss, tiltFromPad } from "@/lib/onstage/data";
 import { FEATURES } from "@/lib/features";
-import { useOnstage } from "@/store/onstage";
+import { editorHref } from "@/lib/onstage/setLinks";
 import { BrandMark } from "../chrome";
-import { IcoCube, IcoExport, IcoSparkle, IcoUpload } from "../icons";
+import { IcoCube, IcoExport, IcoSparkle, IcoText, IcoUpload } from "../icons";
+import { angleLabel } from "@/lib/onstage/templateFacts";
 
 const SIZE_CHIPS = [
   "iPhone 6.9″",
@@ -36,15 +37,24 @@ const FEATURE_CARDS = [
   {
     Icon: IcoCube,
     title: "Tilt the phone, not a slider",
-    body: "Perspective lives on the device itself. Grab it, drag it, watch the shadow follow. Four presets when you just want it done.",
+    body: "Drag the tilt pad and the phone follows, shadow and all. Four presets when you just want it done.",
     pad: "0 26px 0 0",
   },
-  {
-    Icon: IcoSparkle,
-    title: "Captions that fit the frame",
-    body: "Write one headline. Onstage offers three sharper ones and shows you what wraps, then carries the set across your locales.",
-    pad: "0 26px",
-  },
+  // Caption suggestions are the AI assistant (`FEATURES.aiAssist`), and
+  // per-language headlines arrive with localisation (S9.1).
+  FEATURES.aiAssist
+    ? {
+        Icon: IcoSparkle,
+        title: "Captions that fit the frame",
+        body: "Write one headline. Onstage offers three sharper ones and shows you what wraps, then carries the set across your locales.",
+        pad: "0 26px",
+      }
+    : {
+        Icon: IcoText,
+        title: "A headline on every frame",
+        body: "Write each frame's headline, then set the font, size and alignment once for the whole set.",
+        pad: "0 26px",
+      },
   {
     Icon: IcoUpload,
     title: "Named the way the stores expect",
@@ -56,7 +66,6 @@ const FEATURE_CARDS = [
 /** The hero devices sit on their own state — the page is a live demo. */
 function Hero() {
   const router = useRouter();
-  const setState = useOnstage((st) => st.setState);
   const [bg, setBg] = useState("ember");
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
@@ -65,23 +74,26 @@ function Hero() {
     const move = (ev: PointerEvent | React.PointerEvent) => {
       const nx = Math.max(-1, Math.min(1, ((ev.clientX - box.left) / box.width - 0.5) * 2));
       const ny = Math.max(-1, Math.min(1, ((ev.clientY - box.top) / box.height - 0.5) * 2));
-      setTilt({ y: Math.round(nx * 26), x: Math.round(ny * -14) });
+      // The editor's mapping (same direction), over a gentler range.
+      const t = tiltFromPad(nx, ny, { yaw: 26, pitch: 14 });
+      setTilt({ y: t.tiltY, x: t.tiltX });
     };
     const up = () => {
       window.removeEventListener("pointermove", move as EventListener);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
     };
     window.addEventListener("pointermove", move as EventListener);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
     move(e);
   };
 
   const readout = `${tilt.y > 0 ? "+" : ""}${tilt.y}° / ${tilt.x > 0 ? "+" : ""}${tilt.x}°`;
 
-  const openExport = () => {
-    setState({ overlay: "export" });
-    router.push("/editor");
-  };
+  // The demo's tilt and background stay here (they are a demo); the canvas
+  // opens the set a bare /editor finds — the last one opened.
+  const openCanvas = () => router.push("/editor");
 
   return (
     <div style={s("position:relative;max-width:1240px;margin:0 auto;padding:34px 34px 0")}>
@@ -148,10 +160,11 @@ function Hero() {
                   >
                     <IcoUpload size={16} />
                   </div>
+                  {/* A demo phone, not a drop target: screens go in on the canvas. */}
                   <div style={s("font-size:11.5px;font-weight:500;color:#dfe6ee")}>
-                    Drop a screenshot
+                    Your screenshot here
                   </div>
-                  <div style={s("margin-top:3px;font-size:10.5px;color:#7d8794")}>PNG · any size</div>
+                  <div style={s("margin-top:3px;font-size:10.5px;color:#7d8794")}>added on the canvas</div>
                 </div>
               </div>
             </div>
@@ -222,7 +235,7 @@ function Hero() {
           </div>
           <span style={s("width:1px;height:18px;background:rgba(var(--ink-rgb),.1)")} />
           <span style={s("font-size:11.5px;color:var(--muted-2);padding-right:4px")}>
-            {tilt.x || tilt.y ? "nice — now export it" : "drag anywhere to tilt"}
+            {tilt.x || tilt.y ? "nice — now open the canvas" : "drag anywhere to tilt"}
           </span>
         </div>
       </div>
@@ -230,13 +243,13 @@ function Hero() {
       <div style={s("display:flex;align-items:center;justify-content:center;gap:11px;padding:26px 0 40px")}>
         <button
           type="button"
-          onClick={openExport}
+          onClick={openCanvas}
           className="hov-accent"
           style={s(
             "display:inline-flex;align-items:center;gap:9px;height:44px;padding:0 20px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-size:14.5px;font-weight:500;cursor:pointer",
           )}
         >
-          Export this set
+          Open the canvas
           <IcoExport size={15} w={2.1} />
         </button>
         <Link
@@ -258,7 +271,6 @@ function Hero() {
 
 export function LandingScreen() {
   const router = useRouter();
-  const setState = useOnstage((st) => st.setState);
 
   return (
     <div style={s("background:var(--bg);color:var(--text)")}>
@@ -340,8 +352,8 @@ export function LandingScreen() {
               "margin:18px auto 0;max-width:56ch;font-size:16px;line-height:1.6;color:var(--muted)",
             )}
           >
-            Drop a screen onto the phone below, tilt it, pick a background. Your screenshots never
-            leave your browser.
+            Open the canvas and drop your screens, tilt them, pick a background. Your screenshots
+            never leave your browser.
           </p>
         </div>
         <Hero />
@@ -390,7 +402,7 @@ export function LandingScreen() {
                 "margin:10px 0 0;max-width:56ch;font-size:15px;line-height:1.6;color:var(--muted)",
               )}
             >
-              240 sets built by app designers, each one already sized for both stores. Swap in your
+              {TEMPLATE_COUNT} sets built by app designers, each one already sized for both stores. Swap in your
               screens and the whole set restyles.
             </p>
           </div>
@@ -428,7 +440,7 @@ export function LandingScreen() {
               <div
                 style={s("margin-top:2px;font:400 10.5px 'Inter',ui-sans-serif;color:var(--muted-4)")}
               >
-                {t.frames} frames
+                {angleLabel(t.ty)}
               </div>
             </div>
           ))}
@@ -499,10 +511,7 @@ export function LandingScreen() {
             <div style={s("display:flex;gap:10px;margin-top:26px")}>
               <button
                 type="button"
-                onClick={() => {
-                  setState({ overlay: "export" });
-                  router.push("/editor");
-                }}
+                onClick={() => router.push(editorHref("panel:export"))}
                 style={s(
                   "height:40px;padding:0 16px;border:1px solid var(--accent);border-radius:7px;background:transparent;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer",
                 )}
@@ -532,7 +541,8 @@ export function LandingScreen() {
               )}
             >
               <span style={s("width:8px;height:8px;border-radius:50%;background:var(--accent)")} />
-              trailhead-store-assets.zip
+              {/* An export is named after its app (S3.4), not the sample. */}
+              your-app-store-assets.zip
             </div>
             <div style={s("padding:12px 13px;font:400 12px/2.05 'Inter',ui-sans-serif;color:var(--text)")}>
               {EXPORT_TREE.map((l) => (

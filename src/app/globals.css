@@ -209,8 +209,17 @@
 .hov-accent-border-solid:hover {
   border-color: var(--accent) !important;
 }
-.hov-reveal:hover .reveal {
+/* Controls that appear on hover also appear on keyboard focus, and are always
+   shown where there is no hover (touch) — never an invisible control that a
+   first tap sets off (GAP-12). */
+.hov-reveal:hover .reveal,
+.hov-reveal:focus-within .reveal {
   opacity: 1 !important;
+}
+@media (hover: none), (pointer: coarse) {
+  .hov-reveal .reveal {
+    opacity: 1 !important;
+  }
 }
 .hov-row:hover {
   background: rgba(var(--ink-rgb), 0.03) !important;

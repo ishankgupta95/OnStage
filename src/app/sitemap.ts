@@ -1,19 +1,23 @@
 import type { MetadataRoute } from "next";
 import { TEMPLATES } from "@/lib/onstage/data";
 import { FEATURES } from "@/lib/features";
+import { pageUrl } from "@/lib/site";
 
 // Required for `output: export` — emit a static sitemap.xml at build time.
 export const dynamic = "force-static";
 
-const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "https://ishankgupta95.github.io/OnStage";
-
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = siteUrl();
   const now = new Date();
-  const page = (path: string, priority: number): MetadataRoute.Sitemap[number] => ({
-    url: `${base}${path}`,
+  // Each URL as the site serves it — with the export's trailing slash, so a
+  // crawler never lands on a redirect (RUN-1) — matching the canonical links.
+  const page = (
+    path: string,
+    priority: number,
+    changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] = "weekly",
+  ): MetadataRoute.Sitemap[number] => ({
+    url: pageUrl(path),
     lastModified: now,
-    changeFrequency: "weekly",
+    changeFrequency,
     priority,
   });
 
@@ -37,7 +41,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...(FEATURES.designBoards ? [page("/states", 0.3), page("/mobile", 0.3)] : []),
     ...(FEATURES.accounts ? [page("/signin", 0.5)] : []),
     page("/onboarding", 0.5),
-    { url: `${base}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${base}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    page("/privacy", 0.3, "yearly"),
+    page("/terms", 0.3, "yearly"),
   ];
 }

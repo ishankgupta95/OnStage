@@ -24,7 +24,6 @@ const base: SetDoc = doc(
     shadow: false,
     lang: "DE",
     store: "play",
-    workMode: "guided",
   },
 );
 
@@ -169,7 +168,6 @@ describe("the store's actions use the same logic", () => {
     shadow: st.shadow,
     lang: st.lang,
     store: st.store,
-    workMode: st.workMode,
   });
 
   it("applyTemplate leaves the open set exactly as applyTemplateToDoc would, for every template", async () => {

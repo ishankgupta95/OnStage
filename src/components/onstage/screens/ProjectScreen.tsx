@@ -360,15 +360,9 @@ function SetsTab({
           type="button"
           disabled={create.busy !== null}
           onClick={() => {
-            // The new set's document carries the mode it opens in, or opening
-            // it would switch the work mode back (it lives on the document
-            // until S3.2).
+            // Opened in the person's work mode.
             const mode = useOnstage.getState().workMode;
-            void create.run(
-              "new",
-              () => createBlankSet({ appId: app.id, name: `${app.name} — new set`, workMode: mode }),
-              mode,
-            );
+            void create.run("new", () => createBlankSet({ appId: app.id, name: `${app.name} — new set` }), mode);
           }}
           style={s(
             "display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border:1px solid var(--accent);border-radius:6px;background:transparent;color:var(--accent);font-size:12.5px;font-weight:700;cursor:pointer",
@@ -662,6 +656,51 @@ function ActivityCard({ appId }: { appId: string }) {
   );
 }
 
+/** Which stores the rendered files could be sent to — only with a store
+ *  backend (`FEATURES.storeUpload`, plan D3): without one, every row is
+ *  fixture data and "Connect" can never succeed. */
+function StoreConnectionsCard() {
+  const connections = useQuery("connections", () => getBackend().listConnections());
+  return (
+    <div style={s(CARD)}>
+      <div style={s(CARD_LABEL)}>STORE CONNECTIONS</div>
+      <div style={s("margin-top:11px;display:flex;flex-direction:column;gap:9px")}>
+        <Async query={connections} skeleton={<Shimmer style="height:60px" />}>
+          {(rows) =>
+            rows.map((c) => (
+              <div key={c.id} style={s("display:flex;align-items:center;gap:9px")}>
+                <span
+                  style={s(
+                    `flex:none;width:8px;height:8px;border-radius:50%;background:${
+                      c.connected ? "var(--ok)" : "rgba(var(--ink-rgb),.22)"
+                    }`,
+                  )}
+                />
+                <div style={s("flex:1;min-width:0")}>
+                  <div style={s("font-size:13px;font-weight:500")}>{c.name}</div>
+                  <div style={s("font-size:11.5px;color:var(--muted-3)")}>{c.sub}</div>
+                </div>
+                <Link
+                  href="/settings?tab=Store+connections"
+                  style={s(
+                    `display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:5px;border:1px solid ${
+                      c.connected ? "rgba(var(--ink-rgb),.13)" : "transparent"
+                    };background:${c.connected ? "transparent" : "var(--accent)"};color:${
+                      c.connected ? "var(--muted)" : "var(--on-accent)"
+                    };font-size:11.5px;font-weight:${c.connected ? 500 : 700}`,
+                  )}
+                >
+                  {c.connected ? "Manage" : "Connect"}
+                </Link>
+              </div>
+            ))
+          }
+        </Async>
+      </div>
+    </div>
+  );
+}
+
 function ProjectBoard({ app }: { app: App }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("Sets");
@@ -675,7 +714,6 @@ function ProjectBoard({ app }: { app: App }) {
   const list = sets.data ? newestFirst(sets.data) : [];
   const selected = list.find((r) => r.id === picked) ?? list[0] ?? null;
 
-  const connections = useQuery("connections", () => getBackend().listConnections());
   // The selected set's document as the editor would open it (the open set
   // as it is now), read without opening it. Its sizes and languages come
   // from here, never from fixture rows (S2.3).
@@ -746,7 +784,8 @@ function ProjectBoard({ app }: { app: App }) {
           )}
         >
           <IcoExport size={14} />
-          Export &amp; upload
+          {/* Without a store backend the dialog only downloads a zip. */}
+          {FEATURES.storeUpload ? "Export & upload" : "Export"}
         </button>
       </div>
 
@@ -762,42 +801,7 @@ function ProjectBoard({ app }: { app: App }) {
         {FEATURES.jobQueue && tab === "Uploads" && <UploadsTab appId={app.id} />}
 
         <div style={s("display:flex;flex-direction:column;gap:14px")}>
-          <div style={s(CARD)}>
-            <div style={s(CARD_LABEL)}>STORE CONNECTIONS</div>
-            <div style={s("margin-top:11px;display:flex;flex-direction:column;gap:9px")}>
-              <Async query={connections} skeleton={<Shimmer style="height:60px" />}>
-                {(rows) =>
-                  rows.map((c) => (
-                    <div key={c.id} style={s("display:flex;align-items:center;gap:9px")}>
-                      <span
-                        style={s(
-                          `flex:none;width:8px;height:8px;border-radius:50%;background:${
-                            c.connected ? "var(--ok)" : "rgba(var(--ink-rgb),.22)"
-                          }`,
-                        )}
-                      />
-                      <div style={s("flex:1;min-width:0")}>
-                        <div style={s("font-size:13px;font-weight:500")}>{c.name}</div>
-                        <div style={s("font-size:11.5px;color:var(--muted-3)")}>{c.sub}</div>
-                      </div>
-                      <Link
-                        href="/settings?tab=Store+connections"
-                        style={s(
-                          `display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:5px;border:1px solid ${
-                            c.connected ? "rgba(var(--ink-rgb),.13)" : "transparent"
-                          };background:${c.connected ? "transparent" : "var(--accent)"};color:${
-                            c.connected ? "var(--muted)" : "var(--on-accent)"
-                          };font-size:11.5px;font-weight:${c.connected ? 500 : 700}`,
-                        )}
-                      >
-                        {c.connected ? "Manage" : "Connect"}
-                      </Link>
-                    </div>
-                  ))
-                }
-              </Async>
-            </div>
-          </div>
+          {FEATURES.storeUpload && <StoreConnectionsCard />}
 
           <div style={s(CARD)}>
             <div style={s(CARD_LABEL)}>LOCALES</div>
@@ -827,15 +831,18 @@ function ProjectBoard({ app }: { app: App }) {
                 }
               </Async>
             </div>
-            <button
-              type="button"
-              onClick={() => setTab("Locales")}
-              style={s(
-                "width:100%;margin-top:12px;height:32px;border:1px solid rgba(var(--accent-rgb),.35);border-radius:6px;background:rgba(var(--accent-rgb),.08);color:var(--accent-hi);font-size:12.5px;font-weight:600;cursor:pointer",
-              )}
-            >
-              Translate set with AI
-            </button>
+            {/* Translation is the AI drawer's job (`FEATURES.aiAssist`, D3/D9). */}
+            {FEATURES.aiAssist && (
+              <button
+                type="button"
+                onClick={() => setTab("Locales")}
+                style={s(
+                  "width:100%;margin-top:12px;height:32px;border:1px solid rgba(var(--accent-rgb),.35);border-radius:6px;background:rgba(var(--accent-rgb),.08);color:var(--accent-hi);font-size:12.5px;font-weight:600;cursor:pointer",
+                )}
+              >
+                Translate set with AI
+              </button>
+            )}
           </div>
 
           {FEATURES.jobQueue && <ActivityCard appId={app.id} />}
@@ -845,7 +852,8 @@ function ProjectBoard({ app }: { app: App }) {
             <div style={s("margin-top:11px;display:flex;flex-direction:column;gap:2px")}>
               {FEATURES.teams && <ReviewRow appId={app.id} />}
               {[
-                ["A/B test results", "/ab-test", "DAY 14"],
+                // Fixture results with nowhere to promote a winner (plan D3).
+                ...(FEATURES.abTest ? [["A/B test results", "/ab-test", "DAY 14"]] : []),
                 // The board's selected set, by id.
                 [
                   "Store listing preview",

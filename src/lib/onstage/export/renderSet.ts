@@ -16,7 +16,9 @@ import { geometryFor } from "./geometry";
 import { cssGradientToKonva } from "./gradient";
 import { ensure3DLoaded } from "./loader";
 import { paintSampleScreen } from "./sampleScreen";
-import { EXPORT_SLOTS, LOCALE_FOLDER, localise, type ExportSlot } from "./slots";
+import { featureGraphicLayout, featureTextNodes } from "./featureGraphic";
+import { FEATURE_FILE, exportLocales, exportPlan, frameFile, localeFolder } from "./plan";
+import { EXPORT_SLOTS, localise, type ExportSlot } from "./slots";
 import { blobDimensions, canvasToBlob } from "./images";
 
 type ExportRequest = {
@@ -34,6 +36,11 @@ type ExportRequest = {
   locales: string[];
   /** A user-supplied screenshot per frame, if one has been dropped in. */
   screenshots?: (HTMLImageElement | null)[];
+  /** The app the set belongs to, for the Play feature graphic; null when
+   *  nothing names it (the graphic then carries no name). */
+  appName: string | null;
+  /** The zip's top folder (`exportRoot(appName)`). */
+  root: string;
   onProgress?: (done: number, total: number) => void;
   signal?: { cancelled: boolean };
 };
@@ -44,8 +51,6 @@ type ExportResult = { files: ExportFile[]; bytes: number; zipBlob: Blob };
 /** The design authors every artboard against a 268×580 frame. */
 const DESIGN_W = 268;
 
-const APP = { name: "Trailhead", tagline: "Run & Trail Log", tint: "#1b6f6a" };
-
 export async function renderSet(req: ExportRequest): Promise<ExportResult> {
   const [{ default: Konva }, JSZip, render3D] = await Promise.all([
     import("konva"),
@@ -53,25 +58,40 @@ export async function renderSet(req: ExportRequest): Promise<ExportResult> {
     ensure3DLoaded(),
   ]);
 
-  // Load the caption weights before measuring text, so nothing renders in a
-  // fallback face and reflows between preview and output.
+  const locales = exportLocales(req.locales);
+
+  // Load the caption font before measuring text, so nothing renders in a
+  // fallback face and reflows between preview and output: every weight the
+  // output uses — captions (700), the feature graphic's name (600) and
+  // tagline (400), and 500 — for the text it will draw, so each
+  // unicode-range face it needs (latin-ext, cyrillic, …) loads, not only the
+  // basic Latin one.
+  const drawn = [
+    req.appName ?? "",
+    ...req.frames.flatMap((f) => locales.map((l) => localise(f.caption, l))),
+  ].join(" ");
   await Promise.all(
-    [`700 120px "${req.captionFont}"`, `500 120px "${req.captionFont}"`].map((spec) =>
-      document.fonts.load(spec).catch(() => {}),
+    ["700", "600", "500", "400"].map((weight) =>
+      document.fonts.load(`${weight} 120px "${req.captionFont}"`, drawn || " ").catch(() => {}),
     ),
   );
   await document.fonts.ready;
 
   const sampleScreen = paintSampleScreen();
-  const slots = req.sizeIds
+  // Each picked size once, as the plan counts them.
+  const slots = [...new Set(req.sizeIds)]
     .map((i) => EXPORT_SLOTS[i])
     .filter((s): s is ExportSlot => Boolean(s));
-  const locales = req.locales.length ? req.locales : ["EN"];
 
   const perFrameSlots = slots.filter((s) => s.kind === "frames");
   const featureSlots = slots.filter((s) => s.kind === "feature");
-  const total =
-    locales.length * (perFrameSlots.length * req.frames.length + featureSlots.length);
+  // The same count the export dialog promised.
+  const total = exportPlan({
+    picks: req.sizeIds,
+    langs: req.locales,
+    frameCount: req.frames.length,
+    root: req.root,
+  }).files;
 
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
@@ -97,7 +117,7 @@ export async function renderSet(req: ExportRequest): Promise<ExportResult> {
 
   try {
     for (const locale of locales) {
-      const dir = LOCALE_FOLDER[locale] ?? locale.toLowerCase();
+      const dir = localeFolder(locale);
 
       for (const slot of perFrameSlots) {
         const geom = geometryFor(req.device, slot.cls);
@@ -197,24 +217,31 @@ export async function renderSet(req: ExportRequest): Promise<ExportResult> {
             }),
           );
 
-          const nn = String(i + 1).padStart(2, "0");
-          await emit(stage, `${dir}/${slot.folder}/${nn}.png`, slot.w, slot.h);
+          await emit(stage, `${dir}/${slot.folder}/${frameFile(i)}`, slot.w, slot.h);
           stage.destroy();
         }
       }
 
-      // ── Play feature graphic ─────────────────────────────────────────
+      // ── Play feature graphic (EXPORT-7) ──────────────────────────────
+      // The set's own frame-0 background and caption, its app's name when
+      // something names it, all inside Play's safe zone.
       for (const slot of featureSlots) {
         if (req.signal?.cancelled) throw new Error("cancelled");
         const stage = new Konva.Stage({ container: host, width: slot.w, height: slot.h });
         const layer = new Konva.Layer({ listening: false });
         stage.add(layer);
 
-        const grad = cssGradientToKonva(
-          "linear-gradient(150deg,#1b6f6a,#134f63)",
-          slot.w,
-          slot.h,
-        );
+        const first = req.frames[0];
+        const spec = {
+          appName: req.appName,
+          caption: first ? localise(first.caption, locale) : "",
+          // No frame (a damaged document): the first background.
+          bg: first?.bg ?? "",
+          w: slot.w,
+          h: slot.h,
+        };
+        const layout = featureGraphicLayout(spec);
+        const grad = cssGradientToKonva(layout.background, slot.w, slot.h);
         layer.add(
           new Konva.Rect({
             width: slot.w,
@@ -224,29 +251,9 @@ export async function renderSet(req: ExportRequest): Promise<ExportResult> {
             fillLinearGradientColorStops: grad.stops,
           }),
         );
-        layer.add(
-          new Konva.Text({
-            x: 72,
-            y: 186,
-            text: APP.name,
-            fontFamily: req.captionFont,
-            fontStyle: "600",
-            fontSize: 68,
-            letterSpacing: -1.7,
-            fill: "#fff",
-          }),
-        );
-        layer.add(
-          new Konva.Text({
-            x: 72,
-            y: 272,
-            text: localise(req.frames[0]?.caption ?? APP.tagline, locale),
-            fontFamily: req.captionFont,
-            fontSize: 32,
-            fill: "rgba(255,255,255,0.78)",
-          }),
-        );
-        await emit(stage, `${dir}/feature-graphic-1024x500.png`, slot.w, slot.h);
+        const nodes = featureTextNodes(Konva, spec, req.captionFont);
+        for (const node of nodes) layer.add(node);
+        await emit(stage, `${dir}/${FEATURE_FILE}`, slot.w, slot.h);
         stage.destroy();
       }
     }
@@ -271,7 +278,7 @@ export async function renderSet(req: ExportRequest): Promise<ExportResult> {
   // The zip is built either way — it is the size readout, and the fallback
   // when a store upload is refused. Delivery is the caller's decision.
   const zip = new JSZip();
-  for (const f of files) zip.file(`trailhead-store-assets/${f.path}`, f.blob);
+  for (const f of files) zip.file(`${req.root}/${f.path}`, f.blob);
   const out = await zip.generateAsync({ type: "blob" });
 
   return { files, bytes: out.size, zipBlob: out };

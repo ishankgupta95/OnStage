@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useOnstage } from "@/store/onstage";
+import { editorMounted, editorUnmounted, setWorkMode, useOnstage } from "@/store/onstage";
+import { FEATURES } from "@/lib/features";
 import { s } from "@/lib/onstage/css";
 import { setHref } from "@/lib/onstage/setLinks";
 import { useSetRoute } from "@/lib/onstage/useSetRoute";
 import { SetUnavailable } from "../SetUnavailable";
-import { BrandMark, ThemeButton } from "../chrome";
+import { BrandMark, STORE_TABS, ThemeButton, storeTab } from "../chrome";
 import {
   IcoExport,
   IcoEye,
@@ -59,13 +60,6 @@ function useUndoRedo(setId: string) {
   }, [setId]);
 }
 
-const storeTab = (on: boolean) =>
-  `padding:5px 11px;border:none;border-radius:4px;background:${
-    on ? "rgba(var(--ink-rgb),.09)" : "transparent"
-  };color:${on ? "var(--text)" : "var(--muted-2)"};font-size:12px;font-weight:${
-    on ? 600 : 400
-  };cursor:pointer`;
-
 const modeTab = (on: boolean) =>
   `padding:5px 12px;border:none;border-radius:6px;background:${
     on ? "rgba(var(--accent-rgb),.14)" : "transparent"
@@ -78,10 +72,10 @@ const modeTab = (on: boolean) =>
  *  is still finding which set to open — the other mode then finds it too). */
 export function ModeSwitch({ mode, setId }: { mode: "guided" | "canvas"; setId: string }) {
   const router = useRouter();
-  const setState = useOnstage((st) => st.setState);
   const go = (m: "guided" | "canvas") => {
-    // Work mode is saved with the set, so only once it has loaded.
-    if (setId && useOnstage.getState().loadedSetId === setId) setState({ workMode: m });
+    // The switch is the work-mode preference too (Settings says so). If it
+    // can't be stored, this visit still switches.
+    setWorkMode(m).catch((e: unknown) => console.warn("[onstage] couldn't store the work mode", e));
     router.push(setHref(m, setId));
   };
   return (
@@ -108,12 +102,14 @@ export function ModeSwitch({ mode, setId }: { mode: "guided" | "canvas"; setId: 
   );
 }
 
+/** The tool rail. "AI captions" opens the AI drawer, which exists only with
+ *  `FEATURES.aiAssist` (plan D3/D9). */
 const TOOLS = [
   { id: "templates", label: "Templates", Icon: IcoGrid },
   { id: "screens", label: "Screens", Icon: IcoUpload },
   { id: "text", label: "Text", Icon: IcoText },
   { id: "bg", label: "Background", Icon: IcoImage },
-  { id: "ai", label: "AI captions", Icon: IcoSparkle },
+  ...(FEATURES.aiAssist ? [{ id: "ai", label: "AI captions", Icon: IcoSparkle } as const] : []),
   { id: "brand", label: "Brand kit", Icon: IcoShield },
 ] as const;
 
@@ -126,6 +122,12 @@ export function EditorScreen() {
   const route = useSetRoute("canvas");
   const setId = route.setId ?? "";
   useUndoRedo(setId);
+  // Dialogs belong to this visit: leaving closes them (GAP-16). Screens
+  // that send the person here with a dialog open say so with `?apply=`.
+  useEffect(() => {
+    editorMounted();
+    return editorUnmounted;
+  }, []);
   const loaded =
     route.setId !== null &&
     st.loadedSetId === route.setId &&
@@ -194,14 +196,12 @@ export function EditorScreen() {
               <SaveBadge />
             </div>
             <div
-              style={s(
-                "display:flex;align-items:center;gap:2px;margin-left:8px;padding:2px;border:1px solid rgba(var(--ink-rgb),.09);border-radius:6px",
-              )}
+              style={s(`${STORE_TABS};margin-left:8px`)}
             >
               <button
                 type="button"
                 disabled={!loaded}
-                onClick={() => st.setState({ store: "apple" })}
+                onClick={() => st.setStore("apple")}
                 style={s(storeTab(st.store === "apple"))}
               >
                 App Store
@@ -209,7 +209,7 @@ export function EditorScreen() {
               <button
                 type="button"
                 disabled={!loaded}
-                onClick={() => st.setState({ store: "play" })}
+                onClick={() => st.setStore("play")}
                 style={s(storeTab(st.store === "play"))}
               >
                 Play Store
@@ -345,7 +345,7 @@ export function EditorScreen() {
           </div>
 
           {loaded && st.overlay === "export" && <ExportOverlay />}
-          {loaded && st.overlay === "ai" && <AiOverlay />}
+          {FEATURES.aiAssist && loaded && st.overlay === "ai" && <AiOverlay />}
           {loaded && st.overlay === "store" && <StoreOverlay />}
         </div>
       </div>

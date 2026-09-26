@@ -30,7 +30,26 @@ export type SetDoc = {
   shadow: boolean;
   lang: string;
   store: "apple" | "play";
+  /**
+   * The app name this set's exports carry (zip, dialog title, feature
+   * graphic) — set in the export dialog. Absent (older documents, and every
+   * set until someone names it): the name of the app the set belongs to.
+   */
+  appName?: string;
+  /**
+   * @deprecated Before S3.2 the work mode was saved with each set. It is a
+   * preference now (`Prefs.workMode`); older documents may still carry this
+   * field, and nothing reads it.
+   */
+  workMode?: "guided" | "canvas";
+};
+
+/** The person's own settings — not any one set's (plan S3.2). */
+export type Prefs = {
+  /** Where "open this set" goes: the guided steps or the full canvas. */
   workMode: "guided" | "canvas";
+  /** The store a new set targets. */
+  defaultStore: "apple" | "play";
 };
 
 export type CaptionTone = "Direct" | "Benefit-led" | "Playful";

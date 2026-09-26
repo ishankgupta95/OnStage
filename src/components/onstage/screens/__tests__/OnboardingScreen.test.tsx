@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ScreenshotSet, SetDoc } from "@/lib/data/types";
 import { doc, frame } from "@/lib/data/__tests__/helpers";
 import { seedLibrary, storageSnapshot } from "@/lib/data/__tests__/library";
+import { TEMPLATES, bgCss } from "@/lib/onstage/data";
 
 /**
  * Plan S2.1 / D10: first run's "pick a look" makes a fresh set — the default
@@ -108,9 +109,9 @@ async function click(el: HTMLElement) {
 }
 
 async function toPickALook() {
+  // "Upload your screens" goes straight to the look (no picker step: S3.3).
   await click(byText("Upload your screens"));
-  await click(byText("Continue with 5 screens"));
-  expect(host.textContent).toContain("STEP 3 — PICK A LOOK");
+  expect(host.textContent).toContain("STEP 2 — PICK A LOOK");
 }
 
 describe("OnboardingScreen — pick a look", () => {
@@ -140,7 +141,8 @@ describe("OnboardingScreen — pick a look", () => {
     expect(made.frames.every((f) => f.bg === "dusk")).toBe(true);
     expect(made.frames.every((f) => f.tiltY === 0 && f.screenshot === null)).toBe(true);
     expect(made.panorama).toBe(false);
-    expect(made.workMode).toBe("canvas");
+    // Work mode is a preference, not a document field (S3.2).
+    expect("workMode" in made).toBe(false);
 
     // The last set is untouched and is still the one a bare /editor returns to
     // until the editor opens the new one.
@@ -173,14 +175,15 @@ describe("OnboardingScreen — pick a look", () => {
 
     const made = storedDocs()[set.id];
     const base = defaultDoc();
-    expect(made.workMode).toBe("guided");
+    expect("workMode" in made).toBe(false);
     expect(made.frames.map((f) => f.caption)).toEqual(base.frames.map((f) => f.caption));
     expect(made.frames.map((f) => f.bg)).toEqual(base.frames.map((f) => f.bg));
     expect(JSON.stringify(storedDocs()["ferry-69"])).toBe(JSON.stringify(ferry));
 
-    // The mode is the new set's, not flipped on the store's document.
+    // This one set opens guided; the work-mode preference is left as it was.
     const st = useOnstage.getState();
     expect(st.workMode).toBe(modeBefore);
+    expect(JSON.parse(localStorage.getItem("onstage:prefs:v1") ?? "{}").workMode ?? "canvas").toBe("canvas");
     expect(st.loadedSetId).toBeNull();
     expect(JSON.stringify(st.frames)).toBe(framesBefore);
   });
@@ -201,7 +204,7 @@ describe("OnboardingScreen — pick a look", () => {
     expect(nav.push).toHaveBeenCalledWith(`/editor?set=${set.id}`);
     const made = storedDocs()[set.id];
     const base = defaultDoc();
-    expect(made.workMode).toBe("canvas");
+    expect("workMode" in made).toBe(false);
     expect(made.frames).toEqual(base.frames);
     expect(useOnstage.getState().loadedSetId).toBeNull();
     expect(JSON.stringify(useOnstage.getState().frames)).toBe(framesBefore);
@@ -260,5 +263,161 @@ describe("OnboardingScreen — pick a look", () => {
     expect(storageSnapshot()).toEqual(before);
     expect(localStorage.getItem(DOCS_KEY)).toBe(rawDocs);
     expect(useOnstage.getState().loadedSetId).toBeNull();
+  });
+});
+
+/**
+ * Plan S3.3 (SCREENSA-4/5/6): first run is two honest steps. "Upload your
+ * screens" goes straight to picking a look — no screenshot picker showing
+ * screens nobody imported, no "we found your app", no zip import that doesn't
+ * exist, and no looks "matched to the teal in your app" (nothing reads it).
+ * Each look's preview is drawn from its own template.
+ */
+describe("OnboardingScreen — two honest steps (S3.3)", () => {
+  /** Copy from the removed steps and promises, none of which may show. */
+  const GONE = [
+    "Import a zip instead",
+    "Already have a set somewhere else?",
+    "WE FOUND YOUR APP",
+    "pulled from the App Store",
+    "Pick the ones to bring in",
+    "Continue with",
+    "These three suit your screens",
+    "Matched to the",
+    "MATCHES YOUR",
+    "STEP 3",
+    "OF 3",
+  ];
+
+  function expectNoneOfTheOldCopy() {
+    const t = host.textContent ?? "";
+    for (const gone of GONE) expect(t).not.toContain(gone);
+    expect(t.toLowerCase()).not.toContain("teal");
+  }
+
+  /** A look's tile, found by its template name: [preview, name + meta row]. */
+  function lookTile(name: string) {
+    const tile = byText(name).parentElement?.parentElement;
+    if (!tile) throw new Error(`no look tile for ${name}`);
+    const preview = tile.firstElementChild as HTMLElement;
+    const phone = preview.children[1] as HTMLElement;
+    const meta = byText(name).nextElementSibling?.textContent;
+    return { tile, preview, phone, meta };
+  }
+
+  /** How jsdom writes `background: css` back, to compare like with like. */
+  function normalizedBackground(css: string): string {
+    const probe = document.createElement("div");
+    probe.style.background = css;
+    return probe.style.background;
+  }
+
+  const LOOKS = [
+    { slug: "moss", name: "Moss", meta: "PANORAMIC", ty: -8 },
+    { slug: "cold-open", name: "Cold Open", meta: "HIGH CONTRAST", ty: 0 },
+    { slug: "field-notes", name: "Field Notes", meta: "LIGHT, EDITORIAL", ty: 12 },
+  ];
+
+  it("starts on step 1 of 2 with no zip import and no store-link route", async () => {
+    const { OnboardingScreen } = await load();
+    await act(async () => root.render(<OnboardingScreen />));
+
+    expect(host.textContent).toContain("STEP 1 OF 2");
+    expect(host.textContent).toContain("How would you like to begin?");
+    expect(host.textContent).toContain("Upload your screens");
+    expect(host.textContent).toContain("Start from a template");
+    // Reading a listing needs a server (storeImport is off).
+    expect(host.textContent).not.toContain("Paste your store URL");
+    expectNoneOfTheOldCopy();
+    // Two progress dots, not three.
+    const label = byText("STEP 1 OF 2");
+    expect(label.parentElement!.querySelectorAll("span")).toHaveLength(3);
+  });
+
+  it("Upload your screens goes straight to picking a look: step 2 of 2, no picker", async () => {
+    const { OnboardingScreen } = await load();
+    await act(async () => root.render(<OnboardingScreen />));
+
+    await click(byText("Upload your screens"));
+
+    expect(host.textContent).toContain("STEP 2 OF 2");
+    expect(host.textContent).toContain("STEP 2 — PICK A LOOK");
+    expect(byText("Three looks to start from").tagName).toBe("H1");
+    expect(byText("Pick one to start; everything stays editable.").tagName).toBe("P");
+    expectNoneOfTheOldCopy();
+    // No picker: no selectable screenshots with check marks, no "Trailhead" listing.
+    expect(host.textContent).not.toContain("✓");
+    expect(host.textContent).not.toContain("Trailhead — Run & Trail Log");
+    // The look step's own controls.
+    const buttons = [...host.querySelectorAll("button")].map((b) => b.textContent);
+    expect(buttons).toEqual(
+      expect.arrayContaining(["Open the canvas", "Walk me through it", "Back"]),
+    );
+    for (const { name } of LOOKS) expect(byText(name)).toBeTruthy();
+  });
+
+  it("Back on the look step returns to step 1, and Upload leads back to the looks", async () => {
+    const { OnboardingScreen } = await load();
+    await act(async () => root.render(<OnboardingScreen />));
+    await click(byText("Upload your screens"));
+    expect(host.textContent).toContain("STEP 2 — PICK A LOOK");
+
+    const back = [...host.querySelectorAll("button")].find((b) => b.textContent === "Back")!;
+    await click(back);
+
+    expect(host.textContent).toContain("STEP 1 OF 2");
+    expect(host.textContent).toContain("How would you like to begin?");
+    expect(host.textContent).not.toContain("PICK A LOOK");
+    expect(nav.push).not.toHaveBeenCalled();
+
+    await click(byText("Upload your screens"));
+    expect(host.textContent).toContain("STEP 2 OF 2");
+    expect(host.textContent).toContain("Three looks to start from");
+  });
+
+  it("Start from a template goes to the gallery", async () => {
+    const { OnboardingScreen } = await load();
+    await act(async () => root.render(<OnboardingScreen />));
+    await click(byText("Start from a template"));
+    expect(nav.push).toHaveBeenCalledWith("/templates");
+  });
+
+  it("each look's preview is its template's own background and angle", async () => {
+    const { OnboardingScreen } = await load();
+    await act(async () => root.render(<OnboardingScreen />));
+    await click(byText("Upload your screens"));
+
+    for (const look of LOOKS) {
+      const tpl = TEMPLATES.find((t) => t.slug === look.slug)!;
+      expect(tpl.name).toBe(look.name);
+      // The angles the templates ship with (Moss was a hard-coded -12).
+      expect(tpl.ty).toBe(look.ty);
+
+      const { preview, phone, meta } = lookTile(look.name);
+      const want = normalizedBackground(bgCss(tpl.bg));
+      expect(want).toContain("linear-gradient");
+      expect(preview.style.background).toBe(want);
+      expect(phone.style.transform).toContain(`rotateY(${tpl.ty}deg)`);
+      expect(meta).toBe(look.meta);
+    }
+    // Moss's meta says what the template is, not what it "matches".
+    expect(TEMPLATES.find((t) => t.slug === "moss")!.panoramic).toBe(true);
+  });
+
+  it.each(LOOKS)("$name makes a set that looks like its tile", async ({ slug, name, ty }) => {
+    const { OnboardingScreen } = await load();
+    const setsBefore = storedSets();
+    await act(async () => root.render(<OnboardingScreen />));
+    await toPickALook();
+
+    await click(byText(name));
+    await until(() => nav.push.mock.calls.length > 0);
+
+    const [set] = addedSets(setsBefore);
+    expect(nav.push).toHaveBeenCalledWith(`/editor?set=${set.id}`);
+    const tpl = TEMPLATES.find((t) => t.slug === slug)!;
+    const made = storedDocs()[set.id];
+    expect(made.frames.every((f) => f.bg === tpl.bg && f.tiltY === ty)).toBe(true);
+    expect(made.panorama).toBe(tpl.panoramic);
   });
 });

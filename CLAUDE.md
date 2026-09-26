@@ -36,7 +36,7 @@ Supabase is meant to replace `src/lib/data/local.ts`.
 - `src/lib/onstage/` — `css.ts` (the CSS-string → React style parser), `data.ts`
   (backgrounds, devices, tilt presets, templates), `export/` (the render
   pipeline)
-- `src/lib/data/` — the domain types, the `Backend` interface (20 reads +
+- `src/lib/data/` — the domain types, the `Backend` interface (every read +
   writes), the local implementation, `useQuery` and `useSession`
 - `src/store/onstage.ts` — the editor document, undo history and local persistence
 
@@ -55,17 +55,19 @@ The switches live in **`src/lib/features.ts`**, read from `NEXT_PUBLIC_FEATURE_*
 | `teams` | `/review`, Settings → Team, `listMembers`, collaborator chrome |
 | `billing` | `/pricing`, Settings → Plan & billing, the plan tables on the landing + mobile boards |
 | `exportQuota` | the 5-export allowance, its enforcement branch, and `recordExport` metering |
-| `storeUpload` | store destinations in the export dialog, Settings → Store connections, Reconnect, "Push live" |
-| `aiAssist` | the AI caption / localise drawer and every control that opens it |
-| `abTest` | `/ab-test` and the project board's variant cards |
+| `storeUpload` | store destinations in the export dialog (every export is a zip), Settings → Store connections, the project board's Store connections card and "Export & upload" label, Reconnect, "Push live" |
+| `aiAssist` | the AI caption / localise drawer and every control that opens it (tool rail, "Rewrite with AI", filmstrip +, Locales tab Translate/Review/Add a language, `?apply=panel:localize`), guided's tone chips + suggestions |
+| `abTest` | `/ab-test`, the project board's variant cards and "A/B test results" row |
 | `jobQueue` | `/queue`, the project board's Uploads tab and Activity feed |
-| `storeImport` | store-URL import (onboarding, guided) |
+| `storeImport` | store-URL import (onboarding, the empty dashboard, guided) |
 | `designBoards` | the design-review boards `/states` and `/mobile` |
 
 The last six are the fixture-only surfaces (plan D3): each shows invented data
-or can never succeed without a server. So far they only drop their routes from
-`sitemap.ts` and disallow them in `robots.ts`; the call-site gating lands with
-plan step S3.1.
+or can never succeed without a server. Their routes render `<NotFoundScreen />`,
+leave `sitemap.ts` and are disallowed in `robots.ts`; every control that leads
+to them is hidden at its call site (plan S3.1). Rows that mention another
+flag's surface (a job's "Open store connections →", the Notifications rows)
+follow that flag too.
 
 > ⚠️ **The handoff bundle still contains the pricing, sign-in and team
 > artboards.** They are design history, not a to-do list. Do not re-implement
@@ -76,8 +78,9 @@ Things worth knowing before touching this:
   export supports no redirects, rewrites, headers or middleware, so there is no
   server-side gate available.
 - A gated cluster of hooks is **conditionally mounted, never early-returned** —
-  see `screens/settings/{BillingPanel,AccountIdentityCard,NotificationsPanel}`
-  and the small components at the top of `DashboardScreen`/`ExportOverlay`.
+  see `screens/settings/{BillingPanel,AccountIdentityCard,NotificationsPanel,StoreConnectionsPanel}`,
+  `ProjectScreen`'s `StoreConnectionsCard` and the small components at the top
+  of `DashboardScreen`/`ExportOverlay` (`QuotaNote`, `StoreDestRows`).
 - Gate at the **call site** or return an empty value; never shrink the `Backend`
   interface, and never gate by throwing (`useQuery` turns a rejection into a red
   error panel).

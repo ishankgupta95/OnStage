@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { ThemeProvider } from "next-themes";
 import { clearStaleAccountKeys } from "@/lib/data/local";
+import { loadPrefs } from "@/store/onstage";
+import { usePreventFileDrop } from "@/lib/onstage/usePreventFileDrop";
 
 /**
  * The design is dark-first with an explicit switch in every header, so the
@@ -17,7 +19,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     // Before the first read, so a stale "out" sentinel or export meter from
     // the account era can't reach getSession().
     clearStaleAccountKeys();
+    // The work-mode preference, for every "open this set" link.
+    void loadPrefs();
   }, []);
+  // On every page: a file dropped outside a drop target stays in the app.
+  usePreventFileDrop();
 
   return (
     <ThemeProvider

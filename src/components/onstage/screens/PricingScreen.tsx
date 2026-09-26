@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { s } from "@/lib/onstage/css";
 import { BrandMark } from "../chrome";
+import { TEMPLATE_COUNT } from "@/lib/onstage/data";
 
 const PLANS = [
   {
@@ -17,7 +18,7 @@ const PLANS = [
     href: "/dashboard",
     feats: [
       "Unlimited canvases",
-      "All 240 templates",
+      `All ${TEMPLATE_COUNT} templates`,
       "5 exports total",
       "Watermark-free previews",
       "1 locale",

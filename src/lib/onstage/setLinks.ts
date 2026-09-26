@@ -22,8 +22,8 @@ export function setHref(mode: "guided" | "canvas", setId: string, apply?: string
 
 /**
  * Where an "open this set" control goes: the canvas, or the guided flow when
- * that is the person's work mode. (Work mode still lives on the open set's
- * document; S3.2 moves it to a preference, read here.)
+ * that is the person's work-mode preference (loaded into the store at boot,
+ * changed in Settings or by the top bar's switch).
  */
 export const openSetHref = (setId: string) => setHref(useOnstage.getState().workMode, setId);
 

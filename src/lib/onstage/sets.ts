@@ -54,15 +54,26 @@ export async function appForNewSet(backend: Backend = getBackend()): Promise<str
   return (await backend.createApp({ name: "My app" })).id;
 }
 
+/**
+ * The document a brand-new set starts from: the default, aimed at the store
+ * the person's "Default store target" names (S3.2). If the preference
+ * can't be read, the default's own store.
+ */
+export async function newSetDoc(backend: Backend = getBackend()): Promise<SetDoc> {
+  const doc = defaultDoc();
+  const prefs = await backend.getPrefs().catch(() => null);
+  if (prefs) doc.store = prefs.defaultStore;
+  return doc;
+}
+
 /** A new set on the default document, in `appId` or wherever a set made
  *  without an app in view goes. */
 export async function createBlankSet(
-  options: { appId?: string; name?: string; workMode?: SetDoc["workMode"] } = {},
+  options: { appId?: string; name?: string } = {},
   backend: Backend = getBackend(),
 ): Promise<ScreenshotSet> {
   const appId = options.appId ?? (await appForNewSet(backend));
-  const doc = defaultDoc();
-  if (options.workMode) doc.workMode = options.workMode;
+  const doc = await newSetDoc(backend);
   return backend.createSet({ appId, name: options.name ?? "New set", doc });
 }
 
@@ -116,13 +127,19 @@ export async function setPreviewSource(
 export async function createSetFromTemplate(slug: string, backend: Backend = getBackend()): Promise<ScreenshotSet> {
   const tpl = TEMPLATES.find((t) => t.slug === slug);
   if (!tpl) throw new Error("That template isn't available.");
-  const { set, doc } = await setPreviewSource(backend);
+  const { set, doc: source } = await setPreviewSource(backend);
+  // No set to copy: a brand-new set, on the person's default store.
+  const doc = set ? source : await newSetDoc(backend);
+  // A new document never carries the old per-set work mode (S3.2), even
+  // when the one it copies still has it.
+  const { workMode: _legacy, ...fields } = doc;
+  void _legacy;
   const appId = set?.appId ?? (await appForNewSet(backend));
   const app = (await backend.listApps()).find((a) => a.id === appId);
   return backend.createSet({
     appId,
     name: `${app?.name ?? "New"} — ${tpl.name}`,
-    doc: applyTemplateToDoc(doc, slug)!,
+    doc: applyTemplateToDoc(fields, slug)!,
   });
 }
 
@@ -131,15 +148,14 @@ export async function createSetFromTemplate(slug: string, backend: Backend = get
  * of an existing set) in the chosen template, or plain when none is picked.
  */
 export async function createFirstSet(
-  options: { slug?: string; workMode?: SetDoc["workMode"] },
+  options: { slug?: string },
   backend: Backend = getBackend(),
 ): Promise<ScreenshotSet> {
   const tpl = options.slug ? TEMPLATES.find((t) => t.slug === options.slug) : undefined;
   if (options.slug && !tpl) throw new Error("That template isn't available.");
   const appId = await appForNewSet(backend);
   const app = (await backend.listApps()).find((a) => a.id === appId);
-  const base = defaultDoc();
-  if (options.workMode) base.workMode = options.workMode;
+  const base = await newSetDoc(backend);
   return backend.createSet({
     appId,
     name: `${app?.name ?? "New"} — ${tpl ? tpl.name : "new set"}`,

@@ -4,6 +4,7 @@ import { s } from "@/lib/onstage/css";
 import { FEATURES } from "@/lib/features";
 import { BackButton } from "../chrome";
 import { IcoClose, IcoPhone } from "../icons";
+import { TEMPLATE_COUNT } from "@/lib/onstage/data";
 
 const PLANS = [
   { name: "Free", price: "$0", tag: "", sub: "All templates, 5 exports total, 1 locale.", cta: "Current plan", hot: false },
@@ -28,7 +29,7 @@ const PLANS = [
 // Mirrors the desktop nav, so it drops the same entries: Changelog and Docs
 // have no route, and Pricing rides on FEATURES.billing.
 const NAV = [
-  { label: "Templates", meta: "240" },
+  { label: "Templates", meta: String(TEMPLATE_COUNT) },
   { label: "How it works", meta: "" },
   ...(FEATURES.billing ? [{ label: "Pricing", meta: "from $12" }] : []),
 ];

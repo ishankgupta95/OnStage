@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { s } from "@/lib/onstage/css";
 import { Async, Shimmer } from "@/components/onstage/Async";
 import type { QueryState } from "@/lib/data/useQuery";
+import { FEATURES } from "@/lib/features";
 import type { Locale, SetDoc } from "@/lib/data/types";
 import { setLocales } from "@/lib/onstage/locales";
 import { setHref } from "@/lib/onstage/setLinks";
@@ -19,7 +20,9 @@ const STATE_STYLE: Record<Locale["state"], { label: string; bg: string; fg: stri
 /**
  * Which languages the board's selected set ships in, and how complete each
  * one is — from that set's document (GAP-9). Until captions are stored per
- * language (S9.1) that is its source language alone.
+ * language (S9.1) that is its source language alone. Translate, Review and
+ * Add a language open the AI drawer, so they exist only with
+ * `FEATURES.aiAssist` (plan D3).
  */
 export function LocalesTab({ setId, doc }: { setId: string | null; doc: QueryState<SetDoc | null> }) {
   const router = useRouter();
@@ -41,17 +44,19 @@ export function LocalesTab({ setId, doc }: { setId: string | null; doc: QuerySta
             Each language gets its own folder in the export, with its own headlines.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={translate}
-          className="hov-accent"
-          style={s(
-            "flex:none;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-size:13px;font-weight:500;cursor:pointer",
-          )}
-        >
-          <IcoSparkle size={14} />
-          Translate with AI
-        </button>
+        {FEATURES.aiAssist && (
+          <button
+            type="button"
+            onClick={translate}
+            className="hov-accent"
+            style={s(
+              "flex:none;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-size:13px;font-weight:500;cursor:pointer",
+            )}
+          >
+            <IcoSparkle size={14} />
+            Translate with AI
+          </button>
+        )}
       </div>
 
       <div style={s("margin-top:14px;display:flex;flex-direction:column;gap:9px")}>
@@ -108,23 +113,25 @@ export function LocalesTab({ setId, doc }: { setId: string | null; doc: QuerySta
                     >
                       {tone.label}
                     </span>
-                    <button
-                      type="button"
-                      onClick={translate}
-                      style={s(
-                        `flex:none;height:28px;padding:0 12px;border-radius:5px;border:1px solid ${
-                          l.state === "untranslated" ? "transparent" : "rgba(var(--ink-rgb),.13)"
-                        };background:${
-                          l.state === "untranslated" ? "var(--accent)" : "transparent"
-                        };color:${
-                          l.state === "untranslated" ? "var(--on-accent)" : "var(--text)"
-                        };font-size:12px;font-weight:${
-                          l.state === "untranslated" ? 700 : 500
-                        };cursor:pointer`,
-                      )}
-                    >
-                      {l.state === "untranslated" ? "Translate" : "Review"}
-                    </button>
+                    {FEATURES.aiAssist && (
+                      <button
+                        type="button"
+                        onClick={translate}
+                        style={s(
+                          `flex:none;height:28px;padding:0 12px;border-radius:5px;border:1px solid ${
+                            l.state === "untranslated" ? "transparent" : "rgba(var(--ink-rgb),.13)"
+                          };background:${
+                            l.state === "untranslated" ? "var(--accent)" : "transparent"
+                          };color:${
+                            l.state === "untranslated" ? "var(--on-accent)" : "var(--text)"
+                          };font-size:12px;font-weight:${
+                            l.state === "untranslated" ? 700 : 500
+                          };cursor:pointer`,
+                        )}
+                      >
+                        {l.state === "untranslated" ? "Translate" : "Review"}
+                      </button>
+                    )}
                   </div>
                   <div
                     style={s(
@@ -156,16 +163,18 @@ export function LocalesTab({ setId, doc }: { setId: string | null; doc: QuerySta
           }
         </Async>
 
-        <button
-          type="button"
-          onClick={translate}
-          style={s(
-            "display:flex;align-items:center;justify-content:center;gap:8px;height:44px;border:1px dashed rgba(var(--ink-rgb),.16);border-radius:9px;background:transparent;color:var(--muted-2);font-size:12.5px;cursor:pointer",
-          )}
-        >
-          <IcoPlus size={14} />
-          Add a language
-        </button>
+        {FEATURES.aiAssist && (
+          <button
+            type="button"
+            onClick={translate}
+            style={s(
+              "display:flex;align-items:center;justify-content:center;gap:8px;height:44px;border:1px dashed rgba(var(--ink-rgb),.16);border-radius:9px;background:transparent;color:var(--muted-2);font-size:12.5px;cursor:pointer",
+            )}
+          >
+            <IcoPlus size={14} />
+            Add a language
+          </button>
+        )}
       </div>
     </div>
   );

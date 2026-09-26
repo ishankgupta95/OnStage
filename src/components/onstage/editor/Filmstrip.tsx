@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useOnstage } from "@/store/onstage";
+import { FEATURES } from "@/lib/features";
 import { s } from "@/lib/onstage/css";
 import { bgCss } from "@/lib/onstage/data";
+import { exportableLocales } from "@/lib/onstage/export/slots";
 import { StoredScreenshot } from "../device";
 import { IcoClose, IcoPlus } from "../icons";
 
@@ -158,7 +160,8 @@ export function Filmstrip() {
             LANGUAGE
           </span>
           <div style={s("display:flex;gap:4px")}>
-            {["EN", "DE", "JA", "ES"].map((l) => (
+            {/* Only languages the set has captions in (EDITOR-6 interim). */}
+            {exportableLocales(st.frames).map((l) => (
               <button
                 key={l}
                 type="button"
@@ -168,16 +171,19 @@ export function Filmstrip() {
                 {l}
               </button>
             ))}
-            <button
-              type="button"
-              aria-label="Add a language"
-              onClick={() => st.setState({ overlay: "ai", aiTab: "Localize" })}
-              style={s(
-                "display:grid;place-items:center;width:26px;height:24px;border:1px dashed rgba(var(--ink-rgb),.18);border-radius:5px;background:transparent;color:var(--muted-2);cursor:pointer;font-size:13px;line-height:1",
-              )}
-            >
-              +
-            </button>
+            {/* Adding a language opens the AI drawer (`FEATURES.aiAssist`). */}
+            {FEATURES.aiAssist && (
+              <button
+                type="button"
+                aria-label="Add a language"
+                onClick={() => st.setState({ overlay: "ai", aiTab: "Localize" })}
+                style={s(
+                  "display:grid;place-items:center;width:26px;height:24px;border:1px dashed rgba(var(--ink-rgb),.18);border-radius:5px;background:transparent;color:var(--muted-2);cursor:pointer;font-size:13px;line-height:1",
+                )}
+              >
+                +
+              </button>
+            )}
           </div>
         </div>
       </div>

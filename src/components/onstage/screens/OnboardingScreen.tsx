@@ -7,17 +7,19 @@ import { s } from "@/lib/onstage/css";
 import { createFirstSet } from "@/lib/onstage/sets";
 import { useCreateAndOpen } from "@/lib/onstage/useCreateAndOpen";
 import { useOnstage } from "@/store/onstage";
+import { FEATURES } from "@/lib/features";
 import { BrandMark } from "../chrome";
 import { StoreUrlField } from "../StoreUrlField";
 import { WarnLine } from "../WarnLine";
 import { IcoGlobe, IcoGrid, IcoUpload } from "../icons";
+import { TEMPLATES, TEMPLATE_COUNT, bgCss, capInk } from "@/lib/onstage/data";
 
 export const ROUTE_CARD =
   "padding:18px;border:1px solid rgba(var(--ink-rgb),.1);border-radius:10px;background:var(--surface);cursor:pointer;transition:border-color .16s ease";
 export const ROUTE_ICON =
   "display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:rgba(var(--accent-rgb),.13);color:var(--accent)";
 
-export const START_ROUTES = [
+const ALL_START_ROUTES = [
   {
     id: "url",
     title: "Paste your store URL",
@@ -36,31 +38,28 @@ export const START_ROUTES = [
     id: "template",
     title: "Start from a template",
     body: "Pick a finished set, then swap your screens into it frame by frame.",
-    meta: "240 SETS",
+    meta: `${TEMPLATE_COUNT} SETS`,
     Icon: IcoGrid,
   },
 ];
 
-const SHOT_BGS = [
-  "linear-gradient(155deg,#1b6f6a,#0f3a3d)",
-  "linear-gradient(160deg,#1f2b4d,#0e1424)",
-  "linear-gradient(150deg,#3aa8c9,#124e73)",
-  "linear-gradient(155deg,#1b6f6a,#0f3a3d)",
-  "linear-gradient(160deg,#1a1917,#0b0b0a)",
-];
+/** The ways in, here and on the empty dashboard. Reading a listing from its
+ *  store URL needs a server (`FEATURES.storeImport`, plan D3), so without
+ *  one that route isn't offered. */
+export const START_ROUTES = ALL_START_ROUTES.filter((r) => r.id !== "url" || FEATURES.storeImport);
 
-/** The three looks on offer, each a template the new set is made in. */
-const STYLES: [string, string, string, number, string][] = [
-  ["Moss", "MATCHES YOUR TEAL", "linear-gradient(155deg,#1b6f6a,#0f3a3d)", -12, "moss"],
-  ["Cold Open", "HIGH CONTRAST", "linear-gradient(160deg,#1f2b4d,#0e1424)", 0, "cold-open"],
-  [
-    "Field Notes",
-    "LIGHT, EDITORIAL",
-    "linear-gradient(160deg,#f4f1ea,#ded8cb)",
-    12,
-    "field-notes",
-  ],
+/** The three looks on offer, each a template the new set is made in — its
+ *  preview drawn from that template's own background and angle. Nothing
+ *  here is matched to the person's app (nothing reads it). */
+const STYLES: { slug: string; meta: string }[] = [
+  { slug: "moss", meta: "PANORAMIC" },
+  { slug: "cold-open", meta: "HIGH CONTRAST" },
+  { slug: "field-notes", meta: "LIGHT, EDITORIAL" },
 ];
+const LOOKS = STYLES.flatMap(({ slug, meta }) => {
+  const tpl = TEMPLATES.find((t) => t.slug === slug);
+  return tpl ? [{ slug, meta, name: tpl.name, bg: bgCss(tpl.bg), ty: tpl.ty, light: capInk(tpl.bg) !== "#fff" }] : [];
+});
 
 export function OnboardingScreen() {
   const router = useRouter();
@@ -68,15 +67,11 @@ export function OnboardingScreen() {
   // First run ends in a new set (plan D10): the look picked, or the plain
   // default, opened in the chosen mode. It never restyles an existing set.
   const create = useCreateAndOpen();
+  // Two steps: how to begin, then a look (the old screenshot picker showed
+  // screens nobody had imported — SCREENSA-5).
   const [step, setStep] = useState(0);
-  const [picked, setPicked] = useState([0, 1, 2, 3, 4]);
   const [urlOpen, setUrlOpen] = useState(false);
   const [found, setFound] = useState<string | null>(null);
-
-  const togglePick = (i: number) =>
-    setPicked((cur) =>
-      cur.indexOf(i) >= 0 ? cur.filter((x) => x !== i) : cur.concat([i]),
-    );
 
   return (
     <div
@@ -98,7 +93,7 @@ export function OnboardingScreen() {
         <div
           style={s("margin-left:auto;display:flex;align-items:center;gap:9px")}
         >
-          {[0, 1, 2].map((i) => (
+          {[0, 1].map((i) => (
             <span
               key={i}
               style={s(
@@ -113,7 +108,7 @@ export function OnboardingScreen() {
               "font:400 10.5px 'Inter',ui-sans-serif;color:var(--muted-4);margin-left:5px",
             )}
           >
-            STEP {step + 1} OF 3
+            STEP {step + 1} OF 2
           </span>
         </div>
       </div>
@@ -154,7 +149,7 @@ export function OnboardingScreen() {
               </p>
               <div
                 style={s(
-                  "display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:28px",
+                  `display:grid;grid-template-columns:repeat(${START_ROUTES.length},1fr);gap:14px;margin-top:28px`,
                 )}
               >
                 {START_ROUTES.map((r) => (
@@ -197,7 +192,7 @@ export function OnboardingScreen() {
                   </div>
                 ))}
               </div>
-              {urlOpen && (
+              {FEATURES.storeImport && urlOpen && (
                 <div
                   style={s(
                     "margin-top:16px;padding:14px;border:1px solid rgba(var(--accent-rgb),.32);border-radius:10px;background:var(--surface)",
@@ -221,26 +216,15 @@ export function OnboardingScreen() {
                   />
                 </div>
               )}
-              {found && (
+              {FEATURES.storeImport && found && (
                 <div
                   style={s("margin-top:10px;font-size:12.5px;color:var(--ok)")}
                 >
                   Found {found}.
                 </div>
               )}
-              <div
-                style={s(
-                  "display:flex;align-items:center;gap:10px;margin-top:20px;font-size:12.5px;color:var(--muted-4)",
-                )}
-              >
-                <span>Already have a set somewhere else?</span>
-                <span
-                  onClick={() => setStep(1)}
-                  style={s("color:var(--accent-hi);cursor:pointer")}
-                >
-                  Import a zip instead
-                </span>
-              </div>
+              {/* No "Import a zip instead": there is no zip import yet
+                  (project files arrive with S10.1 — SCREENSA-6). */}
             </div>
           )}
 
@@ -251,110 +235,28 @@ export function OnboardingScreen() {
                   "font:400 10.5px 'Inter',ui-sans-serif;letter-spacing:.12em;color:var(--muted-2)",
                 )}
               >
-                STEP 2 — WE FOUND YOUR APP
+                STEP 2 — PICK A LOOK
               </div>
               <h1
                 style={s(
                   "margin:14px 0 0;font-size:36px;line-height:1.08;letter-spacing:-.032em;font-weight:500",
                 )}
               >
-                Trailhead — Run &amp; Trail Log
+                Three looks to start from
               </h1>
               <p
                 style={s("margin:11px 0 0;font-size:14.5px;color:var(--muted)")}
               >
-                5 screenshots and your icon pulled from the App Store. Pick the
-                ones to bring in.
-              </p>
-              <div style={s("display:flex;gap:11px;margin-top:22px")}>
-                {SHOT_BGS.map((bg, i) => {
-                  const on = picked.indexOf(i) >= 0;
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => togglePick(i)}
-                      style={s(
-                        `position:relative;flex:1;height:250px;border-radius:8px;border:1.5px solid ${
-                          on ? "var(--accent)" : "rgba(var(--ink-rgb),.11)"
-                        };background:${bg};display:grid;place-items:center;cursor:pointer;opacity:${
-                          on ? 1 : 0.45
-                        }`,
-                      )}
-                    >
-                      <div
-                        style={s(
-                          "width:60px;height:124px;border-radius:10px;background:#111214;box-shadow:0 12px 24px rgba(0,0,0,.45)",
-                        )}
-                      />
-                      <span
-                        style={s(
-                          `position:absolute;top:8px;right:8px;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:${
-                            on ? "var(--accent)" : "rgba(0,0,0,.4)"
-                          };color:${on ? "var(--on-accent)" : "transparent"};font-size:11px;font-weight:700`,
-                        )}
-                      >
-                        ✓
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div
-                style={s(
-                  "display:flex;align-items:center;gap:11px;margin-top:26px",
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  style={s(
-                    "height:42px;padding:0 19px;border:1px solid var(--accent);border-radius:7px;background:transparent;color:var(--accent);font-size:14px;font-weight:700;cursor:pointer",
-                  )}
-                >
-                  Continue with {picked.length} screens
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(0)}
-                  style={s(
-                    "height:42px;padding:0 16px;border:1px solid rgba(var(--ink-rgb),.13);border-radius:7px;background:transparent;color:var(--text);font-size:14px;cursor:pointer",
-                  )}
-                >
-                  Back
-                </button>
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div>
-              <div
-                style={s(
-                  "font:400 10.5px 'Inter',ui-sans-serif;letter-spacing:.12em;color:var(--muted-2)",
-                )}
-              >
-                STEP 3 — PICK A LOOK
-              </div>
-              <h1
-                style={s(
-                  "margin:14px 0 0;font-size:36px;line-height:1.08;letter-spacing:-.032em;font-weight:500",
-                )}
-              >
-                These three suit your screens
-              </h1>
-              <p
-                style={s("margin:11px 0 0;font-size:14.5px;color:var(--muted)")}
-              >
-                Matched to the teal in your app. Everything stays editable.
+                Pick one to start; everything stays editable.
               </p>
               <div
                 style={s(
                   "display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px",
                 )}
               >
-                {STYLES.map(([name, meta, bg, ty, slug]) => (
+                {LOOKS.map(({ slug, meta, name, bg, ty, light }) => (
                   <div
-                    key={name}
+                    key={slug}
                     onClick={() => void create.run(slug, () => createFirstSet({ slug }))}
                     style={s(`cursor:${create.busy ? "progress" : "pointer"}`)}
                   >
@@ -366,7 +268,7 @@ export function OnboardingScreen() {
                       <div
                         style={s(
                           `margin:18px 16px 0;width:calc(100% - 32px);height:6px;border-radius:3px;background:${
-                            name === "Field Notes"
+                            light
                               ? "rgba(0,0,0,.42)"
                               : "rgba(var(--ink-rgb),.6)"
                           }`,
@@ -407,7 +309,7 @@ export function OnboardingScreen() {
                   type="button"
                   className="hov-accent"
                   disabled={create.busy !== null}
-                  onClick={() => void create.run("canvas", () => createFirstSet({ workMode: "canvas" }))}
+                  onClick={() => void create.run("canvas", () => createFirstSet({}))}
                   style={s(
                     "height:42px;padding:0 19px;border:1px solid var(--accent);border-radius:7px;background:transparent;color:var(--accent);font-size:14px;font-weight:500;cursor:pointer",
                   )}
@@ -420,7 +322,7 @@ export function OnboardingScreen() {
                   disabled={create.busy !== null}
                   onClick={() => {
                     setState({ gStep: 0 });
-                    void create.run("guided", () => createFirstSet({ workMode: "guided" }), "guided");
+                    void create.run("guided", () => createFirstSet({}), "guided");
                   }}
                   style={s(
                     "height:42px;padding:0 16px;border:1px solid rgba(var(--ink-rgb),.13);border-radius:7px;background:transparent;color:var(--text);font-size:14px;cursor:pointer",
@@ -435,7 +337,17 @@ export function OnboardingScreen() {
                     "height:42px;padding:0 16px;border:none;border-radius:7px;background:transparent;color:var(--muted);font-size:14px;cursor:pointer",
                   )}
                 >
-                  See all 240
+                  See all {TEMPLATE_COUNT}
+                </button>
+                {/* Back to the start (the removed picker step's own button). */}
+                <button
+                  type="button"
+                  onClick={() => setStep(0)}
+                  style={s(
+                    "margin-left:auto;height:42px;padding:0 16px;border:1px solid rgba(var(--ink-rgb),.13);border-radius:7px;background:transparent;color:var(--text);font-size:14px;cursor:pointer",
+                  )}
+                >
+                  Back
                 </button>
               </div>
             </div>

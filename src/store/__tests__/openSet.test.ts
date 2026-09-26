@@ -4,12 +4,21 @@ import { doc, frame } from "@/lib/data/__tests__/helpers";
 
 const DOCS_KEY = "onstage:set-docs:v1";
 
-/** A fresh store and backend, as on a page load. */
-async function boot() {
+/** A fresh store and backend, as on a page load — optionally built with
+ *  some feature flags on. */
+async function boot(flags: Partial<typeof import("@/lib/features").FEATURES> = {}) {
   vi.resetModules();
-  const store = await import("../onstage");
-  const { localBackend } = await import("@/lib/data/local");
-  return { ...store, localBackend };
+  vi.doMock("@/lib/features", async (importOriginal) => {
+    const real = await importOriginal<typeof import("@/lib/features")>();
+    return { FEATURES: { ...real.FEATURES, ...flags } };
+  });
+  try {
+    const store = await import("../onstage");
+    const { localBackend } = await import("@/lib/data/local");
+    return { ...store, localBackend };
+  } finally {
+    vi.doUnmock("@/lib/features");
+  }
 }
 
 const stored = (): Record<string, SetDoc> => JSON.parse(localStorage.getItem(DOCS_KEY) ?? "{}");
@@ -465,13 +474,23 @@ describe("apply intents after a load (S2.1)", () => {
     expect(useOnstage.getState().saveState).toBe("saved");
   });
 
-  it("panel:localize opens the localise drawer without an undo entry", async () => {
+  it("panel:localize opens the localise drawer without an undo entry (with aiAssist)", async () => {
     seed({ A: setA });
-    const { openSet, useOnstage, applyIntent } = await boot();
+    const { openSet, useOnstage, applyIntent } = await boot({ aiAssist: true });
     await openSet("A");
     expect(applyIntent("panel:localize")).toBe(true);
     expect(useOnstage.getState().overlay).toBe("ai");
     expect(useOnstage.getState().aiTab).toBe("Localize");
+    expect(history(useOnstage)).toBe(0);
+  });
+
+  it("panel:localize is refused without aiAssist: the AI drawer doesn't exist (S3.1)", async () => {
+    seed({ A: setA });
+    const { openSet, useOnstage, applyIntent } = await boot();
+    await openSet("A");
+    expect(applyIntent("panel:localize")).toBe(false);
+    expect(useOnstage.getState().overlay).toBeNull();
+    expect(useOnstage.getState().aiTab).toBe("Captions");
     expect(history(useOnstage)).toBe(0);
   });
 

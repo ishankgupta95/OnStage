@@ -16,6 +16,8 @@ import { setPreviewSource } from "./sets";
 export function useSetPreview(setId?: string | null): {
   frames: SetFrame[];
   store: "apple" | "play";
+  /** The set's own name for its app, if it names one (S3.4). */
+  appName?: string;
   loading: boolean;
   /** The set's library record; null for the default (no sets yet). */
   set: ScreenshotSet | null;
@@ -25,6 +27,7 @@ export function useSetPreview(setId?: string | null): {
   const loadedSetId = useOnstage((st) => st.loadedSetId);
   const liveFrames = useOnstage((st) => st.frames);
   const liveStore = useOnstage((st) => st.store);
+  const liveAppName = useOnstage((st) => st.appName);
   // Keyed on the open set too, so a set opened (or switched) in this tab is
   // re-read — its record is part of the answer.
   const source = useQuery(`set-preview:${setId ?? ""}:${loadedSetId ?? ""}`, () =>
@@ -37,6 +40,7 @@ export function useSetPreview(setId?: string | null): {
     return {
       frames: liveFrames,
       store: liveStore,
+      appName: liveAppName,
       loading: false,
       set: set?.id === loadedSetId ? set : null,
       missing: false,
@@ -46,5 +50,6 @@ export function useSetPreview(setId?: string | null): {
   // Unreadable library: show what the editor shows before a set loads.
   if (!source.data) return { frames: liveFrames, store: liveStore, loading: false, set: null, missing: false };
   const { doc, missing } = source.data;
-  return { frames: doc.frames, store: doc.store ?? "apple", loading: false, set, missing };
+  const appName = typeof doc.appName === "string" && doc.appName.trim() ? doc.appName.trim() : undefined;
+  return { frames: doc.frames, store: doc.store ?? "apple", appName, loading: false, set, missing };
 }

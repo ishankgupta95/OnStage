@@ -32,7 +32,6 @@ export function defaultDoc(): SetDoc {
     shadow: true,
     lang: "EN",
     store: "apple",
-    workMode: "canvas",
   };
 }
 

@@ -9,6 +9,21 @@ export const TILT_PRESETS: TiltPreset[] = [
   { id: "hero", label: "Hero", x: 9, y: -22, d: 68 },
 ];
 
+/**
+ * Where a point on a tilt pad turns the phone. `nx`/`ny` run from -1 to 1
+ * across the pad, centre 0. Dragging right turns the phone to the right
+ * (negative yaw, like the Right preset); dragging down tips its top back.
+ * `range` is the angle at the pad's edge — the editor's pad reaches ±34°
+ * yaw and ±22° pitch; the landing demo uses a gentler range, same signs.
+ */
+export function tiltFromPad(
+  nx: number,
+  ny: number,
+  range: { yaw: number; pitch: number } = { yaw: 34, pitch: 22 },
+): { tiltX: number; tiltY: number } {
+  return { tiltY: Math.round(nx * -range.yaw), tiltX: Math.round(ny * -range.pitch) };
+}
+
 type Bg = { id: string; label: string; css: string };
 
 export const BGS: Bg[] = [
@@ -66,7 +81,7 @@ export const CAPTIONS = [
  * actually gets when the template is applied, and `ty` its device angle — so
  * "the whole set restyles" is a real operation, not a navigation.
  */
-export const TEMPLATES: {
+export type Template = {
   slug: string;
   name: string;
   tagline: string;
@@ -77,7 +92,9 @@ export const TEMPLATES: {
   ty: number;
   badge: string;
   tags: string[];
-}[] = [
+};
+
+export const TEMPLATES: Template[] = [
   { slug: "ember", name: "Ember", tagline: "Warm gradient, big type", frames: 5, preview: "linear-gradient(150deg,#ff6b53,#c9315f 62%,#6d1a4a)", bg: "ember", panoramic: true, ty: -14, badge: "POPULAR", tags: ["Dark", "Bold type", "Panoramic"] },
   { slug: "cold-open", name: "Cold Open", tagline: "Editorial, navy", frames: 6, preview: "linear-gradient(160deg,#1f2b4d,#0e1424)", bg: "dusk", panoramic: false, ty: 0, badge: "", tags: ["Dark", "Minimal"] },
   { slug: "field-notes", name: "Field Notes", tagline: "Paper, serif captions", frames: 4, preview: "linear-gradient(160deg,#f4f1ea,#ded8cb)", bg: "bone", panoramic: false, ty: 12, badge: "", tags: ["Light", "Minimal"] },
@@ -91,6 +108,10 @@ export const TEMPLATES: {
   { slug: "bone", name: "Bone", tagline: "Off-white, editorial", frames: 6, preview: "linear-gradient(160deg,#f7f6f3,#e7e3da)", bg: "bone", panoramic: false, ty: -16, badge: "", tags: ["Light", "Minimal"] },
   { slug: "signal", name: "Signal", tagline: "Split colour blocks", frames: 5, preview: "linear-gradient(120deg,#ff6b53 50%,#1f2b4d 50%)", bg: "ember", panoramic: false, ty: 10, badge: "", tags: ["Bold type", "Feature graphic"] },
 ];
+
+/** How many template sets there are — every screen that counts them reads
+ *  this (SCREENSA-1; S5.1 points it at the gallery's own list). */
+export const TEMPLATE_COUNT = TEMPLATES.length;
 
 /** The filter chips above the gallery. */
 export const TEMPLATE_FILTERS = [

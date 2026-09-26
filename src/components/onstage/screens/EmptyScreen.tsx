@@ -7,7 +7,7 @@ import { FEATURES } from "@/lib/features";
 import { BrandMark } from "../chrome";
 import { ROUTE_CARD, ROUTE_ICON, START_ROUTES } from "./OnboardingScreen";
 
-/** No sets yet — the same three routes as onboarding, in a quieter frame. */
+/** No sets yet — the same routes as onboarding, in a quieter frame. */
 export function EmptyScreen() {
   const router = useRouter();
   return (
@@ -64,12 +64,14 @@ export function EmptyScreen() {
               "margin:10px auto 0;max-width:52ch;font-size:14.5px;line-height:1.6;color:var(--muted)",
             )}
           >
-            A set is one app, one store size, and the frames inside it. Start from your live listing,
-            your own screens, or a template.
+            A set is one app, one store size, and the frames inside it.{" "}
+            {FEATURES.storeImport
+              ? "Start from your live listing, your own screens, or a template."
+              : "Start from your own screens or a template."}
           </p>
           <div
             style={s(
-              "display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:26px;text-align:left",
+              `display:grid;grid-template-columns:repeat(${START_ROUTES.length},1fr);gap:12px;margin-top:26px;text-align:left`,
             )}
           >
             {START_ROUTES.map((r) => (

@@ -1,4 +1,5 @@
 import type { DeviceClass } from "./geometry";
+import { SOURCE_LOCALE } from "../locales";
 
 /**
  * The six rows of the export dialog, with the exact pixel dimensions each
@@ -23,6 +24,24 @@ export const EXPORT_SLOTS: ExportSlot[] = [
   { label: "Google — Feature graphic", w: 1024, h: 500, folder: "", cls: "android-phone", kind: "feature" },
 ];
 
+/** The most screenshots each store takes per device (S4.5 caps Add frame
+ *  and warns on it; a multi-file drop fills up to it now). */
+export const MAX_FRAMES = { apple: 10, play: 8 } as const;
+
+/** Index of the slot with this folder (the feature graphic has none, so it
+ *  is found by kind). Picks are indices until S4.5 moves them to ids. */
+const slotIndex = (match: (slot: ExportSlot) => boolean): number => EXPORT_SLOTS.findIndex(match);
+
+/** The sizes an export starts with for a set's store (GAP-5/GAP-7): Apple's
+ *  6.9″ + 6.5″ iPhone, or Play's phone + feature graphic. */
+export function defaultExportPicks(store: "apple" | "play"): number[] {
+  const picks =
+    store === "play"
+      ? [slotIndex((s) => s.folder === "PHONE"), slotIndex((s) => s.kind === "feature")]
+      : [slotIndex((s) => s.folder === "APP_IPHONE_69"), slotIndex((s) => s.folder === "APP_IPHONE_65")];
+  return picks.filter((i) => i >= 0);
+}
+
 /** Export-folder name per locale chip. */
 export const LOCALE_FOLDER: Record<string, string> = {
   EN: "en-US",
@@ -32,9 +51,9 @@ export const LOCALE_FOLDER: Record<string, string> = {
 };
 
 /**
- * The sample set's headlines in each locale it ships. The AI drawer reports
- * German, Japanese and Spanish as translated, so the export writes real
- * localised frames rather than four copies of the English ones.
+ * The sample set's headlines in each locale it ships, so an untouched sample
+ * exports real German, Japanese and Spanish frames. A caption not listed
+ * here has no translation, and its locale isn't offered (`exportableLocales`).
  */
 const CAPTION_LOCALES: Record<string, Record<string, string>> = {
   DE: {
@@ -60,5 +79,29 @@ const CAPTION_LOCALES: Record<string, Record<string, string>> = {
   },
 };
 
-export const localise = (caption: string, locale: string): string =>
-  CAPTION_LOCALES[locale]?.[caption] ?? caption;
+/** The locale's own copy of a caption (own keys only: "constructor" is a
+ *  caption, not an inherited property). */
+const own = (o: object, key: string) => Object.prototype.hasOwnProperty.call(o, key);
+const translationOf = (caption: string, locale: string): string | undefined =>
+  own(CAPTION_LOCALES, locale) && own(CAPTION_LOCALES[locale], caption) ? CAPTION_LOCALES[locale][caption] : undefined;
+
+export const localise = (caption: string, locale: string): string => translationOf(caption, locale) ?? caption;
+
+/**
+ * The locales a set can really be exported in (interim EDITOR-6 fix, until
+ * S9.1): its source language, plus a locale only when every frame's caption
+ * has a translation there — otherwise that folder would hold English.
+ */
+export function exportableLocales(frames: readonly { caption: string }[]): string[] {
+  const translated = Object.keys(CAPTION_LOCALES).filter(
+    (locale) => frames.length > 0 && frames.every((f) => translationOf(f.caption, locale) !== undefined),
+  );
+  return [SOURCE_LOCALE, ...translated];
+}
+
+/** The picked locales a set can really be exported in; EN when none is. */
+export function usableLocales(frames: readonly { caption: string }[], langs: readonly string[]): string[] {
+  const ok = exportableLocales(frames);
+  const kept = langs.filter((l) => ok.includes(l));
+  return kept.length ? kept : [SOURCE_LOCALE];
+}

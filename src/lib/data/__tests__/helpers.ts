@@ -44,7 +44,6 @@ export const doc = (frames: SetFrame[], over: Partial<SetDoc> = {}): SetDoc => (
   shadow: true,
   lang: "EN",
   store: "apple",
-  workMode: "canvas",
   ...over,
 });
 

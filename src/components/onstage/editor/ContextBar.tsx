@@ -1,8 +1,9 @@
 "use client";
 
 import { beginHistoryGesture, endHistoryGesture, historyGestureLive, useOnstage } from "@/store/onstage";
+import { FEATURES } from "@/lib/features";
 import { s } from "@/lib/onstage/css";
-import { BGS, DEVICES, TILT_PRESETS, bgCss } from "@/lib/onstage/data";
+import { BGS, DEVICES, TILT_PRESETS, bgCss, tiltFromPad } from "@/lib/onstage/data";
 import {
   IcoAlign,
   IcoChevron,
@@ -141,17 +142,22 @@ export function ContextBar() {
               </button>
             ))}
           </div>
-          <div style={s("width:1px;height:20px;background:rgba(var(--ink-rgb),.1)")} />
-          <button
-            type="button"
-            onClick={() => set({ overlay: "ai" })}
-            style={s(
-              "display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px;border:1px solid rgba(var(--accent-rgb),.35);border-radius:5px;background:rgba(var(--accent-rgb),.1);color:var(--accent-hi);font-size:12.5px;font-weight:600;cursor:pointer",
-            )}
-          >
-            <IcoSparkle size={13} />
-            Rewrite with AI
-          </button>
+          {/* The AI drawer exists only with `FEATURES.aiAssist` (plan D3/D9). */}
+          {FEATURES.aiAssist && (
+            <>
+              <div style={s("width:1px;height:20px;background:rgba(var(--ink-rgb),.1)")} />
+              <button
+                type="button"
+                onClick={() => set({ overlay: "ai", aiTab: "Captions" })}
+                style={s(
+                  "display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px;border:1px solid rgba(var(--accent-rgb),.35);border-radius:5px;background:rgba(var(--accent-rgb),.1);color:var(--accent-hi);font-size:12.5px;font-weight:600;cursor:pointer",
+                )}
+              >
+                <IcoSparkle size={13} />
+                Rewrite with AI
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -264,7 +270,7 @@ export function PerspectivePopover() {
       if (!historyGestureLive(gesture)) return;
       const nx = Math.max(-1, Math.min(1, ((ev.clientX - box.left) / box.width - 0.5) * 2));
       const ny = Math.max(-1, Math.min(1, ((ev.clientY - box.top) / box.height - 0.5) * 2));
-      st.patchFrame({ tiltY: Math.round(nx * -34), tiltX: Math.round(ny * -22) });
+      st.patchFrame(tiltFromPad(nx, ny));
     };
     const up = () => {
       window.removeEventListener("pointermove", move as EventListener);

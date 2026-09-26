@@ -13,5 +13,22 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["fake-indexeddb/auto", "./vitest.setup.ts"],
     include: ["src/**/__tests__/**/*.test.{ts,tsx}"],
+    // Tests start from the shipped build: every feature flag off, whatever the
+    // shell or CI job exports. A test that needs one on stubs it (vi.stubEnv)
+    // or mocks @/lib/features.
+    env: Object.fromEntries(
+      [
+        "ACCOUNTS",
+        "TEAMS",
+        "BILLING",
+        "EXPORT_QUOTA",
+        "STORE_UPLOAD",
+        "AI_ASSIST",
+        "AB_TEST",
+        "JOB_QUEUE",
+        "STORE_IMPORT",
+        "DESIGN_BOARDS",
+      ].map((flag) => [`NEXT_PUBLIC_FEATURE_${flag}`, ""]),
+    ),
   },
 });

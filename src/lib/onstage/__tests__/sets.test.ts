@@ -349,6 +349,25 @@ describe("createSetFromTemplate", () => {
     return { app: a, mine };
   }
 
+  it("never copies an old document's per-set work mode into the new set (S3.2)", async () => {
+    const { createSetFromTemplate, localBackend } = await boot();
+    const { mine } = await seedMine(localBackend);
+    localStorage.setItem(DOCS_KEY, JSON.stringify({ ...storedDocs(), [mine.id]: { ...mineDoc, workMode: "guided" } }));
+    const created = await createSetFromTemplate(TPL.slug);
+    expect("workMode" in storedDocs()[created.id]).toBe(false);
+    // The set it copied keeps its old field (unread).
+    expect(storedDocs()[mine.id].workMode).toBe("guided");
+  });
+
+  it("with no set to copy, starts a new set on the Default store target", async () => {
+    const { createSetFromTemplate, localBackend } = await boot();
+    await localBackend.setPrefs({ defaultStore: "play" });
+    const { backend, createSet } = fakeBackend(localBackend, { sets: [], apps: [app("a")] });
+    await settle(createSetFromTemplate(TPL.slug, backend));
+    expect(createSet.mock.calls[0][0].doc?.store).toBe("play");
+    expect(createSet.mock.calls[0][0].doc).toEqual(applyTemplateToDoc({ ...defaultDoc(), store: "play" }, TPL.slug));
+  });
+
   it("makes a new set of your screens restyled by the template, in the same app, leaving yours untouched", async () => {
     expect(TPL.bg).not.toBe(mineDoc.frames[0].bg);
     const { createSetFromTemplate, useOnstage, localBackend } = await boot();
@@ -441,19 +460,20 @@ describe("createFirstSet", () => {
     { device: "px9", store: "play" },
   );
 
-  it("builds from the default document, not the last set, restyled by the chosen template and in the chosen mode", async () => {
+  it("builds from the default document, not the last set, restyled by the chosen template", async () => {
     const { createFirstSet, localBackend } = await boot();
     const a = await localBackend.createApp({ name: "Trail" });
     const last = await localBackend.createSet({ appId: a.id, name: "Old", doc: lastDoc });
     localStorage.setItem(LAST_KEY, JSON.stringify(last.id));
     const lastBefore = JSON.stringify(storedDocs()[last.id]);
 
-    const created = await createFirstSet({ slug: TPL.slug, workMode: "guided" });
+    const created = await createFirstSet({ slug: TPL.slug });
 
-    const expected = applyTemplateToDoc({ ...defaultDoc(), workMode: "guided" as const }, TPL.slug)!;
+    const expected = applyTemplateToDoc(defaultDoc(), TPL.slug)!;
     const stored = storedDocs()[created.id];
     expect(stored).toEqual(expected);
-    expect(stored.workMode).toBe("guided");
+    // Work mode is a preference now (S3.2): documents don't carry it.
+    expect("workMode" in stored).toBe(false);
     expect(stored.frames.every((f) => f.bg === TPL.bg && f.tiltY === TPL.ty)).toBe(true);
     expect(stored.frames.map((f) => f.caption)).toEqual(defaultDoc().frames.map((f) => f.caption));
     expect(stored.frames.every((f) => f.screenshot === null)).toBe(true);
@@ -463,27 +483,39 @@ describe("createFirstSet", () => {
     expect((await localBackend.listSets()).map((s) => s.id)).toContain(created.id);
   });
 
-  it("with no template picked, is the plain default document in the chosen mode", async () => {
+  it("with no template picked, is the plain default document", async () => {
     const { createFirstSet, localBackend } = await boot();
     const { backend, createSet } = fakeBackend(localBackend, { sets: [], apps: [app("a", "Alpha")] });
-    const created = await settle(createFirstSet({ workMode: "canvas" }, backend));
+    const created = await settle(createFirstSet({}, backend));
     expect(createSet).toHaveBeenCalledTimes(1);
-    expect(createSet.mock.calls[0][0].doc).toEqual({ ...defaultDoc(), workMode: "canvas" });
+    expect(createSet.mock.calls[0][0].doc).toEqual(defaultDoc());
     expect(created.appId).toBe("a");
     expect(created.name).toBe("Alpha — new set");
   });
 
-  it("in guided mode with no template, only the mode changes", async () => {
-    const { createFirstSet, localBackend } = await boot();
+  it("starts on the store the Default store target preference names (S3.2)", async () => {
+    const { createFirstSet, createBlankSet, localBackend } = await boot();
+    await localBackend.setPrefs({ defaultStore: "play" });
     const { backend, createSet } = fakeBackend(localBackend, { sets: [], apps: [app("a")] });
-    await settle(createFirstSet({ workMode: "guided" }, backend));
-    expect(createSet.mock.calls[0][0].doc).toEqual({ ...defaultDoc(), workMode: "guided" });
+    await settle(createFirstSet({ slug: TPL.slug }, backend));
+    await settle(createBlankSet({ appId: "a" }, backend));
+    expect(createSet.mock.calls.map((c) => c[0].doc?.store)).toEqual(["play", "play"]);
+    // Everything else is the default document.
+    expect(createSet.mock.calls[1][0].doc).toEqual({ ...defaultDoc(), store: "play" });
+  });
+
+  it("falls back to the default document's store when the preferences can't be read", async () => {
+    const { createBlankSet, localBackend } = await boot();
+    const { backend, createSet } = fakeBackend(localBackend, { sets: [], apps: [app("a")] });
+    vi.spyOn(backend, "getPrefs").mockRejectedValue(new Error("no prefs"));
+    await settle(createBlankSet({ appId: "a" }, backend));
+    expect(createSet.mock.calls[0][0].doc).toEqual(defaultDoc());
   });
 
   it("on an empty library, creates \"My app\" and puts the set in it", async () => {
     const { createFirstSet, localBackend } = await boot();
     const { backend, createApp, createSet, lib } = fakeBackend(localBackend, { sets: [], apps: [] });
-    const created = await settle(createFirstSet({ slug: TPL.slug, workMode: "canvas" }, backend));
+    const created = await settle(createFirstSet({ slug: TPL.slug }, backend));
     expect(createApp).toHaveBeenCalledWith({ name: "My app" });
     expect(createSet).toHaveBeenCalledTimes(1);
     expect(created.appId).toBe(lib.apps[0].id);
@@ -493,7 +525,7 @@ describe("createFirstSet", () => {
   it("an unknown template rejects and creates nothing", async () => {
     const { createFirstSet, localBackend } = await boot();
     const { backend, createApp, createSet } = fakeBackend(localBackend, { sets: [], apps: [] });
-    await expect(createFirstSet({ slug: "no-such-template", workMode: "canvas" }, backend)).rejects.toThrow();
+    await expect(createFirstSet({ slug: "no-such-template" }, backend)).rejects.toThrow();
     expect(createApp).not.toHaveBeenCalled();
     expect(createSet).not.toHaveBeenCalled();
   });

@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { s } from "@/lib/onstage/css";
 import { CAPTIONS, TEMPLATES, bgCss, capInk } from "@/lib/onstage/data";
+import { panoramaSlice } from "@/lib/onstage/panorama";
+import { plural } from "@/lib/onstage/words";
+import { TEMPLATE_FITS, templateFacts, templatePalette } from "@/lib/onstage/templateFacts";
 import { useSetPreview } from "@/lib/onstage/useSetPreview";
 import { StoredScreenshot } from "../device";
 import { createSetFromTemplate } from "@/lib/onstage/sets";
@@ -11,32 +14,10 @@ import { useCreateAndOpen } from "@/lib/onstage/useCreateAndOpen";
 import { IcoBack } from "../icons";
 import { WarnLine } from "../WarnLine";
 
-const facts = (tpl: (typeof TEMPLATES)[number]) => [
-  { label: "FRAMES", value: String(tpl.frames) },
-  {
-    label: "BACKGROUND",
-    value: tpl.panoramic ? "Panoramic gradient" : "Per-frame gradient",
-  },
-  { label: "CAPTION", value: "Above device, centred" },
-  { label: "USED BY", value: "1,840 sets" },
-];
-
-const FITS = [
-  "iPhone 6.9″",
-  "iPhone 6.5″",
-  "Play phone",
-  "Tablet 7″",
-  "Feature graphic",
-];
-const paletteOf = (css: string) => {
-  const hexes = css.match(/#[0-9a-f]{3,8}/gi) ?? [];
-  return [...hexes, "#f0efe9"].slice(0, 4);
-};
-
 /** One template, seen whole, before it is applied to your set. */
 export function TemplateDetailScreen({ slug }: { slug: string }) {
   const tpl = TEMPLATES.find((t) => t.slug === slug) ?? TEMPLATES[0];
-  const { frames, set } = useSetPreview();
+  const { frames, set, loading } = useSetPreview();
   const create = useCreateAndOpen();
   const [mine, setMine] = useState(false);
 
@@ -44,6 +25,9 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
   const strip = mine
     ? frames.map((f) => ({ caption: f.caption, screenshot: f.screenshot }))
     : CAPTIONS.map((c) => ({ caption: c, screenshot: null as string | null }));
+
+  // How many frames the new set gets: the set "Use this set" copies.
+  const frameCount = loading ? CAPTIONS.length : frames.length;
 
   // A new set: your screens (the ones "My screens" previews) in this
   // template, opened in the canvas. The set they came from is untouched.
@@ -151,9 +135,9 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
               <div
                 key={i}
                 style={s(
-                  `position:relative;flex:none;width:194px;height:410px;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background-image:${bgCss(tpl.bg)};background-size:${tpl.panoramic ? "500% 100%" : "100% 100%"};background-position:${
-                    tpl.panoramic ? i * 25 : 50
-                  }% 50%;border:1px solid rgba(var(--ink-rgb),.08)`,
+                  `position:relative;flex:none;width:194px;height:410px;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background-image:${bgCss(tpl.bg)};background-size:${tpl.panoramic ? panoramaSlice(i, strip.length).size : "100% 100%"};background-position:${
+                    tpl.panoramic ? panoramaSlice(i, strip.length).position : "50% 50%"
+                  };border:1px solid rgba(var(--ink-rgb),.08)`,
                 )}
               >
                 <div
@@ -205,14 +189,17 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
             )}
           >
             Built for apps that lead with a single benefit per frame. Headlines
-            sit above the device so nothing competes with the screen itself, and
-            the gradient shifts across the set so the five frames read as one
-            strip in the store.
+            sit above the device so nothing competes with the screen itself,
+            {tpl.panoramic
+              ? frameCount > 1
+                ? ` and the gradient runs across the set, so the ${frameCount} frames read as one strip in the store.`
+                : " and the gradient is laid out to run across every frame the set gets."
+              : " and every frame carries the same gradient."}
           </p>
           <div
             style={s("display:flex;gap:24px;margin-top:22px;flex-wrap:wrap")}
           >
-            {facts(tpl).map((f) => (
+            {templateFacts(tpl, frameCount).map((f) => (
               <div key={f.label}>
                 <div
                   style={s(
@@ -243,7 +230,7 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
               PALETTE
             </div>
             <div style={s("display:flex;gap:7px;margin-top:11px")}>
-              {paletteOf(tpl.preview).map((c) => (
+              {templatePalette(tpl).map((c) => (
                 <div
                   key={c}
                   style={s(
@@ -259,8 +246,10 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
             >
               TYPE
             </div>
+            {/* A template sets backgrounds and angles, not type: captions
+                keep the set's own font. */}
             <div style={s("margin-top:7px;font-size:13.5px")}>
-              Inter 500 · −2.5% tracking
+              Keeps your caption font
             </div>
             <div
               style={s(
@@ -272,7 +261,7 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
             <div
               style={s("display:flex;flex-wrap:wrap;gap:6px;margin-top:8px")}
             >
-              {FITS.map((f) => (
+              {TEMPLATE_FITS.map((f) => (
                 <span
                   key={f}
                   style={s(
@@ -299,7 +288,7 @@ export function TemplateDetailScreen({ slug }: { slug: string }) {
               )}
             >
               {set
-                ? `Its ${frames.length} frames, screens and headlines carry over into a new ${tpl.name} set; ${set.name} itself stays as it is.`
+                ? `Its ${plural(frames.length, "frame")}, screens and headlines carry over into a new ${tpl.name} set; ${set.name} itself stays as it is.`
                 : `The sample frames in ${tpl.name}, as a new set.`}
             </div>
             <button

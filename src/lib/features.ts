@@ -21,16 +21,22 @@ export const FEATURES = {
   exportQuota: process.env.NEXT_PUBLIC_FEATURE_EXPORT_QUOTA === "true",
   /* Surfaces that only ever show fixture data, or can never succeed without a
      server (plan D3). Built and kept; off until a backend exists. */
-  /** Store destinations in the export dialog, Settings → Store connections,
-   *  Reconnect, "Push live". */
+  /** Store destinations in the export dialog (without it every export is a
+   *  zip), Settings → Store connections, the project board's Store
+   *  connections card and "Export & upload" label, Reconnect, "Push live". */
   storeUpload: process.env.NEXT_PUBLIC_FEATURE_STORE_UPLOAD === "true",
-  /** The AI caption / localise drawer and everything that opens it. */
+  /** The AI caption / localise drawer and everything that opens it (tool
+   *  rail, "Rewrite with AI", the filmstrip's +, the Locales tab's Translate /
+   *  Review / Add a language, `?apply=panel:localize`), plus guided's tone
+   *  chips and caption suggestions. */
   aiAssist: process.env.NEXT_PUBLIC_FEATURE_AI_ASSIST === "true",
-  /** `/ab-test` and the project board's variant cards. */
+  /** `/ab-test`, the project board's variant cards and its "A/B test
+   *  results" row. */
   abTest: process.env.NEXT_PUBLIC_FEATURE_AB_TEST === "true",
   /** `/queue`, the project board's Uploads tab and Activity feed. */
   jobQueue: process.env.NEXT_PUBLIC_FEATURE_JOB_QUEUE === "true",
-  /** Importing a listing from an App Store / Play URL (onboarding, guided). */
+  /** Importing a listing from an App Store / Play URL (onboarding, the empty
+   *  dashboard, guided). */
   storeImport: process.env.NEXT_PUBLIC_FEATURE_STORE_IMPORT === "true",
   /** The design-review boards `/states` and `/mobile`. */
   designBoards: process.env.NEXT_PUBLIC_FEATURE_DESIGN_BOARDS === "true",

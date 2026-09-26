@@ -9,7 +9,7 @@ const distDir = process.env.ONSTAGE_BUILD_DIST_DIR;
 // and ordinary builds behave normally — only the Pages CI build turns it on
 // (NEXT_PUBLIC_STATIC_EXPORT=true NEXT_PUBLIC_BASE_PATH=/OnStage). Under export
 // there is no server: no server actions/route handlers/middleware (the app
-// runs entirely client-side; see src/lib/localData.ts).
+// runs entirely client-side; see src/lib/data/local.ts).
 const isExport = process.env.NEXT_PUBLIC_STATIC_EXPORT === "true";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "/OnStage";
 
@@ -21,8 +21,9 @@ const nextConfig: NextConfig = {
     ? {
         output: "export",
         // Served from a GitHub project page (/<repo>), so assets + links must be
-        // prefixed. <Link>/router prepend this automatically; raw window.* nav
-        // uses withBase() from src/lib/routes.ts.
+        // prefixed. <Link>/router prepend this automatically, and every internal
+        // navigation goes through them (the one window.location use is the
+        // store sign-in redirect, an absolute URL).
         basePath,
         assetPrefix: basePath,
         // Emit /editor/index.html (served at /editor/) so GitHub Pages resolves

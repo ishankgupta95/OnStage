@@ -25,6 +25,9 @@ jobs:
       # Turns on output:'export' + basePath in next.config.ts.
       NEXT_PUBLIC_STATIC_EXPORT: "true"
       NEXT_PUBLIC_BASE_PATH: "/OnStage"
+      # The canonical site URL (src/lib/site.ts): metadataBase, canonical
+      # links, og:image, sitemap.xml and robots.txt are built from it.
+      NEXT_PUBLIC_SITE_URL: "https://ishankgupta95.github.io/OnStage"
       # Feature flags (src/lib/features.ts) are deliberately unset: Onstage
       # deploys as a free, no-account tool. To bring a surface back, add its
       # var here as the string "true" —

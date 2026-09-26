@@ -242,7 +242,8 @@ function localeRows(): LocaleRow[] {
       name: info.children[0]?.textContent ?? "",
       frames: count.textContent ?? "",
       state: state.textContent ?? "",
-      action: action.textContent ?? "",
+      // Translate / Review open the AI drawer: only with aiAssist.
+      action: action?.textContent ?? "",
     };
   });
 }
@@ -259,7 +260,7 @@ function localeChips(): { code: string; title: string | null }[] {
 /** The set "Export & upload" opens. */
 async function exportTarget(): Promise<string | null> {
   nav.router.push.mockReset();
-  await click(button(host, "Export & upload"));
+  await click(button(host, "Export"));
   const calls = pushed();
   expect(calls).toHaveLength(1);
   return new URL(calls[0], "http://x").searchParams.get("set");
@@ -380,7 +381,7 @@ describe("ProjectScreen — the Locales tab and LOCALES chips follow the selecte
     await until(() => localeRows().length > 0, "the Locales rows");
     // A: two frames, one caption blank (whitespace only).
     expect(localeRows()).toEqual([
-      { code: "EN", name: "English (US)", frames: "1 OF 2 FRAMES", state: "SOURCE", action: "Review" },
+      { code: "EN", name: "English (US)", frames: "1 OF 2 FRAMES", state: "SOURCE", action: "" },
     ]);
     // None of the fixture languages.
     for (const name of ["German", "Japanese", "Spanish", "French", "Portuguese (BR)"]) {
@@ -394,7 +395,7 @@ describe("ProjectScreen — the Locales tab and LOCALES chips follow the selecte
     await until(() => localeRows()[0]?.frames === "2 OF 3 FRAMES", "P's Locales row");
     // P: three frames, the second caption empty.
     expect(localeRows()).toEqual([
-      { code: "EN", name: "English (US)", frames: "2 OF 3 FRAMES", state: "SOURCE", action: "Review" },
+      { code: "EN", name: "English (US)", frames: "2 OF 3 FRAMES", state: "SOURCE", action: "" },
     ]);
     expect(localeChips()).toEqual([{ code: "EN", title: "English (US)" }]);
     expect(byText("Japanese")).toEqual([]);
@@ -409,7 +410,7 @@ describe("ProjectScreen — the Locales tab and LOCALES chips follow the selecte
     await until(() => localeRows().length > 0, "the Locales rows");
     const n = defaultDoc().frames.length;
     expect(localeRows()).toEqual([
-      { code: "EN", name: "English (US)", frames: `${n} OF ${n} FRAMES`, state: "SOURCE", action: "Review" },
+      { code: "EN", name: "English (US)", frames: `${n} OF ${n} FRAMES`, state: "SOURCE", action: "" },
     ]);
   });
 });
@@ -599,7 +600,7 @@ describe("ProjectScreen — the selected set open in the editor, with an unsaved
     await click(button(host, "Locales"));
     await until(() => localeRows().length > 0, "the Locales rows");
     expect(localeRows()).toEqual([
-      { code: "EN", name: "English (US)", frames: "2 OF 2 FRAMES", state: "SOURCE", action: "Review" },
+      { code: "EN", name: "English (US)", frames: "2 OF 2 FRAMES", state: "SOURCE", action: "" },
     ]);
 
     // The stored copy is still the old one: the board read the open set.

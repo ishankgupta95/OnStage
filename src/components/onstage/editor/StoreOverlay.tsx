@@ -3,11 +3,18 @@
 import { useOnstage } from "@/store/onstage";
 import { s } from "@/lib/onstage/css";
 import { bgCss, capInk } from "@/lib/onstage/data";
+import { FALLBACK_APP_NAME, appIdentity } from "@/lib/onstage/appName";
+import { useSetApp } from "@/lib/onstage/useSetApp";
 import { IcoClose } from "../icons";
 
 /** "As the App Store shows it" — the search-result sanity check. */
 export function StoreOverlay() {
   const st = useOnstage();
+  // The set's own app — never the sample's listing (S3.4).
+  const app = useSetApp(st.loadedSetId);
+  const id = appIdentity(st.appName, app);
+  const name = id.name ?? FALLBACK_APP_NAME;
+  const tint = id.tint;
   return (
     <div
       style={s(
@@ -24,9 +31,13 @@ export function StoreOverlay() {
             "display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(var(--ink-rgb),.08)",
           )}
         >
-          <span style={s("font-size:13.5px;font-weight:600")}>As the App Store shows it</span>
+          {/* Follows the set's store (the top bar's App Store / Play Store
+              toggle, GAP-5). The full Play carousel is S5.5. */}
+          <span style={s("font-size:13.5px;font-weight:600")}>
+            {st.store === "play" ? "As Google Play shows it" : "As the App Store shows it"}
+          </span>
           <span style={s("font:400 10.5px 'Inter',ui-sans-serif;color:var(--muted-4)")}>
-            IPHONE · SEARCH RESULT
+            {st.store === "play" ? "PHONE · SEARCH RESULT" : "IPHONE · SEARCH RESULT"}
           </span>
           <button
             type="button"
@@ -43,21 +54,18 @@ export function StoreOverlay() {
           <div style={s("display:flex;align-items:center;gap:13px")}>
             <span
               style={s(
-                "display:grid;place-items:center;width:56px;height:56px;border-radius:13px;background:#1b6f6a;color:#fff;font-size:22px;font-weight:700",
+                `display:grid;place-items:center;width:56px;height:56px;border-radius:13px;background:${tint};color:#fff;font-size:22px;font-weight:700`,
               )}
             >
-              T
+              {id.initial}
             </span>
             <div style={s("flex:1;min-width:0")}>
-              <div style={s("font-size:16px;font-weight:700;letter-spacing:-.02em")}>Trailhead</div>
-              <div style={s("margin-top:2px;font-size:12.5px;color:var(--paper-muted)")}>
-                Run &amp; Trail Log
-              </div>
+              <div style={s("font-size:16px;font-weight:700;letter-spacing:-.02em")}>{name}</div>
             </div>
             <button
               type="button"
               style={s(
-                "height:30px;padding:0 18px;border:none;border-radius:999px;background:#1b6f6a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer",
+                `height:30px;padding:0 18px;border:none;border-radius:999px;background:${tint};color:#fff;font-size:12.5px;font-weight:700;cursor:pointer`,
               )}
             >
               GET

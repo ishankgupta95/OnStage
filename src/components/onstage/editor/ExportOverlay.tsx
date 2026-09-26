@@ -1,34 +1,32 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useOnstage } from "@/store/onstage";
+import { FALLBACK_APP_NAME, exportRoot, resolveAppName } from "@/lib/onstage/appName";
 import { s } from "@/lib/onstage/css";
-import { EXPORT_SLOTS } from "@/lib/onstage/export/slots";
+import { exportPlan, formatMB, tabletNote } from "@/lib/onstage/export/plan";
+import { EXPORT_SLOTS, exportableLocales, usableLocales } from "@/lib/onstage/export/slots";
+import { plural } from "@/lib/onstage/words";
 import { getBackend } from "@/lib/data/backend";
 import { useQuery } from "@/lib/data/useQuery";
 import { FEATURES } from "@/lib/features";
 import { IcoClose, IcoAlert, IcoExport } from "../icons";
 
-const SIZES: [string, string, string][] = [
-  ["Apple — iPhone 6.9″", "1320 × 2868", "Required"],
-  ["Apple — iPhone 6.5″", "1242 × 2688", ""],
-  ["Apple — iPad Pro 13″", "2064 × 2752", ""],
-  ["Google — Phone", "1080 × 1920", "Required"],
-  ["Google — Tablet 7″", "1200 × 1920", "Missing frames"],
-  ["Google — Feature graphic", "1024 × 500", ""],
-];
+/** The size each store insists on (the design's "Required" badges). */
+const REQUIRED = ["APP_IPHONE_69", "PHONE"];
 
-const DESTS = [
-  {
-    id: "zip",
-    label: "Download a zip",
-    sub: "Folders per locale and size",
-    connection: null,
-  },
+const ZIP_DEST = {
+  id: "zip",
+  label: "Download a zip",
+  sub: "Folders per locale and size",
+} as const;
+
+const STORE_DESTS = [
   {
     id: "asc",
     label: "App Store Connect",
-    sub: "Trailhead 2.4 · draft",
+    sub: "Uploads to a draft version",
     connection: "apple",
   },
   {
@@ -38,15 +36,6 @@ const DESTS = [
     connection: "google",
   },
 ] as const;
-
-const TREE = [
-  { text: "trailhead-store-assets/", ind: 0 },
-  { text: "en-US/ · de-DE/", ind: 1 },
-  { text: "APP_IPHONE_69/ 01…05.png", ind: 2 },
-  { text: "APP_IPHONE_65/ 01…05.png", ind: 2 },
-  { text: "PHONE/ 01…05.png", ind: 2 },
-  { text: "TABLET_7/ 01…05.png", ind: 2 },
-];
 
 /**
  * The remaining-exports line under the render button. Mounted behind
@@ -69,33 +58,167 @@ function QuotaNote() {
   );
 }
 
-/** Sizes · locales · destination — the dialog that turns a set into files. */
-export function ExportOverlay() {
+/** One destination row: a radio, what it is, and (for a store) whether
+ *  it is connected. */
+function DestRow({
+  on,
+  label,
+  sub,
+  badge,
+  onPick,
+}: {
+  on: boolean;
+  label: string;
+  sub: string;
+  /** Store rows only: connected, or waiting on the person. */
+  badge?: { ready: boolean };
+  onPick: () => void;
+}) {
+  const ready = badge ? badge.ready : true;
+  return (
+    <div
+      onClick={onPick}
+      style={s(
+        `display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:7px;border:1px solid ${
+          on
+            ? "rgba(var(--accent-rgb),.32)"
+            : "rgba(var(--ink-rgb),.08)"
+        };background:${
+          on ? "rgba(var(--accent-rgb),.05)" : "transparent"
+        };cursor:pointer;opacity:${ready ? 1 : 0.6}`,
+      )}
+    >
+      <span
+        style={s(
+          `flex:none;width:14px;height:14px;border-radius:50%;border:1px solid ${
+            on ? "var(--accent)" : "rgba(var(--ink-rgb),.2)"
+          };box-shadow:${on ? "inset 0 0 0 3.5px var(--accent)" : "none"}`,
+        )}
+      />
+      <div style={s("flex:1;min-width:0")}>
+        <div style={s("font-size:13px;font-weight:500")}>
+          {label}
+        </div>
+        <div style={s("font-size:11.5px;color:var(--muted-3)")}>
+          {sub}
+        </div>
+      </div>
+      {badge ? (
+        <span
+          style={s(
+            `padding:2px 7px;border-radius:4px;font:500 10px 'Inter',ui-sans-serif;background:${
+              ready
+                ? "rgba(var(--ok-rgb),.12)"
+                : "rgba(var(--warn-rgb),.14)"
+            };color:${ready ? "var(--ok)" : "var(--warn)"}`,
+          )}
+        >
+          {ready ? "CONNECTED" : "ACTION NEEDED"}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * App Store Connect and Play Console as destinations. Mounted only with
+ * `FEATURES.storeUpload` (plan D3): without a store backend no upload can
+ * succeed, so the dialog offers the zip alone — and the connection read
+ * lives here so it doesn't run then.
+ */
+function StoreDestRows() {
   const st = useOnstage();
   const connections = useQuery("connections", () =>
     getBackend().listConnections(),
   );
-  const frameCount = st.frames.length;
-  const localeCount = Math.max(1, st.exportLangs.length);
-  const count = st.exportPicks.reduce(
-    (n, i) =>
-      n + (EXPORT_SLOTS[i]?.kind === "feature" ? 1 : frameCount) * localeCount,
-    0,
+  return (
+    <>
+      {STORE_DESTS.map((d) => {
+        const conn = connections.data?.find((c) => c.id === d.connection);
+        return (
+          <DestRow
+            key={d.id}
+            on={st.exportDest === d.id}
+            label={d.label}
+            sub={conn ? conn.sub : d.sub}
+            badge={{ ready: Boolean(conn?.connected) }}
+            onPick={() => st.setState({ exportDest: d.id })}
+          />
+        );
+      })}
+    </>
   );
-  // Measured against real output: a full-bleed gradient + device PNG lands
-  // around 0.46 bytes per pixel.
-  const estBytes = st.exportPicks.reduce((b, i) => {
-    const slot = EXPORT_SLOTS[i];
-    if (!slot) return b;
-    const files = (slot.kind === "feature" ? 1 : frameCount) * localeCount;
-    return b + slot.w * slot.h * 0.46 * files;
-  }, 0);
-  const weight =
-    st.exportState === "done" && st.exportBytes
-      ? `${(st.exportBytes / 1_048_576).toFixed(1)} MB`
-      : `${(estBytes / 1_048_576).toFixed(1)} MB`;
+}
 
-  const toStore = st.exportDest !== "zip";
+/**
+ * "Export <app>": the name the zip, its folder and the feature graphic carry
+ * (S3.4) — the set's own name for its app if it has one, else its app's —
+ * edited in place. Cleared, it goes back to the app's name.
+ */
+function AppNameTitle({ appName, fallback }: { appName: string | undefined; fallback: string | null }) {
+  const setAppName = useOnstage((st) => st.setAppName);
+  const shown = appName ?? fallback ?? FALLBACK_APP_NAME;
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft === null) return;
+    const next = draft.trim();
+    setDraft(null);
+    // Retyping what was shown — the app's own name, or "Onstage export" when
+    // nothing names it — isn't a name of the set's own.
+    if (appName === undefined && next === (fallback ?? FALLBACK_APP_NAME)) return;
+    setAppName(next);
+  };
+  return (
+    <div style={s("display:flex;align-items:baseline;gap:5px;min-width:0;font-size:14.5px;font-weight:700;letter-spacing:-.015em")}>
+      Export
+      <input
+        aria-label="App name"
+        value={draft ?? shown}
+        placeholder={fallback ?? FALLBACK_APP_NAME}
+        // Grows with the name, up to a point; a longer one scrolls in place.
+        size={Math.min(36, Math.max(8, (draft ?? shown).length + 1))}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          if (e.key === "Escape") setDraft(null);
+        }}
+        style={s(
+          "min-width:0;padding:0 0 1px;border:none;border-bottom:1px dashed rgba(var(--ink-rgb),.22);background:transparent;color:var(--text);font:inherit;letter-spacing:inherit;outline:none",
+        )}
+      />
+    </div>
+  );
+}
+
+/** Sizes · locales · destination — the dialog that turns a set into files. */
+export function ExportOverlay() {
+  const st = useOnstage();
+  // The app the set belongs to, for its name (S3.4).
+  const appRecord = useQuery(`app-name:${st.loadedSetId ?? ""}`, () =>
+    resolveAppName({}, st.loadedSetId, getBackend()),
+  );
+  const appName = st.appName ?? appRecord.data ?? null;
+  const frameCount = st.frames.length;
+  // What this selection writes — the same rules renderSet follows.
+  // Only locales the set has captions in (interim EDITOR-6 fix, until S9.1).
+  const locales = exportableLocales(st.frames);
+  const langs = usableLocales(st.frames, st.exportLangs);
+  const plan = exportPlan({ picks: st.exportPicks, langs, frameCount, root: exportRoot(appName) });
+  const localeCount = plan.locales.length;
+  const count = plan.files;
+  const weight =
+    st.exportState === "done" && st.exportBytes ? formatMB(st.exportBytes) : `~${formatMB(plan.estBytes)}`;
+  const note = tabletNote(plan, st.device);
+
+  // Without a store backend every export is a zip, whatever was picked.
+  const toStore = FEATURES.storeUpload && st.exportDest !== "zip";
+  // The error card's ways out. A refused upload leaves this run's files
+  // rendered (exportBytes is set once they are), so the zip is one click
+  // away whichever destination is picked now; a failed render has none.
+  const seePlans = FEATURES.billing && st.exportBlockedByQuota;
+  const reconnect = toStore && !st.exportBlockedByQuota;
+  const downloadInstead = FEATURES.storeUpload && st.exportBytes > 0 && !st.exportBlockedByQuota;
   const storeName =
     st.exportDest === "asc" ? "App Store Connect" : "Play Console";
   const busy = st.exportState === "rendering" || st.exportState === "uploading";
@@ -129,8 +252,8 @@ export function ExportOverlay() {
           : st.exportState === "error"
             ? "Try again"
             : toStore
-              ? `Render & upload ${count} files`
-              : `Render ${count} files`;
+              ? `Render & upload ${plural(count, "file")}`
+              : `Render ${plural(count, "file")}`;
 
   return (
     <div
@@ -155,20 +278,14 @@ export function ExportOverlay() {
           >
             <IcoExport size={15} w={2.1} />
           </span>
-          <div>
-            <div
-              style={s(
-                "font-size:14.5px;font-weight:700;letter-spacing:-.015em",
-              )}
-            >
-              Export Trailhead
-            </div>
+          <div style={s("min-width:0")}>
+            <AppNameTitle appName={st.appName} fallback={appRecord.data ?? null} />
             <div
               style={s(
                 "font:400 10.5px 'Inter',ui-sans-serif;color:var(--muted-4)",
               )}
             >
-              {frameCount} FRAMES · {localeCount} LOCALE
+              {frameCount} FRAME{frameCount === 1 ? "" : "S"} · {localeCount} LOCALE
               {localeCount === 1 ? "" : "S"}
             </div>
           </div>
@@ -205,11 +322,12 @@ export function ExportOverlay() {
                 "margin-top:11px;display:flex;flex-direction:column;gap:7px",
               )}
             >
-              {SIZES.map((e, i) => {
+              {EXPORT_SLOTS.map((slot, i) => {
                 const on = st.exportPicks.indexOf(i) >= 0;
+                const files = plan.slots.find((p) => p.index === i)?.files;
                 return (
                   <div
-                    key={e[0]}
+                    key={slot.label}
                     onClick={() => st.toggleExportSize(i)}
                     style={s(
                       `display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:7px;border:1px solid ${
@@ -232,27 +350,23 @@ export function ExportOverlay() {
                     </span>
                     <div style={s("flex:1;min-width:0")}>
                       <div style={s("font-size:13px;font-weight:500")}>
-                        {e[0]}
+                        {slot.label}
                       </div>
                       <div
                         style={s(
                           "font:400 10.5px 'Inter',ui-sans-serif;color:var(--muted-4)",
                         )}
                       >
-                        {e[1]}
+                        {slot.w} × {slot.h}
                       </div>
                     </div>
-                    {e[2] ? (
+                    {REQUIRED.includes(slot.folder) ? (
                       <span
                         style={s(
-                          `padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:500;background:${
-                            e[2] === "Missing frames"
-                              ? "rgba(var(--warn-rgb),.13)"
-                              : "rgba(var(--ink-rgb),.05)"
-                          };color:${e[2] === "Missing frames" ? "#f5b544" : "var(--muted-2)"}`,
+                          "padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:500;background:rgba(var(--ink-rgb),.05);color:var(--muted-2)",
                         )}
                       >
-                        {e[2]}
+                        Required
                       </span>
                     ) : null}
                     <span
@@ -260,9 +374,7 @@ export function ExportOverlay() {
                         "font:400 11px 'Inter',ui-sans-serif;color:var(--muted-2);width:52px;text-align:right",
                       )}
                     >
-                      {on
-                        ? `${(SIZES[i][0].includes("Feature") ? 1 : frameCount) * localeCount} files`
-                        : "—"}
+                      {on && files !== undefined ? plural(files, "file") : "—"}
                     </span>
                   </div>
                 );
@@ -284,8 +396,8 @@ export function ExportOverlay() {
             <div
               style={s("display:flex;flex-wrap:wrap;gap:6px;margin-top:11px")}
             >
-              {["EN", "DE", "JA", "ES"].map((l) => {
-                const on = st.exportLangs.indexOf(l) >= 0;
+              {locales.map((l) => {
+                const on = langs.indexOf(l) >= 0;
                 return (
                   <button
                     key={l}
@@ -324,61 +436,18 @@ export function ExportOverlay() {
                 "display:flex;flex-direction:column;gap:7px;margin-top:11px",
               )}
             >
-              {DESTS.map((d) => {
-                const on = st.exportDest === d.id;
-                const conn = d.connection
-                  ? connections.data?.find((c) => c.id === d.connection)
-                  : undefined;
-                const ready = !d.connection || Boolean(conn?.connected);
-                return (
-                  <div
-                    key={d.id}
-                    onClick={() => st.setState({ exportDest: d.id })}
-                    style={s(
-                      `display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:7px;border:1px solid ${
-                        on
-                          ? "rgba(var(--accent-rgb),.32)"
-                          : "rgba(var(--ink-rgb),.08)"
-                      };background:${
-                        on ? "rgba(var(--accent-rgb),.05)" : "transparent"
-                      };cursor:pointer;opacity:${ready ? 1 : 0.6}`,
-                    )}
-                  >
-                    <span
-                      style={s(
-                        `flex:none;width:14px;height:14px;border-radius:50%;border:1px solid ${
-                          on ? "var(--accent)" : "rgba(var(--ink-rgb),.2)"
-                        };box-shadow:${on ? "inset 0 0 0 3.5px var(--accent)" : "none"}`,
-                      )}
-                    />
-                    <div style={s("flex:1;min-width:0")}>
-                      <div style={s("font-size:13px;font-weight:500")}>
-                        {d.label}
-                      </div>
-                      <div style={s("font-size:11.5px;color:var(--muted-3)")}>
-                        {conn ? conn.sub : d.sub}
-                      </div>
-                    </div>
-                    {d.connection ? (
-                      <span
-                        style={s(
-                          `padding:2px 7px;border-radius:4px;font:500 10px 'Inter',ui-sans-serif;background:${
-                            ready
-                              ? "rgba(var(--ok-rgb),.12)"
-                              : "rgba(var(--warn-rgb),.14)"
-                          };color:${ready ? "var(--ok)" : "var(--warn)"}`,
-                        )}
-                      >
-                        {ready ? "CONNECTED" : "ACTION NEEDED"}
-                      </span>
-                    ) : null}
-                  </div>
-                );
-              })}
+              <DestRow
+                on={!toStore}
+                label={ZIP_DEST.label}
+                sub={ZIP_DEST.sub}
+                onPick={() => st.setState({ exportDest: ZIP_DEST.id })}
+              />
+              {FEATURES.storeUpload && <StoreDestRows />}
             </div>
 
             {/* A refused upload belongs here, on the destination that refused —
-                the files are already rendered, so the zip is one click away. */}
+                the files are already rendered, so the zip is one click away.
+                A failed render has no files: the main button tries again. */}
             {st.exportState === "error" && (
               <div
                 style={s(
@@ -409,39 +478,41 @@ export function ExportOverlay() {
                   >
                     {st.exportError}
                   </div>
-                  <div style={s("display:flex;gap:8px;margin-top:11px")}>
-                    {FEATURES.billing && st.exportBlockedByQuota && (
-                      <Link
-                        href="/pricing"
-                        style={s(
-                          "display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-weight:500",
-                        )}
-                      >
-                        See plans
-                      </Link>
-                    )}
-                    {toStore && !st.exportBlockedByQuota && (
-                      <Link
-                        href="/settings?tab=Store+connections"
-                        style={s(
-                          "display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-weight:500",
-                        )}
-                      >
-                        Reconnect
-                      </Link>
-                    )}
-                    {!st.exportBlockedByQuota && (
-                      <button
-                        type="button"
-                        onClick={st.downloadRenderedZip}
-                        style={s(
-                          "height:28px;padding:0 11px;border:1px solid rgba(var(--ink-rgb),.14);border-radius:8px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer",
-                        )}
-                      >
-                        Download instead
-                      </button>
-                    )}
-                  </div>
+                  {(seePlans || reconnect || downloadInstead) && (
+                    <div style={s("display:flex;gap:8px;margin-top:11px")}>
+                      {seePlans && (
+                        <Link
+                          href="/pricing"
+                          style={s(
+                            "display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-weight:500",
+                          )}
+                        >
+                          See plans
+                        </Link>
+                      )}
+                      {reconnect && (
+                        <Link
+                          href="/settings?tab=Store+connections"
+                          style={s(
+                            "display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-weight:500",
+                          )}
+                        >
+                          Reconnect
+                        </Link>
+                      )}
+                      {downloadInstead && (
+                        <button
+                          type="button"
+                          onClick={st.downloadRenderedZip}
+                          style={s(
+                            "height:28px;padding:0 11px;border:1px solid rgba(var(--ink-rgb),.14);border-radius:8px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer",
+                          )}
+                        >
+                          Download instead
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -480,11 +551,11 @@ export function ExportOverlay() {
                 "margin-top:14px;padding:11px;border-radius:7px;background:var(--bg);border:1px solid rgba(var(--ink-rgb),.07);font:400 11.5px/1.95 'Inter',ui-sans-serif;color:var(--muted)",
               )}
             >
-              {TREE.map((l) => (
+              {plan.tree.map((l) => (
                 <div
-                  key={l.text}
+                  key={`${l.ind}:${l.text}`}
                   style={s(
-                    `padding-left:${l.ind * 13}px;color:${
+                    `padding-left:${l.ind * 13}px;overflow-wrap:anywhere;color:${
                       l.ind === 2 ? "var(--muted-3)" : "var(--text-2)"
                     }`,
                   )}
@@ -493,17 +564,19 @@ export function ExportOverlay() {
                 </div>
               ))}
             </div>
-            <div
-              style={s(
-                "display:flex;gap:8px;margin-top:12px;padding:10px 11px;border-radius:7px;border:1px solid rgba(var(--warn-rgb),.22);background:rgba(var(--warn-rgb),.06);font-size:11.5px;line-height:1.5;color:var(--warn)",
-              )}
-            >
-              <IcoAlert size={13} w={2} style={s("flex:none;margin-top:1px")} />
-              <span>
-                Tablet 7″ uses 5 phone frames stretched to fit. Google accepts
-                it, but it will look soft.
-              </span>
-            </div>
+            {/* Only when a tablet size is picked — and it says what really
+                happens to the phone screenshot there (EDITOR-16). */}
+            {note && (
+              <div
+                role="note"
+                style={s(
+                  "display:flex;gap:8px;margin-top:12px;padding:10px 11px;border-radius:7px;border:1px solid rgba(var(--warn-rgb),.22);background:rgba(var(--warn-rgb),.06);font-size:11.5px;line-height:1.5;color:var(--warn)",
+                )}
+              >
+                <IcoAlert size={13} w={2} style={s("flex:none;margin-top:1px")} />
+                <span>{note}</span>
+              </div>
+            )}
             <div style={s("margin-top:auto;padding-top:16px")}>
               <button
                 type="button"
@@ -551,9 +624,16 @@ export function ExportOverlay() {
               >
                 {st.exportState === "done" ? (
                   st.exportDeliveredTo === "zip" ? (
-                    "Uploaded nothing yet — zip saved to Downloads"
+                    FEATURES.storeUpload ? (
+                      "Uploaded nothing yet — zip saved to Downloads"
+                    ) : (
+                      "Zip saved to Downloads"
+                    )
                   ) : (
-                    `Sent to ${storeName} — track it in Renders & uploads`
+                    // Renders & uploads is the job queue (`FEATURES.jobQueue`).
+                    FEATURES.jobQueue
+                      ? `Sent to ${storeName} — track it in Renders & uploads`
+                      : `Sent to ${storeName}`
                   )
                 ) : FEATURES.exportQuota ? (
                   <QuotaNote />

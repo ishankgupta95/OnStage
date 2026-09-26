@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "./providers";
+import { SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  // Canonical links and og:image resolve against the production URL, never
+  // localhost (PLATFORM-1). No canonical here: each page names its own.
+  metadataBase: new URL(`${SITE_URL}/`),
   title: "Onstage — store screenshots, done in an afternoon",
-  description:
-    "Drop a screen onto the phone, tilt it, pick a background. Every size the App Store and Google Play ask for, in one export.",
+  description: SITE_DESCRIPTION,
 };
 
 export default function RootLayout({

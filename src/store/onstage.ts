@@ -6,6 +6,9 @@ import { applyBrandDefaultsToDoc, applyTemplateToDoc, defaultDoc, isTemplate } f
 import { getBackend } from "@/lib/data/backend";
 import { docImageIds } from "@/lib/data/imageRefs";
 import { FEATURES } from "@/lib/features";
+import { MAX_FRAMES, defaultExportPicks, usableLocales } from "@/lib/onstage/export/slots";
+import { unreadableScreenshots } from "@/lib/onstage/export/plan";
+import { exportRoot, resolveAppName, zipFileName } from "@/lib/onstage/appName";
 import type { SetDoc, SetFrame } from "@/lib/data/types";
 
 /** One artboard. Re-exported from the domain model so the editor and the
@@ -37,6 +40,11 @@ type OnstageState = {
 
   /* product-level */
   store: "apple" | "play";
+  /** The app name the set's exports carry, when the set names one (S3.4);
+   *  absent means the name of the set's app. */
+  appName?: string;
+  /** The person's work-mode preference (not the set's — S3.2), mirrored
+   *  here so "open this set" links can read it at once. */
   workMode: "guided" | "canvas";
   gStep: number;
 
@@ -81,8 +89,15 @@ type OnstageState = {
   moveFrame: (from: number, to: number) => void;
   select: (index: number, sel?: Selection) => void;
   /** Drop screenshot refs in, starting at `from` — one per frame, in order;
-   *  a null leaves that frame's screenshot as it was. */
+   *  a null leaves that frame's screenshot as it was. Past the last frame,
+   *  new frames are added (styled like the last one) up to the store's
+   *  MAX_FRAMES — one undo step. */
   setScreenshots: (from: number, refs: (string | null)[]) => void;
+  /** Aim the set at a store: its default export sizes follow (GAP-5). */
+  setStore: (store: "apple" | "play") => void;
+  /** Name the app this set's exports carry; blank goes back to the app's
+   *  own name. One undo step. */
+  setAppName: (name: string) => void;
   applyBgToAll: () => void;
   rewriteAllCaptions: () => void;
   runExport: () => Promise<void>;
@@ -113,11 +128,13 @@ const HISTORY_KEYS = [
   "captionSize",
   "panorama",
   "shadow",
+  "appName",
 ] as const satisfies readonly (keyof SetDoc)[];
 
 /** Every field the saved document holds: the history fields plus the set's
- *  language, store target and work mode. */
-const DOC_KEYS = [...HISTORY_KEYS, "lang", "store", "workMode"] as const satisfies readonly (keyof SetDoc)[];
+ *  language and store target. (Work mode was one until S3.2; it is the
+ *  person's preference now, so older documents' copy is never read.) */
+const DOC_KEYS = [...HISTORY_KEYS, "lang", "store"] as const satisfies readonly (keyof SetDoc)[];
 
 type HistoryDoc = Pick<SetDoc, (typeof HISTORY_KEYS)[number]>;
 
@@ -133,6 +150,7 @@ const historyOf = (st: HistoryDoc): HistoryDoc => ({
   captionSize: st.captionSize,
   panorama: st.panorama,
   shadow: st.shadow,
+  appName: st.appName,
 });
 
 /** Same frames, by content: an action that rebuilds the array without
@@ -201,8 +219,9 @@ function reselect(selected: Frame | undefined, index: number) {
   };
 }
 
-/** The last successful render, kept out of state because blobs don't belong there. */
-let lastRender: { files: { path: string; blob: Blob }[]; zipBlob: Blob } | null = null;
+/** The last successful render, kept out of state because blobs don't belong
+ *  there — with the zip name it was made under. */
+let lastRender: { files: { path: string; blob: Blob }[]; zipBlob: Blob; fileName: string } | null = null;
 /** The export in progress, cancelled if another set is opened under it. */
 let exportRun: { cancelled: boolean } | null = null;
 
@@ -214,6 +233,7 @@ export const useOnstage = create<OnstageState>()(
     temporal(
       (set, get) => ({
     ...defaultDoc(),
+    workMode: "canvas",
     active: 0,
     sel: "device",
     pop: null,
@@ -222,8 +242,10 @@ export const useOnstage = create<OnstageState>()(
     gStep: 0,
     aiTab: "Captions",
     aiTone: "Direct",
-    exportPicks: [0, 1, 3, 4],
-    exportLangs: ["EN", "DE"],
+    // The export starts with the store's own sizes, in English (GAP-7);
+    // every set load resets them for that set.
+    exportPicks: defaultExportPicks("apple"),
+    exportLangs: ["EN"],
     exportDest: "zip",
     exportState: null,
     exportDeliveredTo: null,
@@ -336,11 +358,38 @@ export const useOnstage = create<OnstageState>()(
     setScreenshots: (from, refs) =>
       set((st) => {
         const frames = st.frames.slice();
+        const cap = Math.max(frames.length, MAX_FRAMES[st.store]);
         refs.forEach((ref, n) => {
+          if (!ref) return;
           const i = from + n;
-          if (ref && frames[i]) frames[i] = { ...frames[i], screenshot: ref };
+          if (frames[i]) {
+            frames[i] = { ...frames[i], screenshot: ref };
+          } else if (frames.length < cap) {
+            // A new frame for a screenshot past the end (GAP-1), in the
+            // last frame's style — as "Add frame" makes one.
+            const last = frames[frames.length - 1];
+            frames.push({
+              caption: "New headline",
+              bg: last?.bg ?? "ember",
+              tiltX: last?.tiltX ?? 0,
+              tiltY: last?.tiltY ?? 0,
+              depth: last?.depth ?? 0,
+              scale: last?.scale ?? 1,
+              screenshot: ref,
+            });
+          }
         });
         return { frames };
+      }),
+
+    // Re-clicking the store already chosen changes nothing (sizes picked by
+    // hand stay picked).
+    setStore: (store) => set((st) => (st.store === store ? {} : { store, exportPicks: defaultExportPicks(store) })),
+
+    setAppName: (name) =>
+      set((st) => {
+        const next = name.trim() || undefined;
+        return next === st.appName ? {} : { appName: next };
       }),
 
     applyBgToAll: () =>
@@ -402,13 +451,30 @@ export const useOnstage = create<OnstageState>()(
       exportError: null,
       exportDeliveredTo: null,
       exportBlockedByQuota: false,
+      // Nothing is rendered for this run yet: "Download instead" offers only
+      // files this run made, never a previous run's.
+      exportBytes: 0,
     });
+    lastRender = null;
     // Opening another set cancels this run: its files and progress belong
     // to the set it started on, not the one on screen.
     const run = { cancelled: false };
     exportRun = run;
     try {
-      const { renderSet } = await import("@/lib/onstage/export/renderSet");
+      // The name the output carries: the set's own, else its app's (S3.4).
+      const appName = await resolveAppName(st, st.loadedSetId, getBackend());
+      const [{ renderSet }, { loadExportImage }] = await Promise.all([
+        import("@/lib/onstage/export/renderSet"),
+        import("@/lib/onstage/export/images"),
+      ]);
+      const screenshots = await Promise.all(
+        st.frames.map((f) => (f.screenshot ? loadExportImage(f.screenshot) : Promise.resolve(null))),
+      );
+      // A screenshot that can't be read stops the export and says which —
+      // never a silent swap to the sample screen (EXPORT-5).
+      const broken = st.frames.flatMap((f, i) => (f.screenshot && !screenshots[i] ? [i + 1] : []));
+      if (broken.length) throw new Error(unreadableScreenshots(broken));
+      if (run.cancelled) return;
       const { files, bytes, zipBlob } = await renderSet({
         frames: st.frames,
         panorama: st.panorama,
@@ -419,14 +485,11 @@ export const useOnstage = create<OnstageState>()(
         frameColor: st.frameColor,
         shadow: st.shadow,
         sizeIds: st.exportPicks,
-        locales: st.exportLangs,
-        screenshots: await Promise.all(
-          st.frames.map((f) =>
-            f.screenshot
-              ? import("@/lib/onstage/export/images").then((m) => m.loadExportImage(f.screenshot!))
-              : Promise.resolve(null),
-          ),
-        ),
+        // Only locales the set has captions in (interim EDITOR-6 fix).
+        locales: usableLocales(st.frames, st.exportLangs),
+        screenshots,
+        appName,
+        root: exportRoot(appName),
         onProgress: (done, total) => {
           if (!run.cancelled) set({ exportDone: done, exportTotal: total });
         },
@@ -434,7 +497,7 @@ export const useOnstage = create<OnstageState>()(
       });
       if (run.cancelled) return;
 
-      lastRender = { files, zipBlob };
+      lastRender = { files, zipBlob, fileName: zipFileName(appName) };
       set({ exportDone: files.length, exportTotal: files.length, exportBytes: bytes });
       // Metering happens once the files exist, never on a failed render — and
       // not at all while exports are free, so the stored counter stays clean
@@ -446,11 +509,13 @@ export const useOnstage = create<OnstageState>()(
           .catch((e: unknown) => console.warn("[onstage] couldn't record the export", e));
       }
 
-      const dest = st.exportDest;
+      // Store destinations exist only with a store backend (plan D3);
+      // without one every export is the zip, whatever was picked before.
+      const dest = FEATURES.storeUpload ? st.exportDest : "zip";
       if (dest === "zip") {
         const { downloadBlob } = await import("@/lib/onstage/export/download");
         if (run.cancelled) return;
-        downloadBlob(zipBlob, "trailhead-store-assets.zip");
+        downloadBlob(zipBlob, zipFileName(appName));
         set({ exportState: "done", exportDeliveredTo: "zip" });
         return;
       }
@@ -459,8 +524,10 @@ export const useOnstage = create<OnstageState>()(
       // recoverable — the dialog offers the zip.
       set({ exportState: "uploading" });
       const destination = dest === "asc" ? "apple" : "google";
+      // The set's own app record, not the sample's.
+      const record = (await getBackend().listSets()).find((s) => s.id === st.loadedSetId);
       const result = await getBackend().uploadToStore({
-        appId: "trailhead",
+        appId: record?.appId ?? "",
         destination,
         files,
       });
@@ -482,7 +549,7 @@ export const useOnstage = create<OnstageState>()(
   downloadRenderedZip: () => {
     if (!lastRender) return;
     void import("@/lib/onstage/export/download").then((m) => {
-      m.downloadBlob(lastRender!.zipBlob, "trailhead-store-assets.zip");
+      m.downloadBlob(lastRender!.zipBlob, lastRender!.fileName);
       set({ exportState: "done", exportDeliveredTo: "zip", exportError: null });
     });
   },
@@ -511,13 +578,14 @@ export const useOnstage = create<OnstageState>()(
             : st.exportPicks.concat([i]),
       })),
 
+    // Toggles against the locales the dialog shows as picked (the usable
+    // ones), and never takes away the last: an export always writes one.
     toggleExportLang: (l) =>
-      set((st) => ({
-        exportLangs:
-          st.exportLangs.indexOf(l) >= 0
-            ? st.exportLangs.filter((x) => x !== l)
-            : st.exportLangs.concat([l]),
-      })),
+      set((st) => {
+        const cur = usableLocales(st.frames, st.exportLangs);
+        const next = cur.includes(l) ? cur.filter((x) => x !== l) : cur.concat([l]);
+        return next.length ? { exportLangs: next } : {};
+      }),
 
     applyTemplate: (slug) =>
       set((st) => {
@@ -635,7 +703,8 @@ const readDoc = (st: OnstageState): SetDoc => ({
   shadow: st.shadow,
   lang: st.lang,
   store: st.store,
-  workMode: st.workMode,
+  // Only when the set names one: older documents stay as they were.
+  ...(st.appName !== undefined ? { appName: st.appName } : {}),
 });
 
 /** No document field changed — compared by reference, the same test zundo's
@@ -823,11 +892,20 @@ export async function openSet(setId: string) {
       // No saved document: start from the default — never the previous
       // set's frames (DATA-4). A saved one lies over the default, so a field
       // an older document lacks gets the default too, not the previous
-      // set's value. Work mode is the person's, not the set's (S3.2 moves it
-      // out of the document), so it carries over unless the doc has one.
+      // set's value. Work mode is the person's preference, not the set's
+      // (S3.2): an older document's saved copy never replaces it.
       ...defaultDoc(),
-      workMode: before.workMode,
       ...source,
+      // A set that names no app must not keep the previous set's name, and
+      // only a name counts as one (a damaged document's blank or non-text
+      // value would name the zip differently in the dialog and the run).
+      appName:
+        typeof source?.appName === "string" && source.appName.trim() ? source.appName : undefined,
+      workMode: before.workMode,
+      // This set's export starts from its own store's sizes, in English —
+      // never the picks made for the set open before (GAP-7).
+      exportPicks: defaultExportPicks(source?.store === "play" ? "play" : "apple"),
+      exportLangs: ["EN"],
       setId,
       loadedSetId: setId,
       active: 0,
@@ -945,6 +1023,79 @@ export async function removeSet(setId: string): Promise<void> {
   }
 }
 
+/**
+ * The person's work-mode preference: guided steps or the full canvas. It
+ * changes at once here (links read it) and is stored as a preference; the
+ * promise rejects with the reason if storage refused it.
+ */
+export async function setWorkMode(mode: OnstageState["workMode"]): Promise<void> {
+  workModePicks++;
+  useOnstage.setState({ workMode: mode });
+  await getBackend().setPrefs({ workMode: mode });
+}
+
+/** Work-mode choices made in this tab, so a slower read never undoes one —
+ *  even one that picked the mode already on screen. */
+let workModePicks = 0;
+
+/**
+ * Read the stored preferences into the store — once per page, after mount
+ * (the server-rendered first paint uses the default). A preference changed
+ * in this tab in the meantime wins over the read.
+ */
+export async function loadPrefs(): Promise<void> {
+  const picks = workModePicks;
+  try {
+    const prefs = await getBackend().getPrefs();
+    if (workModePicks === picks) useOnstage.setState({ workMode: prefs.workMode });
+  } catch (e) {
+    console.warn("[onstage] couldn't read preferences", e);
+  }
+}
+
+/**
+ * The editor is going away (the person went to another page): close its
+ * dialogs and drop a finished or failed export's state, so coming back to
+ * the same set — which doesn't reload it — never reopens a stale dialog
+ * (GAP-16). A run still in progress keeps its dialog: it goes on in the
+ * background, and its progress is there on the way back.
+ */
+export function leaveEditor() {
+  const st = useOnstage.getState();
+  if (st.exportState === "rendering" || st.exportState === "uploading") return;
+  if (st.overlay === null && st.exportState === null) return;
+  useOnstage.setState({
+    overlay: null,
+    exportState: null,
+    exportError: null,
+    exportDone: 0,
+    exportDeliveredTo: null,
+    exportBlockedByQuota: false,
+  });
+}
+
+let pendingLeave: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * The editor screen mounting and unmounting. Leaving is carried out a task
+ * later and a mount in between cancels it, so React's development-only
+ * StrictMode remount (unmount, then mount again at once) is not a visit that
+ * ended — the dev server and the static build close dialogs at the same
+ * moments.
+ */
+export function editorMounted() {
+  if (pendingLeave !== null) clearTimeout(pendingLeave);
+  pendingLeave = null;
+}
+
+export function editorUnmounted() {
+  if (pendingLeave !== null) clearTimeout(pendingLeave);
+  pendingLeave = setTimeout(() => {
+    pendingLeave = null;
+    leaveEditor();
+  }, 0);
+}
+
 /** Whether this tab has deleted `setId` (or is deleting it). The editor
  *  treats such a set as not in this browser, whatever the library lists. */
 export function isSetDeleted(setId: string): boolean {
@@ -962,7 +1113,8 @@ export function currentDoc(): SetDoc | null {
  * Carry out an `?apply=` intent from another screen on the set that is open:
  * `template:<slug>` or `brand:<kitId>` (one undo step each), or
  * `panel:export` / `panel:localize` (opens the export dialog / the localise
- * drawer — not edits, so no undo step).
+ * drawer — not edits, so no undo step). The localise drawer is the AI
+ * drawer, so without `FEATURES.aiAssist` that intent is not carried out.
  * Screens outside the editor never change a document themselves (D10); they
  * send the editor here instead.
  */
@@ -984,7 +1136,7 @@ export function applyIntent(intent: string): boolean {
     st.setState({ overlay: "export" });
     return true;
   }
-  if (kind === "panel" && id === "localize") {
+  if (kind === "panel" && id === "localize" && FEATURES.aiAssist) {
     st.setState({ overlay: "ai", aiTab: "Localize" });
     return true;
   }

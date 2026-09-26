@@ -145,7 +145,7 @@ function refuseWrites() {
 /** Where "Export & upload" goes — the board's selected set. */
 async function exportTarget(): Promise<string | null> {
   nav.router.push.mockReset();
-  await click(button(host, "Export & upload"));
+  await click(button(host, "Export"));
   const calls = pushed();
   expect(calls).toHaveLength(1);
   return new URL(calls[0], "http://x").searchParams.get("set");
@@ -190,9 +190,9 @@ describe("ProjectScreen Sets tab — New set", () => {
     expect(created.name).toBe("Trailhead — new set");
     expect(pushed()).toEqual([`/guided?set=${created.id}`]);
     expect(storedDocs()[created.id]).toBeTruthy();
-    // The document carries the mode it opens in, so opening it doesn't
-    // switch the work mode back to canvas.
-    expect(storedDocs()[created.id].workMode).toBe("guided");
+    // The work mode is the person's preference (S3.2): the document doesn't
+    // carry one, and opening the set can't switch the mode back.
+    expect("workMode" in storedDocs()[created.id]).toBe(false);
   });
 
   it("makes the set in the board's own app (Ferry), not the first app", async () => {

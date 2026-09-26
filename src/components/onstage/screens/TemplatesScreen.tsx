@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { s } from "@/lib/onstage/css";
-import { LIGHT_TEMPLATES, TEMPLATES, TEMPLATE_FILTERS } from "@/lib/onstage/data";
+import { LIGHT_TEMPLATES, TEMPLATES, TEMPLATE_COUNT, TEMPLATE_FILTERS } from "@/lib/onstage/data";
 import { createSetFromTemplate } from "@/lib/onstage/sets";
 import { useCreateAndOpen } from "@/lib/onstage/useCreateAndOpen";
 import { IcoBack, IcoSearch } from "../icons";
 import { WarnLine } from "../WarnLine";
+import { angleLabel } from "@/lib/onstage/templateFacts";
 
 export function TemplatesScreen() {
   const create = useCreateAndOpen();
@@ -39,7 +40,7 @@ export function TemplatesScreen() {
           Back to canvas
         </Link>
         <span style={s("font-size:14px;font-weight:600;letter-spacing:-.015em")}>Templates</span>
-        <span style={s("font:400 11px 'Inter',ui-sans-serif;color:var(--muted-4)")}>240 SETS</span>
+        <span style={s("font:400 11px 'Inter',ui-sans-serif;color:var(--muted-4)")}>{TEMPLATE_COUNT} SETS</span>
         <div
           style={s(
             "margin-left:auto;display:flex;align-items:center;gap:8px;width:260px;height:32px;padding:0 10px;border:1px solid rgba(var(--ink-rgb),.09);border-radius:6px;color:var(--muted-4)",
@@ -93,71 +94,69 @@ export function TemplatesScreen() {
           style={s("display:grid;grid-template-columns:repeat(auto-fill,minmax(198px,1fr));gap:18px")}
         >
           {shown.map((t) => (
-            <Link
-              key={t.slug}
-              href={`/templates/${t.slug}`}
-              style={s("cursor:pointer;color:var(--text)")}
-            >
-              <div
-                className="hov-reveal"
-                style={s(
-                  `position:relative;height:246px;border-radius:9px;overflow:hidden;background:${t.preview};display:flex;flex-direction:column;align-items:center;border:1px solid rgba(var(--ink-rgb),.08)`,
-                )}
-              >
+            <div key={t.slug}>
+              {/* The card opens the template (GAP-12); making a set is the
+                  visible button under it, never an invisible overlay a first
+                  tap could set off. */}
+              <Link href={`/templates/${t.slug}`} style={s("display:block;cursor:pointer;color:var(--text)")}>
                 <div
                   style={s(
-                    `margin:20px 16px 0;width:calc(100% - 32px);height:6px;border-radius:3px;background:${
-                      LIGHT_TEMPLATES.indexOf(t.name) >= 0
-                        ? "rgba(0,0,0,.42)"
-                        : "rgba(var(--ink-rgb),.62)"
-                    }`,
-                  )}
-                />
-                <div
-                  style={s(
-                    `margin-top:18px;width:78px;height:156px;border-radius:12px;background:linear-gradient(150deg,#3a3833,#141312);box-shadow:0 16px 30px rgba(0,0,0,.5);transform:perspective(620px) rotateY(${t.ty}deg)`,
-                  )}
-                />
-                {/* The card opens the template; the hover overlay is the
-                    shortcut that makes a new set in it — your screens,
-                    restyled — and opens it. The set you had stays as it was. */}
-                <button
-                  type="button"
-                  className="reveal"
-                  disabled={create.busy !== null}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    void create.run(t.slug, () => createSetFromTemplate(t.slug));
-                  }}
-                  style={s(
-                    "position:absolute;inset:0;display:grid;place-items:center;border:none;background:var(--scrim-soft);color:#fff;font-size:13px;font-weight:600;opacity:0;transition:opacity .16s ease;cursor:pointer",
+                    `position:relative;height:246px;border-radius:9px;overflow:hidden;background:${t.preview};display:flex;flex-direction:column;align-items:center;border:1px solid rgba(var(--ink-rgb),.08)`,
                   )}
                 >
-                  {create.busy === t.slug ? "Creating…" : "Use this set"}
-                </button>
-                {t.badge ? (
-                  <span
+                  <div
                     style={s(
-                      "position:absolute;top:9px;left:9px;padding:2px 7px;border-radius:3px;background:var(--scrim-soft);color:#fff;font:500 9.5px 'Inter',ui-sans-serif;letter-spacing:.08em",
+                      `margin:20px 16px 0;width:calc(100% - 32px);height:6px;border-radius:3px;background:${
+                        LIGHT_TEMPLATES.indexOf(t.name) >= 0
+                          ? "rgba(0,0,0,.42)"
+                          : "rgba(var(--ink-rgb),.62)"
+                      }`,
                     )}
-                  >
-                    {t.badge}
+                  />
+                  <div
+                    style={s(
+                      `margin-top:18px;width:78px;height:156px;border-radius:12px;background:linear-gradient(150deg,#3a3833,#141312);box-shadow:0 16px 30px rgba(0,0,0,.5);transform:perspective(620px) rotateY(${t.ty}deg)`,
+                    )}
+                  />
+                  {t.badge ? (
+                    <span
+                      style={s(
+                        "position:absolute;top:9px;left:9px;padding:2px 7px;border-radius:3px;background:var(--scrim-soft);color:#fff;font:500 9.5px 'Inter',ui-sans-serif;letter-spacing:.08em",
+                      )}
+                    >
+                      {t.badge}
+                    </span>
+                  ) : null}
+                </div>
+                <div
+                  style={s("display:flex;align-items:baseline;justify-content:space-between;margin-top:9px")}
+                >
+                  <span style={s("font-size:13px;font-weight:500")}>{t.name}</span>
+                  {/* What the template does to a set — its device angle. (It never
+                      changes how many frames a set has, so no frame count.) */}
+                  <span style={s("font:400 10.5px 'Inter',ui-sans-serif;color:var(--muted-4)")}>
+                    {angleLabel(t.ty).toUpperCase()}
                   </span>
-                ) : null}
-              </div>
-              <div
-                style={s("display:flex;align-items:baseline;justify-content:space-between;margin-top:9px")}
+                </div>
+                <div style={s("margin-top:3px;font-size:11.5px;color:var(--muted-3)")}>{t.tagline}</div>
+              </Link>
+              {/* A new set in this template — your screens, restyled — opened
+                  in the canvas. The set you had stays as it was. */}
+              <button
+                type="button"
+                className="hov-accent"
+                disabled={create.busy !== null}
+                onClick={() => void create.run(t.slug, () => createSetFromTemplate(t.slug))}
+                style={s(
+                  "margin-top:9px;width:100%;display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 14px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-size:12.5px;font-weight:500;cursor:pointer",
+                )}
               >
-                <span style={s("font-size:13px;font-weight:500")}>{t.name}</span>
-                <span style={s("font:400 10.5px 'Inter',ui-sans-serif;color:var(--muted-4)")}>
-                  {t.frames} FR
-                </span>
-              </div>
-              <div style={s("margin-top:3px;font-size:11.5px;color:var(--muted-3)")}>{t.tagline}</div>
+                {create.busy === t.slug ? "Creating…" : "Use this set"}
+              </button>
               {create.error?.key === t.slug && (
                 <WarnLine style="margin-top:6px;align-items:flex-start">{create.error.message}</WarnLine>
               )}
-            </Link>
+            </div>
           ))}
         </div>
         {shown.length === 0 && (

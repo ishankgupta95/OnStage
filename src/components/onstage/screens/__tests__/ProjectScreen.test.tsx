@@ -147,7 +147,7 @@ describe("ProjectScreen — the board for ?app=", () => {
     const app = await localBackend.createApp({ name: "Empty" });
     await mount(`app=${app.id}`);
     expect(text()).toContain("No sets in this app yet");
-    const exportButton = button(host, "Export & upload");
+    const exportButton = button(host, "Export");
     expect(exportButton.disabled).toBe(true);
     await click(exportButton);
     expect(nav.router.push).not.toHaveBeenCalled();
@@ -161,7 +161,7 @@ describe("ProjectScreen — an app this browser doesn't have", () => {
     const back = host.querySelector<HTMLAnchorElement>('a[href="/dashboard"]');
     expect(back).not.toBeNull();
     // No board, and no redirect to someone else's board.
-    expect(text()).not.toContain("Export & upload");
+    expect(() => button(host, "Export")).toThrow();
     expect(text()).not.toContain("Trailhead");
     expect(nav.router.replace).not.toHaveBeenCalled();
     expect(nav.router.push).not.toHaveBeenCalled();
@@ -221,9 +221,36 @@ describe("ProjectScreen — fixture-only surfaces (flags off)", () => {
     expect(variants).not.toHaveBeenCalled();
     expect(activity).not.toHaveBeenCalled();
   });
+
+  it("has no Store connections card, no A/B results row and no upload wording (S3.1)", async () => {
+    const connections = vi.spyOn(localBackend, "listConnections");
+    await mount("app=trailhead");
+    expect(byText("THIS SET").length).toBeGreaterThan(0);
+    expect(byText("STORE CONNECTIONS")).toEqual([]);
+    expect(text()).not.toContain("A/B test results");
+    expect(host.querySelector('a[href="/ab-test"]')).toBeNull();
+    expect(host.querySelector('a[href^="/settings"]')).toBeNull();
+    expect(connections).not.toHaveBeenCalled();
+    // The header button exports; there is nowhere to upload to.
+    expect(() => button(host, "Export")).not.toThrow();
+    expect(text()).not.toContain("upload");
+  });
+
+  it("offers no AI translation: no Translate set with AI, Translate, Review or Add a language (S3.1)", async () => {
+    await mount("app=trailhead");
+    expect(byText("LOCALES").length).toBeGreaterThan(0);
+    expect(() => button(host, "Translate set with AI")).toThrow();
+    await click(button(host, "Locales"));
+    expect(byText("Languages").length).toBeGreaterThan(0);
+    expect(text()).toContain("English (US)");
+    for (const label of ["Translate with AI", "Translate", "Review", "Add a language"]) {
+      expect(() => button(host, label)).toThrow();
+    }
+    expect(nav.router.push).not.toHaveBeenCalled();
+  });
 });
 
-describe("ProjectScreen — Export & upload", () => {
+describe("ProjectScreen — Export", () => {
   const exportTarget = () => {
     const calls = pushed();
     expect(calls).toHaveLength(1);
@@ -233,7 +260,7 @@ describe("ProjectScreen — Export & upload", () => {
 
   it("opens the editor on the selected set with the export panel", async () => {
     await mount("app=ferry");
-    await click(button(host, "Export & upload"));
+    await click(button(host, "Export"));
     expect(exportTarget()).toEqual({ path: "/editor", set: "ferry-69", apply: "panel:export" });
   });
 
@@ -241,29 +268,23 @@ describe("ProjectScreen — Export & upload", () => {
     await mount("app=trailhead");
     await click(setRow("Trailhead — Play phone"));
     expect(nav.router.push).not.toHaveBeenCalled();
-    await click(button(host, "Export & upload"));
+    await click(button(host, "Export"));
     expect(exportTarget()).toEqual({ path: "/editor", set: "trailhead-play", apply: "panel:export" });
   });
 
   it("defaults to the first listed set when none is picked", async () => {
     await mount("app=trailhead");
-    await click(button(host, "Export & upload"));
+    await click(button(host, "Export"));
     expect(exportTarget()).toEqual({ path: "/editor", set: "trailhead-69", apply: "panel:export" });
   });
 });
 
-describe("ProjectScreen — every set control carries the selected set's id", () => {
-  const parse = (href: string) => {
-    const u = new URL(href, "http://x");
-    return { path: u.pathname, set: u.searchParams.get("set"), apply: u.searchParams.get("apply") };
-  };
+const parse = (href: string) => {
+  const u = new URL(href, "http://x");
+  return { path: u.pathname, set: u.searchParams.get("set"), apply: u.searchParams.get("apply") };
+};
 
-  it("the Locales tab's Translate opens the selected set with the localise drawer, not a bare /editor", async () => {
-    await mount("app=ferry");
-    await click(button(host, "Locales"));
-    await click(button(host, "Translate with AI"));
-    expect(pushed().map(parse)).toEqual([{ path: "/editor", set: "ferry-69", apply: "panel:localize" }]);
-  });
+describe("ProjectScreen — every set control carries the selected set's id", () => {
 
   it("THIS SET → Store listing preview previews the selected set", async () => {
     await mount("app=trailhead");
@@ -279,20 +300,47 @@ describe("ProjectScreen — every set control carries the selected set's id", ()
 // Last: it swaps in a fresh module graph with the flags on, proving the
 // selectors above would have found these surfaces had they mounted.
 describe("ProjectScreen — fixture-only surfaces (flags on)", () => {
-  it("mounts A/B variants, Activity and the Uploads tab under abTest + jobQueue", async () => {
+  /** The board from a fresh module graph with `flags` on. */
+  async function flagged(flags: Partial<typeof import("@/lib/features").FEATURES>) {
     vi.resetModules();
     vi.doMock("@/lib/features", async (importOriginal) => {
       const real = await importOriginal<typeof import("@/lib/features")>();
-      return { FEATURES: { ...real.FEATURES, abTest: true, jobQueue: true } };
+      return { FEATURES: { ...real.FEATURES, ...flags } };
     });
     try {
-      const { ProjectScreen: Flagged } = await import("../ProjectScreen");
-      await mount("app=trailhead", Flagged);
-      expect(byText("A/B variants").length).toBeGreaterThan(0);
-      expect(byText("ACTIVITY").length).toBeGreaterThan(0);
-      expect(() => button(host, "Uploads")).not.toThrow();
+      return (await import("../ProjectScreen")).ProjectScreen;
     } finally {
       vi.doUnmock("@/lib/features");
     }
+  }
+
+  it("mounts A/B variants, Activity and the Uploads tab under abTest + jobQueue", async () => {
+    const Flagged = await flagged({ abTest: true, jobQueue: true });
+    await mount("app=trailhead", Flagged);
+    expect(byText("A/B variants").length).toBeGreaterThan(0);
+    expect(byText("ACTIVITY").length).toBeGreaterThan(0);
+    expect(() => button(host, "Uploads")).not.toThrow();
+    // abTest also brings back THIS SET's results row.
+    expect(host.querySelector('a[href="/ab-test"]')?.textContent).toContain("A/B test results");
+  });
+
+  it("mounts the Store connections card and the upload label under storeUpload", async () => {
+    const Flagged = await flagged({ storeUpload: true });
+    await mount("app=trailhead", Flagged);
+    expect(byText("STORE CONNECTIONS").length).toBeGreaterThan(0);
+    // The rows (and their Settings links) appear once the connections load.
+    await vi.waitFor(() => expect(host.querySelector('a[href="/settings?tab=Store+connections"]')).not.toBeNull());
+    expect(() => button(host, "Export & upload")).not.toThrow();
+  });
+
+  it("under aiAssist, the Locales tab's Translate opens the selected set with the localise drawer, not a bare /editor", async () => {
+    const Flagged = await flagged({ aiAssist: true });
+    await mount("app=ferry", Flagged);
+    expect(() => button(host, "Translate set with AI")).not.toThrow();
+    await click(button(host, "Locales"));
+    expect(() => button(host, "Add a language")).not.toThrow();
+    expect(() => button(host, "Review")).not.toThrow();
+    await click(button(host, "Translate with AI"));
+    expect(pushed().map(parse)).toEqual([{ path: "/editor", set: "ferry-69", apply: "panel:localize" }]);
   });
 });

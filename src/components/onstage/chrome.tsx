@@ -71,3 +71,16 @@ export function BackButton({ href, radius = 8 }: { href: string; radius?: number
     </Link>
   );
 }
+
+/** The App Store / Play Store segmented control's tab — the editor's top bar
+ *  and Settings' default store, one style. */
+export const storeTab = (on: boolean) =>
+  `padding:5px 11px;border:none;border-radius:4px;background:${
+    on ? "rgba(var(--ink-rgb),.09)" : "transparent"
+  };color:${on ? "var(--text)" : "var(--muted-2)"};font-size:12px;font-weight:${
+    on ? 600 : 400
+  };cursor:pointer`;
+
+/** The group around `storeTab`s. */
+export const STORE_TABS =
+  "display:flex;align-items:center;gap:2px;padding:2px;border:1px solid rgba(var(--ink-rgb),.09);border-radius:6px";

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FEATURES } from "@/lib/features";
 import { s } from "@/lib/onstage/css";
 import type { Job } from "@/lib/data/types";
 
@@ -89,7 +90,8 @@ export function JobRow({ job }: { job: Job }) {
           )}
         >
           {job.error}
-          {job.destination && job.destination !== "zip" && (
+          {/* Settings → Store connections exists only with storeUpload. */}
+          {FEATURES.storeUpload && job.destination && job.destination !== "zip" && (
             <>
               {" "}
               <Link href="/settings?tab=Store+connections" style={s("color:var(--accent-hi)")}>

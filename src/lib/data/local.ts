@@ -1,5 +1,6 @@
 import type { Backend } from "./backend";
 import { FEATURES } from "../features";
+import { DEFAULT_APP_TINT } from "../onstage/appName";
 import { defaultDoc } from "../onstage/docOps";
 import { randomId } from "./ids";
 import { docImageIds, imageIdsInJson } from "./imageRefs";
@@ -15,9 +16,11 @@ import type {
   Comment,
   Member,
   MemberRole,
+  Prefs,
   ScreenshotSet,
   Session,
   SetDoc,
+  StoreConnection,
   UploadResult,
 } from "./types";
 
@@ -62,6 +65,8 @@ const KEY = {
   cancelled: "onstage:cancelled:v1",
   lastSet: "onstage:last-set:v1",
   seeded: "onstage:seeded:v1",
+  notifications: "onstage:notification-prefs:v1",
+  prefs: "onstage:prefs:v1",
 };
 
 function readJson<T>(key: string, fallback: T): T {
@@ -304,6 +309,64 @@ function notStored(setId: string): Error {
     : new Error("That set isn't in this browser any more.");
 }
 
+const DEFAULT_PREFS: Prefs = { workMode: "canvas", defaultStore: "apple" };
+
+/** The preferences a stored value holds — each field only if it is a value
+ *  that field allows; anything else is ignored, never coerced. */
+function prefsFrom(value: unknown): Partial<Prefs> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const v = value as Record<string, unknown>;
+  return {
+    ...(v.workMode === "guided" || v.workMode === "canvas" ? { workMode: v.workMode } : {}),
+    ...(v.defaultStore === "apple" || v.defaultStore === "play" ? { defaultStore: v.defaultStore } : {}),
+  };
+}
+
+/**
+ * The work mode as it was before it became a preference (S3.2): saved on
+ * each set's document, and the set opened last decided it. Read-only — the
+ * documents keep the old field; nothing reads it after this.
+ */
+function legacyWorkMode(): Prefs["workMode"] | null {
+  try {
+    const last: unknown = JSON.parse(localStorage.getItem(KEY.lastSet) ?? "null");
+    const docs: unknown = JSON.parse(localStorage.getItem(KEY.docs) ?? "{}");
+    if (typeof last !== "string" || !docs || typeof docs !== "object") return null;
+    const mode = (docs as Record<string, { workMode?: unknown } | undefined>)[last]?.workMode;
+    return mode === "guided" || mode === "canvas" ? mode : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A saved document keeps the fields older releases wrote that this one no
+ * longer does (plan rule 10): today only `workMode`, which moved to the
+ * preferences in S3.2. Nothing reads it; an older build opening the set
+ * still finds it.
+ */
+function keepLegacyFields(stored: SetDoc | undefined, next: SetDoc): SetDoc {
+  const legacy = stored?.workMode;
+  if ((legacy !== "guided" && legacy !== "canvas") || "workMode" in next) return next;
+  return { ...next, workMode: legacy };
+}
+
+/** The store connections: the sample's, with this browser's connect /
+ *  disconnect choices laid over them. */
+function storeConnections(): StoreConnection[] {
+  const overrides = readJson<Record<string, boolean>>(KEY.connections, {});
+  return sample.CONNECTIONS.map((c) =>
+    c.id in overrides
+      ? {
+          ...c,
+          connected: overrides[c.id],
+          sub: overrides[c.id] ? "Connected just now" : "Not connected",
+          warning: overrides[c.id] ? "" : c.warning,
+        }
+      : c,
+  );
+}
+
 /**
  * Drop localStorage written by a surface that is now flagged off. Idempotent
  * and safe to call on every boot: each key is only removed while its feature
@@ -391,7 +454,7 @@ export const localBackend: Backend = {
       name,
       initial: name.charAt(0).toUpperCase() || "?",
       meta: "0 SETS · DRAFT",
-      tint: "#5d5294",
+      tint: DEFAULT_APP_TINT,
       thumbs: Array(4).fill("linear-gradient(160deg,#1f2b4d,#0e1424)"),
       tags: [{ label: "Draft", kind: "neutral" }],
     };
@@ -545,6 +608,53 @@ export const localBackend: Backend = {
     writeJson(KEY.lastSet, setId);
   },
 
+  /* SUPABASE SEAM: a preferences row per user. Locally one small record. */
+  getPrefs: async () => {
+    let raw: string | null;
+    try {
+      raw = localStorage.getItem(KEY.prefs);
+    } catch {
+      return { ...DEFAULT_PREFS };
+    }
+    if (raw !== null) {
+      let parsed: unknown = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        /* unreadable: the defaults, and setPrefs won't write over it */
+      }
+      return { ...DEFAULT_PREFS, ...prefsFrom(parsed) };
+    }
+    // The first read since preferences left the set documents: carry the
+    // old work mode over, once — and store the result even when there was
+    // none to carry, so a set opened later can never decide it. If storage
+    // refuses, the next read carries it over again.
+    const legacy = legacyWorkMode();
+    const prefs: Prefs = { ...DEFAULT_PREFS, ...(legacy ? { workMode: legacy } : {}) };
+    try {
+      writeJson(KEY.prefs, prefs);
+    } catch {
+      /* see above */
+    }
+    return prefs;
+  },
+
+  setPrefs: async (patch) => {
+    const absent = rawValue(KEY.prefs) === null;
+    const stored = readForUpdate<Record<string, unknown>>(KEY.prefs, {});
+    // Nothing stored yet (the carry-over couldn't be written): start from
+    // what getPrefs reports, so a change here never drops the old mode.
+    const legacy = absent ? legacyWorkMode() : null;
+    const next: Prefs = {
+      ...DEFAULT_PREFS,
+      ...(legacy ? { workMode: legacy } : {}),
+      ...prefsFrom(stored),
+      ...prefsFrom(patch),
+    };
+    writeJson(KEY.prefs, next);
+    return next;
+  },
+
   loadSetDoc: async (setId) => {
     await whenDocsReady();
     return readDocs()[setId] ?? null;
@@ -554,10 +664,11 @@ export const localBackend: Backend = {
   // partial save. Screenshots are `img:` refs now, so a document is a few KB.
   // The set's library record follows its document (GAP-10): frame count,
   // swatch, status and the time of this save.
-  saveSetDoc: async (setId, doc) => {
+  saveSetDoc: async (setId, docIn) => {
     await whenDocsReady();
     ensureSeeded();
     const docs = readDocs();
+    const doc = keepLegacyFields(docs[setId], docIn);
     const sets = readForUpdate<ScreenshotSet[]>(KEY.sets, []);
     const i = sets.findIndex((x) => x.id === setId);
     if (i < 0) {
@@ -609,19 +720,7 @@ export const localBackend: Backend = {
   listActivity: () => ok(sample.ACTIVITY),
 
   /* ── store connections + delivery ────────────────────────────────────── */
-  listConnections: async () => {
-    const overrides = readJson<Record<string, boolean>>(KEY.connections, {});
-    return sample.CONNECTIONS.map((c) =>
-      c.id in overrides
-        ? {
-            ...c,
-            connected: overrides[c.id],
-            sub: overrides[c.id] ? "Connected just now" : "Not connected",
-            warning: overrides[c.id] ? "" : c.warning,
-          }
-        : c,
-    );
-  },
+  listConnections: async () => storeConnections(),
 
   connectStore: async (id) => {
     // SUPABASE SEAM: return the provider's OAuth URL. Locally we mark it
@@ -635,7 +734,8 @@ export const localBackend: Backend = {
   },
   listJobs: () => ok(sample.JOBS),
   uploadToStore: async ({ destination }): Promise<UploadResult> => {
-    const conn = sample.CONNECTIONS.find((c) => c.id === destination);
+    // The same connection state the dialog and Settings show (EDITOR-14).
+    const conn = storeConnections().find((c) => c.id === destination);
     if (!conn?.connected) {
       return {
         ok: false,
@@ -746,6 +846,20 @@ export const localBackend: Backend = {
     };
     writeJson(KEY.kits, [...readForUpdate<BrandKit[]>(KEY.kits, []), kit]);
     return kit;
+  },
+
+  /* SUPABASE SEAM: a preferences row per user — delivery is a server job.
+     Locally the choices are kept so the switches don't revert on reload. */
+  getNotificationPrefs: async () => {
+    const stored = readJson<unknown>(KEY.notifications, {});
+    if (!stored || typeof stored !== "object" || Array.isArray(stored)) return {};
+    return Object.fromEntries(
+      Object.entries(stored).filter((e): e is [string, boolean] => typeof e[1] === "boolean"),
+    );
+  },
+  setNotificationPref: async (id, enabled) => {
+    const prefs = readForUpdate<Record<string, unknown>>(KEY.notifications, {});
+    writeJson(KEY.notifications, { ...prefs, [id]: enabled });
   },
 
   recordExport: async (files) => {
