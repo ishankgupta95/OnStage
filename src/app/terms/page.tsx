@@ -41,9 +41,8 @@ export default function TermsPage() {
           <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Placeholder · Terms</p>
           <p className="mt-3 leading-relaxed">
             We&apos;re finalizing the full terms with our legal provider. By using Onstage, you agree to use the
-            service to create your own App Store / Google Play screenshots, to not upload content you don&apos;t have
-            rights to, and to honor any limits associated with your plan. Free plans include an Onstage watermark on
-            exports.
+            service to create your own App Store / Google Play screenshots and to not use images you don&apos;t have
+            rights to.
           </p>
           <p className="mt-4 text-xs text-muted-foreground">
             This page swaps to the full Termly-hosted terms once <code>NEXT_PUBLIC_TERMLY_TERMS_UUID</code> is set.

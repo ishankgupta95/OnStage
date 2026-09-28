@@ -1,4 +1,5 @@
 import type { DeviceFrame } from "@/lib/schema";
+import { geometryFor } from "@/lib/deviceGeometry";
 
 export type DeviceSpec = {
   id: DeviceFrame;
@@ -12,6 +13,7 @@ export type DeviceSpec = {
 };
 
 export const DEVICES: DeviceSpec[] = [
+  { id: "iphone-17-pro", label: "iPhone 17 Pro", platform: "ios", kind: "phone", screenWidth: 1206, screenHeight: 2622 },
   { id: "iphone-16-pro", label: "iPhone 16 Pro", platform: "ios", kind: "phone", screenWidth: 1206, screenHeight: 2622 },
   { id: "iphone-16-pro-max", label: "iPhone 16 Pro Max", platform: "ios", kind: "phone", screenWidth: 1320, screenHeight: 2868 },
   { id: "iphone-16", label: "iPhone 16", platform: "ios", kind: "phone", screenWidth: 1179, screenHeight: 2556 },
@@ -24,6 +26,7 @@ export const DEVICES: DeviceSpec[] = [
   { id: "ipad-pro-11", label: 'iPad Pro 11"', platform: "ios", kind: "tablet", screenWidth: 1668, screenHeight: 2420 },
   { id: "ipad-air-11", label: 'iPad Air 11"', platform: "ios", kind: "tablet", screenWidth: 1640, screenHeight: 2360 },
   { id: "ipad-mini", label: "iPad mini", platform: "ios", kind: "tablet", screenWidth: 1488, screenHeight: 2266 },
+  { id: "pixel-10", label: "Pixel 10", platform: "android", kind: "phone", screenWidth: 1080, screenHeight: 2424 },
   { id: "pixel-9-pro-xl", label: "Pixel 9 Pro XL", platform: "android", kind: "phone", screenWidth: 1344, screenHeight: 2992 },
   { id: "pixel-9-pro", label: "Pixel 9 Pro", platform: "android", kind: "phone", screenWidth: 1280, screenHeight: 2856 },
   { id: "pixel-9", label: "Pixel 9", platform: "android", kind: "phone", screenWidth: 1080, screenHeight: 2424 },
@@ -48,11 +51,11 @@ export const DEVICE_BY_ID = Object.fromEntries(
 // any saved/legacy doc still resolves a label and renders correctly, and only
 // curate which models are *offered* — one representative per distinct frame.
 const PICKER_IDS: DeviceFrame[] = [
-  "iphone-16-pro", // covers 16/15/14 Pro & non-Pro (identical IPHONE frame)
+  "iphone-17-pro", // covers 17/16/15/14 Pro & non-Pro (identical IPHONE frame)
   "iphone-se-3",
   "ipad-pro-13", // covers iPad Pro 11 / Air (identical IPAD frame)
   "ipad-mini", // distinct: narrower 0.7 aspect
-  "pixel-9", // covers Pixel 9 Pro / XL / 8 (identical PIXEL frame)
+  "pixel-10", // covers Pixel 9 / Pro / XL / 8 (identical PIXEL frame)
   "galaxy-s24-ultra", // covers S24/S23 family + A55 (GALAXY frame)
   "galaxy-z-fold-6", // covers Pixel 9 Pro Fold (identical FOLD frame)
   "galaxy-tab-s9",
@@ -61,3 +64,13 @@ const PICKER_IDS: DeviceFrame[] = [
 export const DEVICE_PICKER: DeviceSpec[] = PICKER_IDS.map((id) => DEVICE_BY_ID[id]).filter(
   (d): d is DeviceSpec => Boolean(d),
 );
+
+// The picker as shown for a doc using `active`: a saved model that shares a
+// picker entry's frame (e.g. an older "iPhone 16 Pro" project) appears in that
+// entry's place, so old projects keep showing the model they were made with.
+export function devicePickerFor(active: DeviceFrame): DeviceSpec[] {
+  const saved = DEVICE_BY_ID[active];
+  return DEVICE_PICKER.map((d) =>
+    saved && d.id !== active && geometryFor(d.id) === geometryFor(active) ? saved : d,
+  );
+}

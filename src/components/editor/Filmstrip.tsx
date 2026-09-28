@@ -23,6 +23,7 @@ import {
   reorderScreenshots,
 } from "@/lib/localData";
 import { withBase, editorHref } from "@/lib/routes";
+import { MAX_SET_SCREENSHOTS, SET_FULL_MESSAGE } from "@/lib/sizes";
 
 function thumbWidth(shot: RailShot) {
   return shot.doc.orientation === "landscape" ? 116 : 34;
@@ -154,6 +155,10 @@ export default function Filmstrip({
   }
 
   async function add() {
+    if (items.length >= MAX_SET_SCREENSHOTS) {
+      toast.error(SET_FULL_MESSAGE);
+      return;
+    }
     const created = await addScreenshot(projectId);
     if (!created) {
       toast.error("Couldn't add screenshot");
@@ -166,6 +171,10 @@ export default function Filmstrip({
   }
 
   async function duplicate(id: string) {
+    if (items.length >= MAX_SET_SCREENSHOTS) {
+      toast.error(SET_FULL_MESSAGE);
+      return;
+    }
     const st = useEditorStore.getState();
     // Flush the active screenshot first so the copy includes unsaved edits
     // (the server duplicates the stored config).

@@ -1,5 +1,5 @@
 import type { DeviceFrame } from "@/lib/schema";
-import type { Orientation } from "@/lib/editorDoc";
+import { DEFAULT_FRAME_ADJUST, type EditorDoc, type FrameAdjustByClass, type Orientation } from "@/lib/editorDoc";
 import { DEFAULT_DEVICE_FOR_CLASS, deviceClassOf, type DeviceClass } from "@/lib/deviceGeometry";
 
 // Which store an export size belongs to — drives the top-level export folder.
@@ -56,6 +56,41 @@ export function sizeById(id: string): ExportSize | undefined {
 // family, otherwise substitute the family's representative frame.
 export function deviceForSize(size: ExportSize, chosen: DeviceFrame): DeviceFrame {
   return deviceClassOf(chosen) === size.deviceClass ? chosen : DEFAULT_DEVICE_FOR_CLASS[size.deviceClass];
+}
+
+// The doc to render at an export size. Preset layouts swap in the size's frame
+// family (an iPad slot gets an iPad). When a phone design lands in a tablet
+// frame and that family has no crop of its own, the phone screenshot is
+// letterboxed ("contain") rather than cover-cropped, which would cut off its
+// top and bottom (status bar included). Freeform devices keep their own models.
+export function exportDocForSize(doc: EditorDoc, size: ExportSize): EditorDoc {
+  if (doc.layout === "freeform") return doc;
+  const out: EditorDoc = { ...doc, device: deviceForSize(size, doc.device) };
+  const fromPhone = ["iphone", "android-phone"].includes(deviceClassOf(doc.device));
+  const toTablet = size.deviceClass === "ipad" || size.deviceClass === "android-tablet";
+  const fa = doc.frameAdjust as FrameAdjustByClass | unknown[] | undefined;
+  // A legacy flat crop array applies to every family, so it counts as set.
+  const hasCrop = Array.isArray(fa) ? fa.some(Boolean) : Boolean(fa?.[size.deviceClass]?.some(Boolean));
+  if (fromPhone && toTablet && !hasCrop) {
+    const byClass = Array.isArray(fa) ? {} : fa;
+    out.frameAdjust = { ...byClass, [size.deviceClass]: [{ ...DEFAULT_FRAME_ADJUST, fit: "contain" }] };
+  }
+  return out;
+}
+
+// Most screenshots each store takes per device size.
+export const STORE_SCREENSHOT_LIMIT: Record<StoreOS, number> = { iOS: 10, Android: 8 };
+// A set holds at most as many screenshots as the App Store takes.
+export const MAX_SET_SCREENSHOTS = STORE_SCREENSHOT_LIMIT.iOS;
+
+export const SET_FULL_MESSAGE = `A set holds at most ${MAX_SET_SCREENSHOTS} screenshots, the App Store's limit.`;
+
+// PNGs an export writes: every size gets each screenshot up to its store's limit.
+export function exportFileCount(sizeIds: string[], shotCount: number): number {
+  return sizeIds.reduce((n, id) => {
+    const size = sizeById(id);
+    return size ? n + Math.min(shotCount, STORE_SCREENSHOT_LIMIT[size.os]) : n;
+  }, 0);
 }
 
 // The size used to preview a device class in the editor (the largest slot in

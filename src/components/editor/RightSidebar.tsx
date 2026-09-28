@@ -28,6 +28,8 @@ import { FONTS } from "@/lib/schema";
 import { FONT_LABEL, FONT_FAMILY, CAPTION_COLORS, CAPTION_WEIGHTS, DEFAULT_FRAME_ADJUST, FRAME_SCALE_MIN, FRAME_SCALE_MAX, masterDimsFor, frameAdjustFor, frameScaleAt, frameRotationAt, resolveFreeformFrames, parseFreeformSel, freeformSelId, PERSPECTIVE_PRESETS, perspectivePresetId, type FrameAdjust } from "@/lib/editorDoc";
 import { DEVICE_BY_ID } from "@/lib/devices";
 import { PREVIEW_CLASSES } from "@/lib/sizes";
+import { deviceClassOf } from "@/lib/deviceGeometry";
+import { STORE_LOCALES, textFor, withText } from "@/lib/locales";
 import { computeLayout } from "@/lib/layout";
 import { uploadImage } from "@/lib/uploadImage";
 import { toast } from "sonner";
@@ -112,8 +114,12 @@ export default function RightSidebar({ readOnly = false }: { readOnly?: boolean 
   const addImageLayer = useEditorStore((s) => s.addImageLayer);
   const updateImageLayer = useEditorStore((s) => s.updateImageLayer);
   const removeImageLayer = useEditorStore((s) => s.removeImageLayer);
-  const previewClass = useEditorStore((s) => s.previewClass);
+  // Crop edits target the family the canvas renders (the active doc's device),
+  // so they keep working after the device is switched to another family.
+  const previewClass = useEditorStore((s) => deviceClassOf(s.doc.device));
   const selectedLayerId = useEditorStore((s) => s.selectedLayerId);
+  const previewLocale = useEditorStore((s) => s.previewLocale);
+  const setPreviewLocale = useEditorStore((s) => s.setPreviewLocale);
   const addTextLayer = useEditorStore((s) => s.addTextLayer);
   const updateTextLayer = useEditorStore((s) => s.updateTextLayer);
   const removeTextLayer = useEditorStore((s) => s.removeTextLayer);
@@ -564,9 +570,24 @@ export default function RightSidebar({ readOnly = false }: { readOnly?: boolean 
         <>
           <section>
             <SectionTitle>Text</SectionTitle>
+            <select
+              value={previewLocale ?? ""}
+              onChange={(e) => setPreviewLocale(e.target.value || null)}
+              aria-label="Caption language"
+              className="mb-2 h-8 w-full rounded-md border bg-background px-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">Default language</option>
+              {STORE_LOCALES.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.label}
+                  {selected.translations?.[l.id] ? " ✓" : ""}
+                </option>
+              ))}
+            </select>
             <textarea
-              value={selected.content}
-              onChange={(e) => set({ content: e.target.value })}
+              value={previewLocale ? selected.translations?.[previewLocale] ?? "" : selected.content}
+              placeholder={previewLocale ? textFor(selected, null) : undefined}
+              onChange={(e) => set(withText(selected, previewLocale, e.target.value))}
               rows={3}
               className="w-full resize-none rounded-md border bg-background p-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />

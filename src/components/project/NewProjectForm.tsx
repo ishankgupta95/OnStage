@@ -20,8 +20,10 @@ import {
   captionColorFor,
   type Platform,
 } from "@/lib/templates";
+import type { CSSProperties } from "react";
 import type { LayoutPreset } from "@/lib/schema";
 import type { BackgroundChoice } from "@/lib/editorDoc";
+import { PATTERNS, patternSwatchStyle } from "@/lib/backgrounds";
 
 type ColorChoice = { kind: "gradient" | "palette"; id: string };
 
@@ -30,14 +32,14 @@ const PHONE_ASPECT = 0.48;
 // A small schematic of one screen: the chosen color as the canvas, a dark device
 // silhouette per the layout's frame box, and caption lines in the caption color.
 // Derived from computeLayout so it tracks the real composition.
-function ScreenThumb({ layout, bgCss, color }: { layout: LayoutPreset; bgCss: string; color: string }) {
+function ScreenThumb({ layout, bg, color }: { layout: LayoutPreset; bg: CSSProperties; color: string }) {
   const W = 32;
   const H = 67;
   const { caption, frames } = computeLayout(layout, W, H);
   return (
     <div
       className="relative shrink-0 overflow-hidden rounded-[4px] ring-1 ring-black/10"
-      style={{ width: W, height: H, background: bgCss }}
+      style={{ width: W, height: H, ...bg }}
     >
       {frames.map((fp, i) => {
         const b = fitFrame(fp.box, PHONE_ASPECT);
@@ -90,7 +92,6 @@ export default function NewProjectForm() {
   const [color, setColor] = useState<ColorChoice>({ kind: "gradient", id: "emerald-fade" });
   const [creating, setCreating] = useState(false);
 
-  const bgCss = backgroundCssFor(color);
   const capColor = captionColorFor(color);
   const selected = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
 
@@ -200,6 +201,12 @@ export default function NewProjectForm() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {TEMPLATES.map((t) => {
               const isSel = t.id === templateId;
+              // A template built around its own background previews (and uses) it.
+              const tBg: BackgroundChoice = t.background ?? color;
+              const thumbBg: CSSProperties =
+                tBg.kind === "pattern"
+                  ? patternSwatchStyle(PATTERNS.find((p) => p.id === tBg.id) ?? PATTERNS[0])
+                  : { background: backgroundCssFor(tBg) };
               return (
                 <button
                   key={t.id}
@@ -213,7 +220,7 @@ export default function NewProjectForm() {
                 >
                   <div className="flex items-end gap-1.5 overflow-hidden rounded-xl bg-muted/40 p-3">
                     {t.screens.slice(0, 6).map((s, i) => (
-                      <ScreenThumb key={i} layout={s.layout} bgCss={bgCss} color={capColor} />
+                      <ScreenThumb key={i} layout={s.layout} bg={thumbBg} color={t.background ? captionColorFor(t.background) : capColor} />
                     ))}
                   </div>
                   <div className="flex items-start justify-between gap-2 px-1 pb-1">

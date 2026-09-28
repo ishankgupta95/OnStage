@@ -13,7 +13,7 @@ import OnboardingTour from "./OnboardingTour";
 import { useEditorStore } from "@/store/editor";
 import type { EditorDoc } from "@/lib/editorDoc";
 import { deviceClassOf } from "@/lib/deviceGeometry";
-import { saveScreenshotConfig } from "@/lib/localData";
+import { saveScreenshotConfig, writeScreenshotDocNow } from "@/lib/localData";
 
 // One project screenshot, as shown in the filmstrip rail.
 export type RailShot = { id: string; position: number; thumbnailUrl: string | null; doc: EditorDoc };
@@ -72,6 +72,33 @@ function EditorWorkspace({
     const seen = new Map<string, EditorDoc>(Object.entries(useEditorStore.getState().docs));
     const pending = new Set<string>();
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const flush = async () => {
+      clearTimeout(timer);
+      timer = undefined;
+      const ids = [...pending];
+      pending.clear();
+      if (!ids.length) return;
+      const docs = useEditorStore.getState().docs;
+      let ok = true;
+      // A stable toast id dedupes across repeated failed autosaves so a failing
+      // store updates one toast instead of stacking dozens.
+      await Promise.all(
+        ids.map(async (id) => {
+          const d = docs[id];
+          if (!d) return; // deleted before the debounce fired
+          try {
+            const res = await saveScreenshotConfig(id, d);
+            if (!res.ok) ok = false;
+          } catch {
+            ok = false;
+          }
+        }),
+      );
+      // "Saved" only once nothing newer is waiting to be written.
+      const waiting = pending.size > 0 || timer !== undefined;
+      useEditorStore.getState().setSaveState(!ok ? "idle" : waiting ? "saving" : "saved");
+      if (!ok) toast.error("Couldn't save your changes to this browser's storage", { id: "save-error" });
+    };
     const unsub = useEditorStore.subscribe((state) => {
       let changed = false;
       for (const id in state.docs) {
@@ -84,31 +111,26 @@ function EditorWorkspace({
       if (!changed) return;
       useEditorStore.getState().setSaveState("saving");
       clearTimeout(timer);
-      timer = setTimeout(async () => {
-        const ids = [...pending];
-        pending.clear();
-        const docs = useEditorStore.getState().docs;
-        let ok = true;
-        // A stable toast id dedupes across repeated failed autosaves so a flaky
-        // connection updates one toast instead of stacking dozens.
-        await Promise.all(
-          ids.map(async (id) => {
-            const d = docs[id];
-            if (!d) return; // deleted before the debounce fired
-            try {
-              const res = await saveScreenshotConfig(id, d);
-              if (!res.ok) ok = false;
-            } catch {
-              ok = false;
-            }
-          }),
-        );
-        useEditorStore.getState().setSaveState(ok ? "saved" : "idle");
-        if (!ok) toast.error("Couldn't save your changes — check your connection", { id: "save-error" });
-      }, 1500);
+      timer = setTimeout(flush, 1500);
     });
+    // Write immediately when the tab is hidden or closed, so the last edit isn't
+    // lost inside the debounce window. The synchronous writes are what survive a
+    // close; the normal save then runs too (and bumps the project's updated time).
+    const onHide = () => {
+      if (!pending.size) return;
+      const docs = useEditorStore.getState().docs;
+      for (const id of pending) if (docs[id]) writeScreenshotDocNow(id, docs[id]);
+      void flush();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") onHide();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", onHide);
     return () => {
-      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", onHide);
+      void flush(); // leaving the editor (e.g. back to the dashboard)
       unsub();
     };
   }, [canEdit]);
@@ -124,7 +146,7 @@ function EditorWorkspace({
       )}
       <div className="flex flex-1 overflow-hidden">
         <LeftSidebar readOnly={!canEdit} />
-        <main className="relative flex flex-1 flex-col bg-muted/30">
+        <main className="relative flex min-w-0 flex-1 flex-col bg-muted/30">
           <div className="relative flex-1 animate-in fade-in overflow-hidden duration-700 fill-mode-both delay-100">
             <EditorCanvas />
           </div>

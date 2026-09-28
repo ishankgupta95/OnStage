@@ -29,7 +29,13 @@ let _envTex: THREE.Texture | null = null;
 let _rectInit = false;
 
 function getRenderer(): THREE.WebGLRenderer {
-  if (_renderer) return _renderer;
+  if (_renderer && !_renderer.getContext().isContextLost()) return _renderer;
+  // First use, or the GPU dropped the context (driver reset, too many
+  // contexts): start over with a fresh renderer. The env map belonged to the
+  // old context, so it's rebuilt too.
+  _renderer?.dispose();
+  _renderer = null;
+  _envTex = null;
   const r = new THREE.WebGLRenderer({
     alpha: true,
     antialias: true,
@@ -133,8 +139,8 @@ function composeScreen(
   img: HTMLImageElement | null,
   aspect: number,
   adjust: FrameAdjust,
+  tw: number,
 ): HTMLCanvasElement {
-  const tw = 1024;
   const th = Math.max(1, Math.round(tw / aspect));
   const c = document.createElement("canvas");
   c.width = tw;
@@ -252,7 +258,10 @@ function renderDevice(opts: Device3DOpts): HTMLCanvasElement {
 
   // screen (screenshot texture, unlit/bright)
   const screenAspect = (W - 2 * screenInset) / (H - 2 * screenInset);
-  const screenTex = new THREE.CanvasTexture(composeScreen(opts.screenImage, screenAspect, adjust));
+  // Texture at least as wide as the rendered device (so large iPad exports stay
+  // sharp), within 1024–2048 px and the GPU's limit.
+  const texW = Math.min(maxTex, 2048, Math.max(1024, Math.round(width)));
+  const screenTex = new THREE.CanvasTexture(composeScreen(opts.screenImage, screenAspect, adjust, texW));
   screenTex.colorSpace = THREE.SRGBColorSpace;
   screenTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
   const screen = new THREE.Mesh(
@@ -321,6 +330,10 @@ function renderDevice(opts: Device3DOpts): HTMLCanvasElement {
   camera.lookAt(0, 0, 0);
 
   renderer.render(scene, camera);
+  if (renderer.getContext().isContextLost()) {
+    disposeScene(scene);
+    throw new Error("The 3D device couldn't be drawn (the graphics context was lost). Reload the page and try again.");
+  }
 
   const out = document.createElement("canvas");
   out.width = width;
@@ -354,6 +367,13 @@ function cacheKey(o: Device3DOpts): string {
     a.offsetX,
     a.offsetY,
   ].join("|");
+}
+
+// Drop cached renders and shrink the GPU buffer. Called after an export, whose
+// full-size renders would otherwise stay in memory (up to CACHE_MAX canvases).
+export function releaseRenderMemory() {
+  _cache.clear();
+  if (_renderer && !_renderer.getContext().isContextLost()) _renderer.setSize(1, 1, false);
 }
 
 export function renderDeviceCached(o: Device3DOpts): HTMLCanvasElement {

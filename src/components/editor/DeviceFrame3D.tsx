@@ -37,11 +37,24 @@ export default function DeviceFrame3D({
   const [, bump] = useState(0);
   useEffect(() => {
     if (render) return;
-    ensure3DLoaded();
+    ensure3DLoaded().catch(() => {}); // stays flat; a later mount retries
     return subscribe3DLoad(() => bump((n) => n + 1));
   }, [render]);
 
-  if (!render) {
+  const w = Math.max(1, Math.round(f.width));
+  const h = Math.max(1, Math.round(f.height));
+  const canvas = render?.({
+    deviceKey: device,
+    geom: geo,
+    perspective,
+    screenImage,
+    adjust,
+    width: w,
+    height: h,
+  });
+
+  // Chunk not loaded yet, or the 3D draw failed: show the flat frame.
+  if (!canvas) {
     return (
       <DeviceFrameFlat
         f={f}
@@ -53,18 +66,6 @@ export default function DeviceFrame3D({
       />
     );
   }
-
-  const w = Math.max(1, Math.round(f.width));
-  const h = Math.max(1, Math.round(f.height));
-  const canvas = render({
-    deviceKey: device,
-    geom: geo,
-    perspective,
-    screenImage,
-    adjust,
-    width: w,
-    height: h,
-  });
 
   return (
     <KonvaImage

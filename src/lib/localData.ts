@@ -10,6 +10,7 @@
 
 import { DEFAULT_DOC, type BackgroundChoice, type EditorDoc } from "@/lib/editorDoc";
 import { buildTemplateDocs, templateById, type Platform } from "@/lib/templates";
+import { MAX_SET_SCREENSHOTS } from "@/lib/sizes";
 
 // ── Records ──────────────────────────────────────────────────────────────────
 export type ProjectRecord = { id: string; name: string; updatedAt: number; order: string[] };
@@ -37,6 +38,9 @@ function uuid(): string {
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
+// The open connection, once available — for writeScreenshotDocNow, which must
+// issue its write synchronously.
+let openedDb: IDBDatabase | null = null;
 
 function openDB(): Promise<IDBDatabase> {
   if (typeof indexedDB === "undefined") {
@@ -50,11 +54,27 @@ function openDB(): Promise<IDBDatabase> {
         if (!db.objectStoreNames.contains(PROJECTS)) db.createObjectStore(PROJECTS, { keyPath: "id" });
         if (!db.objectStoreNames.contains(SHOTS)) db.createObjectStore(SHOTS, { keyPath: "id" });
       };
-      req.onsuccess = () => resolve(req.result);
+      req.onsuccess = () => {
+        openedDb = req.result;
+        resolve(req.result);
+        requestPersistence();
+      };
       req.onerror = () => reject(req.error);
     });
   }
   return dbPromise;
+}
+
+// Projects live only in this browser, so ask it to keep this site's storage
+// instead of evicting it when space runs low. Chrome and Safari decide silently;
+// Firefox would show a permission prompt, so it's skipped there.
+function requestPersistence() {
+  const storage = typeof navigator !== "undefined" ? navigator.storage : undefined;
+  if (!storage?.persist || /firefox/i.test(navigator.userAgent)) return;
+  storage
+    .persisted()
+    .then((already) => (already ? undefined : storage.persist()))
+    .catch(() => {});
 }
 
 // One request per transaction — for a single-user demo we don't need cross-store
@@ -101,7 +121,22 @@ async function idbDelete(store: string, key: string): Promise<void> {
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
 const getProjectRecord = (id: string) => idbGet<ProjectRecord>(PROJECTS, id);
-const getShot = (id: string) => idbGet<ScreenshotRecord>(SHOTS, id);
+// Last-known screenshot records (every read and write goes through getShot /
+// putShot), so writeScreenshotDocNow can save a doc without reading first.
+const shotCache = new Map<string, ScreenshotRecord>();
+const getShot = async (id: string) => {
+  const s = await idbGet<ScreenshotRecord>(SHOTS, id);
+  if (s) shotCache.set(id, s);
+  return s;
+};
+async function putShot(s: ScreenshotRecord): Promise<void> {
+  await idbPut<ScreenshotRecord>(SHOTS, s);
+  shotCache.set(s.id, s);
+}
+async function deleteShot(id: string): Promise<void> {
+  await idbDelete(SHOTS, id);
+  shotCache.delete(id);
+}
 const cloneDoc = (doc: EditorDoc): EditorDoc =>
   typeof structuredClone === "function" ? structuredClone(doc) : (JSON.parse(JSON.stringify(doc)) as EditorDoc);
 
@@ -158,7 +193,7 @@ export async function createProject(
   for (let i = 0; i < seedDocs.length; i++) {
     const id = uuid();
     order.push(id);
-    await idbPut<ScreenshotRecord>(SHOTS, { id, projectId, position: i, thumbnailUrl: null, doc: seedDocs[i] });
+    await putShot({ id, projectId, position: i, thumbnailUrl: null, doc: seedDocs[i] });
   }
   await idbPut<ProjectRecord>(PROJECTS, {
     id: projectId,
@@ -171,7 +206,7 @@ export async function createProject(
 
 export async function deleteProject(id: string): Promise<void> {
   const p = await getProjectRecord(id);
-  if (p) for (const sid of p.order) await idbDelete(SHOTS, sid);
+  if (p) for (const sid of p.order) await deleteShot(sid);
   await idbDelete(PROJECTS, id);
 }
 
@@ -188,7 +223,7 @@ export async function saveScreenshotConfig(
   try {
     const s = await getShot(id);
     if (!s) return { ok: false, error: "Screenshot not found" };
-    await idbPut<ScreenshotRecord>(SHOTS, { ...s, doc });
+    await putShot({ ...s, doc });
     const p = await getProjectRecord(s.projectId);
     if (p) await putProject(p); // bump updatedAt
     return { ok: true };
@@ -197,16 +232,35 @@ export async function saveScreenshotConfig(
   }
 }
 
+// Save a doc with ONE synchronously-issued write, for when the page is being
+// hidden or closed: an async save's first read can finish after the page is
+// gone, so its write would never start. Returns false (caller falls back to
+// saveScreenshotConfig) if the record or connection isn't at hand.
+export function writeScreenshotDocNow(id: string, doc: EditorDoc): boolean {
+  const s = shotCache.get(id);
+  if (!openedDb || !s) return false;
+  try {
+    const rec: ScreenshotRecord = { ...s, doc };
+    const tx = openedDb.transaction(SHOTS, "readwrite");
+    tx.objectStore(SHOTS).put(rec);
+    tx.oncomplete = () => shotCache.set(id, rec);
+    tx.commit?.();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function addScreenshot(
   projectId: string,
 ): Promise<{ id: string; position: number; doc: EditorDoc } | null> {
   try {
     const p = await getProjectRecord(projectId);
-    if (!p) return null;
+    if (!p || p.order.length >= MAX_SET_SCREENSHOTS) return null;
     const id = uuid();
     const position = p.order.length;
     const doc = cloneDoc(DEFAULT_DOC);
-    await idbPut<ScreenshotRecord>(SHOTS, { id, projectId, position, thumbnailUrl: null, doc });
+    await putShot({ id, projectId, position, thumbnailUrl: null, doc });
     await putProject({ ...p, order: [...p.order, id] });
     return { id, position, doc };
   } catch {
@@ -221,11 +275,11 @@ export async function duplicateScreenshotInline(
   try {
     const p = await getProjectRecord(projectId);
     const src = await getShot(id);
-    if (!p || !src) return null;
+    if (!p || !src || p.order.length >= MAX_SET_SCREENSHOTS) return null;
     const newId = uuid();
     const position = p.order.length;
     const doc = cloneDoc(src.doc);
-    await idbPut<ScreenshotRecord>(SHOTS, {
+    await putShot({
       id: newId,
       projectId,
       position,
@@ -243,7 +297,7 @@ export async function deleteScreenshotInline(id: string, projectId: string): Pro
   try {
     const p = await getProjectRecord(projectId);
     if (p) await putProject({ ...p, order: p.order.filter((x) => x !== id) });
-    await idbDelete(SHOTS, id);
+    await deleteShot(id);
     return { ok: true };
   } catch {
     return { ok: false };
@@ -276,7 +330,7 @@ export async function saveThumbnail(
   try {
     const s = await getShot(id);
     if (!s) return { ok: false };
-    await idbPut<ScreenshotRecord>(SHOTS, { ...s, thumbnailUrl: dataUrl });
+    await putShot({ ...s, thumbnailUrl: dataUrl });
     return { ok: true };
   } catch {
     return { ok: false };
@@ -314,4 +368,68 @@ export async function seedDemoIfEmpty(): Promise<void> {
   } catch {
     // best-effort — an empty dashboard is still usable
   }
+}
+
+// ── Project files (download / import) ────────────────────────────────────────
+// A project as one JSON file, images included (they're data URLs in the docs),
+// so a project can be backed up or moved to another browser. Importing always
+// creates a new project; it never overwrites one.
+export const PROJECT_FILE_FORMAT = "onstage-project";
+export type ProjectFile = {
+  format: typeof PROJECT_FILE_FORMAT;
+  version: 1;
+  name: string;
+  screenshots: { doc: EditorDoc; thumbnailUrl: string | null }[];
+};
+
+export async function exportProjectFile(id: string): Promise<ProjectFile | null> {
+  const proj = await getProject(id);
+  if (!proj) return null;
+  return {
+    format: PROJECT_FILE_FORMAT,
+    version: 1,
+    name: proj.name,
+    screenshots: proj.shots.map((s) => ({ doc: s.doc, thumbnailUrl: s.thumbnailUrl })),
+  };
+}
+
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+// Check a parsed file is an Onstage project whose docs the editor can open.
+// Throws an Error with a message fit to show the user.
+export function parseProjectFile(data: unknown): ProjectFile {
+  if (!isObj(data) || data.format !== PROJECT_FILE_FORMAT) throw new Error("This isn't an Onstage project file.");
+  if (data.version !== 1) throw new Error("This project file comes from a newer version of Onstage.");
+  if (!Array.isArray(data.screenshots) || data.screenshots.length === 0) {
+    throw new Error("This project file has no screenshots.");
+  }
+  const screenshots = data.screenshots.map((s, i) => {
+    const doc = isObj(s) ? s.doc : undefined;
+    const ok =
+      isObj(doc) &&
+      typeof doc.device === "string" &&
+      typeof doc.layout === "string" &&
+      isObj(doc.background) &&
+      typeof doc.background.kind === "string" &&
+      Array.isArray(doc.frameImages) &&
+      Array.isArray(doc.textLayers);
+    if (!ok) throw new Error(`Screenshot ${i + 1} in this project file is damaged.`);
+    const thumb = isObj(s) && typeof s.thumbnailUrl === "string" ? s.thumbnailUrl : null;
+    return { doc: doc as unknown as EditorDoc, thumbnailUrl: thumb };
+  });
+  const name = typeof data.name === "string" && data.name.trim() ? data.name.trim() : "Imported app";
+  return { format: PROJECT_FILE_FORMAT, version: 1, name, screenshots };
+}
+
+export async function importProjectFile(file: ProjectFile): Promise<{ projectId: string }> {
+  const projectId = uuid();
+  const order: string[] = [];
+  for (let i = 0; i < file.screenshots.length; i++) {
+    const id = uuid();
+    order.push(id);
+    const { doc, thumbnailUrl } = file.screenshots[i];
+    await putShot({ id, projectId, position: i, thumbnailUrl, doc: cloneDoc(doc) });
+  }
+  await idbPut<ProjectRecord>(PROJECTS, { id: projectId, name: file.name, updatedAt: Date.now(), order });
+  return { projectId };
 }

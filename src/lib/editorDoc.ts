@@ -6,7 +6,13 @@ export type BackgroundChoice =
   | { kind: "palette"; id: string }
   | { kind: "solid"; color: string }
   | { kind: "mesh"; id: string }
-  | { kind: "pattern"; id: string };
+  | { kind: "pattern"; id: string }
+  // A two-colour gradient picked by the user (angle in degrees, like GRADIENTS).
+  | { kind: "custom-gradient"; from: string; to: string; angle: number }
+  // A picture filling the canvas (cover), stored as a data URL like screenshots.
+  | { kind: "image"; src: string };
+
+export const CUSTOM_GRADIENT_ANGLE = 160;
 
 // Canvas orientation. The master design space (where text/frame/image coords
 // live) transposes between the two: portrait is 1290×2796, landscape 2796×1290.
@@ -38,6 +44,9 @@ export type TextLayer = {
   color: string;
   letterSpacing: number;
   lineHeight: number;
+  // The caption in other store languages (locale code → text); `content` is the
+  // default language. See src/lib/locales.ts.
+  translations?: Record<string, string>;
 };
 
 // How a source screenshot sits inside a device's screen.
@@ -312,7 +321,7 @@ export function makeTextLayer(partial: Partial<TextLayer> = {}): TextLayer {
 }
 
 export const DEFAULT_DOC: EditorDoc = {
-  device: "iphone-16-pro",
+  device: "iphone-17-pro",
   layout: "text-above",
   orientation: "portrait",
   background: { kind: "gradient", id: "emerald-fade" },

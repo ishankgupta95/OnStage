@@ -15,11 +15,17 @@ import { EXAMPLES } from "@/components/marketing/examples";
 import { GRADIENTS } from "@/lib/gradients";
 import { MESH_GRADIENTS, PATTERNS, meshSwatchStyle, patternSwatchStyle } from "@/lib/backgrounds";
 import { EXPORT_SIZES, EXPORT_PRESETS } from "@/lib/sizes";
+import { DEVICE_PICKER } from "@/lib/devices";
+
+// Counts quoted in the copy, read from the data so they can't drift.
+const FRAME_COUNT = DEVICE_PICKER.length;
+const APPLE_SIZE_COUNT = EXPORT_SIZES.filter((s) => s.os === "iOS").length;
+const PLAY_SIZE_COUNT = EXPORT_SIZES.length - APPLE_SIZE_COUNT;
 
 export const metadata: Metadata = {
   title: "Onstage — App Store & Google Play screenshots that earn the install",
   description:
-    "Turn raw app captures into polished store screenshots. 24 device frames, 20 layouts, and pixel-exact exports for every Apple and Google Play slot. Built for indie devs and small teams.",
+    `Turn raw app captures into polished store screenshots. ${FRAME_COUNT} device frames, 20 layouts, and pixel-exact exports for every Apple and Google Play slot. Built for indie devs and small teams.`,
 };
 
 // Upgrade synthetic mockups to real exports when PNGs are dropped in /public/examples
@@ -341,7 +347,7 @@ const STEPS = [
 const FAQS = [
   {
     q: "Will the exports match the exact sizes Apple and Google require?",
-    a: "Yes — that's the whole point. Onstage renders to the precise pixel dimensions of all 8 store slots (six Apple, two Google Play), and each file is decode-verified before it lands in your bundle.",
+    a: `Yes — that's the whole point. Onstage renders to the precise pixel dimensions of all ${EXPORT_SIZES.length} store slots (${APPLE_SIZE_COUNT} Apple, ${PLAY_SIZE_COUNT} Google Play), and each file is decode-verified before it lands in your bundle.`,
   },
   {
     q: "Do I need design skills?",
@@ -349,7 +355,7 @@ const FAQS = [
   },
   {
     q: "Which devices and stores are covered?",
-    a: "24 device frames — iPhone, iPad, Pixel and Galaxy, including folds and tablets — for the Apple App Store and Google Play, in both portrait and landscape.",
+    a: `${FRAME_COUNT} device frames — iPhone, iPad, Pixel and Galaxy, including a fold and tablets — for the Apple App Store and Google Play, in both portrait and landscape.`,
   },
   {
     q: "Does Onstage upload to the stores for me?",
@@ -357,11 +363,11 @@ const FAQS = [
   },
   {
     q: "Is it free?",
-    a: "There's a free tier to try the editor and export, no credit card required. Paid plans lift the limits — pricing is still being finalized ahead of launch.",
+    a: "Yes. There's no account, no watermark and no export limit. Everything runs in your browser.",
   },
   {
     q: "Can a small team use it?",
-    a: "It's built for solo devs and small teams alike. Projects keep all of an app's screenshots together, with autosave and version history as you iterate.",
+    a: "Yes, with one caveat: projects are saved in the browser that made them, not on a server. To hand one to a teammate, download its project file and they import it.",
   },
 ];
 
@@ -405,13 +411,13 @@ export default function Home() {
               </a>
             </div>
             <div className="mt-7 flex animate-in fade-in flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground delay-500 duration-700 fill-mode-both">
-              <span className="text-foreground/80">24 frames</span>
+              <span className="text-foreground/80">{FRAME_COUNT} frames</span>
               <span className="text-border">/</span>
               <span className="text-foreground/80">20 layouts</span>
               <span className="text-border">/</span>
-              <span className="text-foreground/80">8 pixel-exact sizes</span>
+              <span className="text-foreground/80">{EXPORT_SIZES.length} pixel-exact sizes</span>
               <span className="text-border">/</span>
-              <span>free to start · no card</span>
+              <span>free · no sign-up</span>
             </div>
           </div>
 
@@ -503,7 +509,7 @@ export default function Home() {
       <section id="features" className="mx-auto w-full max-w-6xl scroll-mt-16 space-y-24 px-5 py-20 sm:px-8 lg:space-y-32 lg:py-28">
         <FeatureRow
           eyebrow="Frames + layouts"
-          title={<>24 frames. 20 layouts. <span className="text-primary">No Figma.</span></>}
+          title={<>{FRAME_COUNT} frames. 20 layouts. <span className="text-primary">No Figma.</span></>}
           body="Drop a screenshot into any frame — iPhone, iPad, Pixel, Galaxy, folds and tablets — and snap it to a layout. Per-device crop with zoom and drag-to-pan keeps every slot looking deliberate."
           points={["iPhone, iPad, Pixel & Galaxy — folds and tablets included", "20 presets, from clean text-above to triptychs", "Per-device crop: fill or fit, zoom, drag to pan"]}
           visual={<FramesFan />}

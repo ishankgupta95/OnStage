@@ -7,6 +7,7 @@ import { ArrowLeftIcon, DownloadIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getProject, renameProject, createScreenshot } from "@/lib/localData";
 import { editorHref } from "@/lib/routes";
+import { MAX_SET_SCREENSHOTS, SET_FULL_MESSAGE } from "@/lib/sizes";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ScreenshotGrid, { type Shot } from "@/components/editor/ScreenshotGrid";
@@ -76,7 +77,7 @@ function ProjectBoard() {
       <main className="mx-auto w-full max-w-5xl px-6 py-16 text-center sm:px-8">
         <h1 className="text-xl font-bold tracking-tight">Project not found</h1>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-          Demo projects live only in the browser that created them. Open one of yours from the dashboard.
+          Projects live only in the browser that created them. Open one of yours from the dashboard.
         </p>
         <Link href="/dashboard" className={cn(buttonVariants({ size: "sm" }), "mt-5 gap-1.5")}>
           <ArrowLeftIcon className="size-4" />
@@ -97,6 +98,10 @@ function ProjectBoard() {
   }
 
   async function addScreen() {
+    if (shots.length >= MAX_SET_SCREENSHOTS) {
+      toast.error(SET_FULL_MESSAGE);
+      return;
+    }
     const created = await createScreenshot(id);
     if (!created) {
       toast.error("Couldn't add screenshot");

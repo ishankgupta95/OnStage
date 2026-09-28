@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const DEVICE_FRAMES = [
+  "iphone-17-pro",
   "iphone-16-pro",
   "iphone-16-pro-max",
   "iphone-16",
@@ -13,6 +14,7 @@ export const DEVICE_FRAMES = [
   "ipad-pro-11",
   "ipad-air-11",
   "ipad-mini",
+  "pixel-10",
   "pixel-9-pro-xl",
   "pixel-9-pro",
   "pixel-9",

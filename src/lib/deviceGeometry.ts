@@ -88,6 +88,7 @@ const FOLD: DeviceGeometry = {
 const SE: DeviceGeometry = { ...IPHONE, aspect: 0.49, cornerRatio: 0.08, cutout: "none", screenCornerRatio: 0.02 };
 
 const BY_DEVICE: Partial<Record<DeviceFrame, DeviceGeometry>> = {
+  "iphone-17-pro": IPHONE,
   "iphone-16-pro": IPHONE,
   "iphone-16-pro-max": IPHONE,
   "iphone-16": IPHONE,
@@ -100,6 +101,7 @@ const BY_DEVICE: Partial<Record<DeviceFrame, DeviceGeometry>> = {
   "ipad-pro-11": IPAD,
   "ipad-air-11": IPAD,
   "ipad-mini": { ...IPAD, aspect: 0.7 },
+  "pixel-10": PIXEL,
   "pixel-9-pro-xl": PIXEL,
   "pixel-9-pro": PIXEL,
   "pixel-9": PIXEL,
@@ -139,8 +141,8 @@ export function deviceClassOf(device: DeviceFrame): DeviceClass {
 // Representative frame used when the editor's chosen device doesn't match the
 // export size's family (e.g. an iPhone design exported to an iPad slot).
 export const DEFAULT_DEVICE_FOR_CLASS: Record<DeviceClass, DeviceFrame> = {
-  iphone: "iphone-16-pro",
+  iphone: "iphone-17-pro",
   ipad: "ipad-pro-13",
-  "android-phone": "pixel-9",
+  "android-phone": "pixel-10",
   "android-tablet": "galaxy-tab-s9",
 };

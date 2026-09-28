@@ -28,7 +28,7 @@ function MissingProject() {
     <div className="flex h-screen flex-col items-center justify-center gap-4 p-8 text-center">
       <h1 className="text-xl font-bold tracking-tight">This project isn’t saved in this browser</h1>
       <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Projects in the demo live only in the browser that created them — nothing is stored on a server. Head back to the
+        Projects live only in the browser that created them — nothing is stored on a server. Head back to the
         dashboard to open one of yours or start a new project.
       </p>
       <Link href="/dashboard" className={cn(buttonVariants({ size: "sm" }), "mt-1 gap-1.5")}>

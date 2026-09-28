@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { DEVICE_BY_ID } from "@/lib/devices";
 import { duplicateScreenshot, deleteScreenshot, reorderScreenshots, createScreenshot } from "@/lib/localData";
 import { editorHref } from "@/lib/routes";
+import { MAX_SET_SCREENSHOTS, SET_FULL_MESSAGE } from "@/lib/sizes";
 import type { EditorDoc } from "@/lib/editorDoc";
 
 export type Shot = {
@@ -180,6 +181,10 @@ export default function ScreenshotGrid({
   );
 
   async function handleAdd() {
+    if (items.length >= MAX_SET_SCREENSHOTS) {
+      toast.error(SET_FULL_MESSAGE);
+      return;
+    }
     const created = await createScreenshot(projectId);
     if (!created) {
       toast.error("Couldn't add screenshot");
@@ -189,6 +194,10 @@ export default function ScreenshotGrid({
   }
 
   async function handleDuplicate(id: string) {
+    if (items.length >= MAX_SET_SCREENSHOTS) {
+      toast.error(SET_FULL_MESSAGE);
+      return;
+    }
     const created = await duplicateScreenshot(id, projectId);
     if (!created) {
       toast.error("Couldn't duplicate screenshot");

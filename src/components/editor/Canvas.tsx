@@ -5,7 +5,7 @@ import { Stage, Layer, Group, Rect } from "react-konva";
 import type Konva from "konva";
 import ScreenshotContent, { FRAME_SELECTION_ID } from "./ScreenshotContent";
 import { toast } from "sonner";
-import { useEditorStore } from "@/store/editor";
+import { useEditorStore, stepHistory } from "@/store/editor";
 import {
   FONT_FAMILY,
   masterDimsFor,
@@ -18,6 +18,8 @@ import {
 } from "@/lib/editorDoc";
 import { cn } from "@/lib/utils";
 import { uploadImage } from "@/lib/uploadImage";
+import { deviceClassOf } from "@/lib/deviceGeometry";
+import { localizeDoc, textFor, withText } from "@/lib/locales";
 import { saveThumbnail } from "@/lib/localData";
 import ExportController from "./ExportController";
 
@@ -273,7 +275,10 @@ export default function Canvas() {
   const updateTextLayer = useEditorStore((s) => s.updateTextLayer);
   const selectLayer = useEditorStore((s) => s.selectLayer);
   const selectedLayerId = useEditorStore((s) => s.selectedLayerId);
-  const previewClass = useEditorStore((s) => s.previewClass);
+  // Crop edits target the family the canvas renders (the active doc's device),
+  // so they keep working after the device is switched to another family.
+  const previewClass = useEditorStore((s) => deviceClassOf(s.doc.device));
+  const previewLocale = useEditorStore((s) => s.previewLocale);
 
   const [fontsReady, setFontsReady] = useState(false);
   const [fontTick, setFontTick] = useState(0);
@@ -318,6 +323,7 @@ export default function Canvas() {
       for (const il of f.doc.imageLayers ?? []) if (il.src) out.push(il.src);
       // Multi-device freeform frames carry their own screenshot src.
       for (const ff of f.doc.freeformFrames ?? []) if (ff.src) out.push(ff.src);
+      if (f.doc.background.kind === "image") out.push(f.doc.background.src);
     }
     return out;
   }, [frames]);
@@ -384,9 +390,7 @@ export default function Canvas() {
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key.toLowerCase() === "z") {
         e.preventDefault();
-        const t = useEditorStore.temporal.getState();
-        if (e.shiftKey) t.redo();
-        else t.undo();
+        stepHistory(e.shiftKey ? "redo" : "undo");
       } else if (mod && (e.key === "=" || e.key === "+")) {
         e.preventDefault();
         setZoom((z) => clampZoom(z * 1.2));
@@ -611,7 +615,7 @@ export default function Canvas() {
                 {items.map((it) => (
                   <FrameOnBoard
                     key={it.id}
-                    item={it}
+                    item={previewLocale ? { ...it, doc: localizeDoc(it.doc, previewLocale) } : it}
                     active={it.id === activeId}
                     contentKey={contentKeyFor(it)}
                     screenImages={screenImagesFor(it.doc)}
@@ -676,8 +680,14 @@ export default function Canvas() {
                 autoFocus
                 aria-label="Edit caption text"
                 spellCheck={false}
-                value={doc.textLayers.find((l) => l.id === editing.id)?.content ?? ""}
-                onChange={(e) => updateTextLayer(editing.id, { content: e.target.value })}
+                value={(() => {
+                  const l = doc.textLayers.find((x) => x.id === editing.id);
+                  return l ? textFor(l, previewLocale) : "";
+                })()}
+                onChange={(e) => {
+                  const l = doc.textLayers.find((x) => x.id === editing.id);
+                  if (l) updateTextLayer(editing.id, withText(l, previewLocale, e.target.value));
+                }}
                 onBlur={() => setEditing(null)}
                 onKeyDown={(e) => {
                   e.stopPropagation();

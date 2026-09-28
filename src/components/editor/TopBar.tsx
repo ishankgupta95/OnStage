@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { EyeIcon, Share2Icon } from "lucide-react";
+import { EyeIcon, LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useEditorStore } from "@/store/editor";
@@ -33,7 +33,7 @@ export default function TopBar({
   function copyLink() {
     navigator.clipboard
       .writeText(window.location.href)
-      .then(() => toast.success("Link copied to clipboard"))
+      .then(() => toast.success("Link copied. It opens this project in this browser only; to share it, download the project file from the dashboard."))
       .catch(() => toast.error("Couldn't copy link"));
   }
 
@@ -68,8 +68,8 @@ export default function TopBar({
       <div className="flex items-center gap-2">
         <ThemeToggle />
         <Button variant="outline" size="sm" className="gap-1.5" onClick={copyLink}>
-          <Share2Icon className="size-3.5" />
-          Share
+          <LinkIcon className="size-3.5" />
+          Copy link
         </Button>
         <ExportDialog projectId={projectId} />
       </div>

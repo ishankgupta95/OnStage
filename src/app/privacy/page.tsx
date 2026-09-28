@@ -42,7 +42,7 @@ export default function PrivacyPage() {
       ) : (
         <PlaceholderCopy
           title="Privacy policy"
-          body="We're finalizing the privacy policy with our legal provider. In the meantime: Onstage stores the source images and screenshot configurations you upload so we can render and export them. We do not sell or share your data. We use Stripe to process payments, Supabase to host your account and projects, and Vercel to serve the app. Contact privacy@onstage.app with any questions."
+          body="We're finalizing the privacy policy with our legal provider. In the meantime: Onstage runs entirely in your browser. Your projects and the images you add are stored in this browser only and never sent to a server; deleting a project removes it from this browser. There's no account, no analytics and no payment. The site is served by GitHub Pages, and its fonts load from Google Fonts and Fontshare, which see your IP address as with any web request."
         />
       )}
     </main>

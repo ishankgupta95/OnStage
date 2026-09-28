@@ -26,6 +26,7 @@ import {
   resolveFreeformFrames,
 } from "@/lib/editorDoc";
 import { computeLayout } from "@/lib/layout";
+import { coalesceBursts, reconcileDocs, selectableIds } from "@/lib/history";
 import type { DeviceFrame, LayoutPreset } from "@/lib/schema";
 import { deviceClassOf, type DeviceClass } from "@/lib/deviceGeometry";
 
@@ -43,6 +44,9 @@ export type ExportRequest = {
   scope: ExportScope;
   // Populated for scope "all": every screenshot's doc, ordered by position.
   shots: ExportShot[];
+  // Languages to render (null = the default captions). More than one writes a
+  // folder per language. Absent = default only.
+  locales?: (string | null)[];
 };
 export type ExportProgress =
   | { state: "idle" }
@@ -77,9 +81,16 @@ type EditorState = {
   setExportRequest: (r: ExportRequest) => void;
   exportProgress: ExportProgress;
   setExportProgress: (p: ExportProgress) => void;
+  // Bumped to stop a running export (ExportController abandons it).
+  exportCancel: number;
+  cancelExport: () => void;
   // Which device class the editor canvas previews (and whose crop is edited).
   previewClass: DeviceClass;
   setPreviewClass: (cls: DeviceClass) => void;
+  // Caption language shown on the canvas and edited in the sidebar (null =
+  // default). UI state only; not saved and not undoable.
+  previewLocale: string | null;
+  setPreviewLocale: (locale: string | null) => void;
   // Replace the whole doc set + active id (editor load). Caller clears temporal.
   hydrateDocs: (docs: Record<string, EditorDoc>, activeId: string) => void;
   // Switch the active screenshot (reads from docs; not tracked by undo).
@@ -129,8 +140,12 @@ type EditorState = {
 
 // Write the active screenshot's doc to BOTH the mirror and the docs map in one
 // set, so they never diverge. Edits flow through here; undo tracks `docs`.
+// An edit whose active screenshot is missing from `docs` does nothing, so it can
+// never resurrect a screenshot as a malformed "ghost" entry.
 function writeActive(s: EditorState, doc: EditorDoc): Partial<EditorState> {
-  return s.screenshotId ? { doc, docs: { ...s.docs, [s.screenshotId]: doc } } : { doc };
+  if (!s.screenshotId) return { doc };
+  if (!s.docs[s.screenshotId]) return {};
+  return { doc, docs: { ...s.docs, [s.screenshotId]: doc } };
 }
 
 // Copy ONE attribute from the active (source) doc onto a target doc, returning a
@@ -181,6 +196,13 @@ function applyAttr(attr: ApplyAttr, source: EditorDoc, target: EditorDoc, srcLay
   }
 }
 
+// Declared (with its return type) outside the store options so its type
+// doesn't depend on the store's own inferred type.
+function startsNewUndoStep(): boolean {
+  const t = useEditorStore.temporal.getState();
+  return t.pastStates.length === 0 || t.futureStates.length > 0;
+}
+
 export const useEditorStore = create<EditorState>()(
   temporal(
     (set) => ({
@@ -197,8 +219,12 @@ export const useEditorStore = create<EditorState>()(
       setExportRequest: (exportRequest) => set({ exportRequest }),
       exportProgress: { state: "idle" },
       setExportProgress: (exportProgress) => set({ exportProgress }),
+      exportCancel: 0,
+      cancelExport: () => set((s) => ({ exportCancel: s.exportCancel + 1, exportProgress: { state: "idle" } })),
       previewClass: "iphone",
       setPreviewClass: (previewClass) => set({ previewClass }),
+      previewLocale: null,
+      setPreviewLocale: (previewLocale) => set({ previewLocale }),
       hydrateDocs: (docs, activeId) =>
         set({
           docs,
@@ -475,10 +501,41 @@ export const useEditorStore = create<EditorState>()(
       // screenshot and makes "apply to all" a single undoable transaction. The
       // mirror (`doc`) is re-synced from `docs` after restore by the subscription below.
       partialize: (state) => ({ docs: state.docs }),
+      // Only a change to `docs` is an undo step — selection, the save badge and
+      // the mirror sync below must not record entries (or wipe redo).
+      equality: (past, current) => past.docs === current.docs,
+      // One step per gesture/typing burst, not per slider tick or keystroke.
+      // An edit always records when history is empty (fresh load) or right
+      // after an undo (redo stack non-empty), so it starts a new step.
+      handleSet: (handleSet) => coalesceBursts(handleSet, { windowMs: 500, force: startsNewUndoStep }),
       limit: 50,
     },
   ),
 );
+
+// Undo/redo one step. The restored snapshot may predate a screenshot added
+// since (or include one deleted since) — add/remove are structural and kept out
+// of history — so screenshot membership keeps following `order`. Then clamp the
+// selection to what the restored doc still has.
+export function stepHistory(dir: "undo" | "redo") {
+  const t = useEditorStore.temporal.getState();
+  const before = useEditorStore.getState();
+  if (dir === "undo") t.undo();
+  else t.redo();
+  const s = useEditorStore.getState();
+  if (s.docs === before.docs) return; // nothing to undo/redo
+  const docs = reconcileDocs(s.docs, before.docs, s.order);
+  const active = s.screenshotId ? docs[s.screenshotId] : undefined;
+  const doc = active ?? s.doc;
+  const sel = s.selectedLayerId;
+  const selectedLayerId = sel && selectableIds(before.doc).has(sel) && !selectableIds(doc).has(sel) ? null : sel;
+  const m = masterDimsFor(doc.orientation);
+  const slots = computeLayout(doc.layout, m.w, m.h).frames.length;
+  const selectedFrameIndex = s.selectedFrameIndex < slots ? s.selectedFrameIndex : 0;
+  t.pause();
+  useEditorStore.setState({ docs, doc, selectedLayerId, selectedFrameIndex });
+  t.resume();
+}
 
 // Keep the active mirror (`doc`) consistent with docs[screenshotId]. Edits already
 // dual-write both, so this only does real work after an undo/redo restores `docs`

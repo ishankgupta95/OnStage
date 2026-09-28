@@ -1,8 +1,11 @@
-import type { LayoutPreset, DeviceFrame } from "@/lib/schema";
+import type { LayoutPreset, DeviceFrame, Font } from "@/lib/schema";
 import {
   DEFAULT_DOC,
+  PERSPECTIVE_PRESETS,
   makeTextLayer,
   masterDimsFor,
+  type CaptionWeight,
+  type DevicePerspective,
   type EditorDoc,
   type BackgroundChoice,
 } from "@/lib/editorDoc";
@@ -20,23 +23,40 @@ export type Platform = "ios" | "android";
 
 // Platform → the device every seeded screen uses (changeable per-frame later).
 export const PLATFORM_DEVICE: Record<Platform, DeviceFrame> = {
-  ios: "iphone-16-pro",
-  android: "pixel-9",
+  ios: "iphone-17-pro",
+  android: "pixel-10",
 };
 
 export const PLATFORM_LABEL: Record<Platform, string> = {
-  ios: "iPhone 16 Pro",
-  android: "Pixel 9",
+  ios: "iPhone 17 Pro",
+  android: "Pixel 10",
 };
 
-export type TemplateScreen = { layout: LayoutPreset; caption?: string };
+export type TemplateScreen = {
+  layout: LayoutPreset;
+  caption?: string;
+  // A smaller second text layer placed under the caption (subheading, bullets).
+  subcaption?: string;
+  // Caption size at design size; default scales with the caption slot.
+  size?: number;
+  // 3D device angle for this screen; default flat.
+  perspective?: DevicePerspective;
+};
 
 export type ProjectTemplate = {
   id: string;
   label: string;
   description: string;
   screens: TemplateScreen[];
+  // Caption type; defaults are Inter 700 with Inter subcaptions.
+  font?: Font;
+  weight?: CaptionWeight;
+  subFont?: Font;
+  // A background the template is built around, used instead of the chosen color.
+  background?: BackgroundChoice;
 };
+
+const angle = (id: string) => PERSPECTIVE_PRESETS.find((p) => p.id === id)?.value ?? undefined;
 
 // Curated lineup. Counts and layouts vary deliberately so the gallery shows range.
 export const TEMPLATES: ProjectTemplate[] = [
@@ -81,8 +101,8 @@ export const TEMPLATES: ProjectTemplate[] = [
   },
   {
     id: "panoramic",
-    label: "Panoramic Story",
-    description: "Three wide, immersive screens that tell one story.",
+    label: "Wide Frames",
+    description: "Three screens with a near edge-to-edge device and the caption along the bottom.",
     screens: [
       { layout: "panoramic", caption: "See the bigger picture" },
       { layout: "panoramic", caption: "One seamless flow" },
@@ -102,6 +122,58 @@ export const TEMPLATES: ProjectTemplate[] = [
       { layout: "full-bleed" },
     ],
   },
+  {
+    id: "editorial",
+    label: "Editorial",
+    description: "Four screens with serif headlines and a quiet subheading under each.",
+    font: "fraunces",
+    weight: "600",
+    screens: [
+      { layout: "text-above", caption: "Read deeper", subcaption: "A calmer home for long reads" },
+      { layout: "quote-above", caption: "“The first app\nI open each day.”", subcaption: "— A happy reader" },
+      { layout: "text-above", caption: "Save for later", subcaption: "Articles, threads and PDFs" },
+      { layout: "text-below", caption: "Start reading", subcaption: "Your library, beautifully set" },
+    ],
+  },
+  {
+    id: "angled-hero",
+    label: "Angled Hero",
+    description: "Four bold screens with the device turned in 3D, alternating angles.",
+    weight: "800",
+    screens: [
+      { layout: "text-above", caption: "Built to\nmove fast", perspective: angle("right") },
+      { layout: "angled-frame", caption: "Everything\nat a glance", perspective: angle("left") },
+      { layout: "headline-over", caption: "Made for\nyour day", perspective: angle("subtle") },
+      { layout: "text-above", caption: "Get started\nin seconds", perspective: angle("right") },
+    ],
+  },
+  {
+    id: "stat-proof",
+    label: "Stat & Proof",
+    description: "A big-number stat, a testimonial, a feature list and a closing call to action.",
+    weight: "800",
+    screens: [
+      { layout: "stat-callout", caption: "10×", size: 200, subcaption: "faster than\ndoing it by hand" },
+      { layout: "quote-above", caption: "“Paid for itself\nin a week.”", subcaption: "— Early customer" },
+      { layout: "feature-list", caption: "Everything\nincluded", size: 88, subcaption: "• Offline mode\n• Smart reminders\n• Widgets\n• Dark mode" },
+      { layout: "text-below", caption: "Get started today" },
+    ],
+  },
+  {
+    id: "dev-tool",
+    label: "Dev Tool",
+    description: "Four monospace screens on a dark grid, for developer and technical apps.",
+    font: "jetbrains-mono",
+    weight: "700",
+    subFont: "jetbrains-mono",
+    background: { kind: "pattern", id: "grid-dark" },
+    screens: [
+      { layout: "text-above", caption: "$ ship --faster", subcaption: "Your tools, in your pocket" },
+      { layout: "callout-left", caption: "Type less.\nShip more.", size: 76 },
+      { layout: "side-by-side", caption: "Logs & metrics,\nside by side" },
+      { layout: "callout-right", caption: "Alerts that\nmake sense.", size: 76 },
+    ],
+  },
 ];
 
 export function templateById(id: string | null | undefined): ProjectTemplate {
@@ -119,13 +191,14 @@ function hexLuminance(hex: string): number {
 
 // The colors a background actually renders with (mirrors ScreenshotContent):
 // gradients use their stops; palettes use indices 1..3 (the lightest is skipped).
-function backgroundColors(bg: BackgroundChoice): string[] {
+export function backgroundColors(bg: BackgroundChoice): string[] {
   if (bg.kind === "gradient") return (GRADIENTS.find((x) => x.id === bg.id) ?? GRADIENTS[0]).stops.map((s) => s.color);
   if (bg.kind === "palette") {
     const c = (PALETTES.find((x) => x.id === bg.id) ?? PALETTES[0]).colors;
     return [c[1] ?? c[0], c[2] ?? c[c.length - 1], c[3] ?? c[c.length - 1]];
   }
   if (bg.kind === "solid") return [bg.color];
+  if (bg.kind === "custom-gradient") return [bg.from, bg.to];
   return ["#111111"];
 }
 
@@ -147,10 +220,18 @@ export function backgroundCssFor(bg: BackgroundChoice): string {
     return `linear-gradient(135deg, ${c[1] ?? c[0]} 0%, ${c[2] ?? c[c.length - 1]} 50%, ${c[3] ?? c[c.length - 1]} 100%)`;
   }
   if (bg.kind === "solid") return bg.color;
+  if (bg.kind === "custom-gradient") return `linear-gradient(${bg.angle}deg, ${bg.from}, ${bg.to})`;
   return "#111111";
 }
 
 const LEFT_ALIGNED: LayoutPreset[] = ["callout-left", "callout-right", "feature-list", "stat-callout"];
+
+// Caption size for a side layout's column: as large as `max` while the longest
+// word still fits the width (a bold glyph averages ~0.6 em).
+export function fitCaptionSize(text: string, width: number, max: number): number {
+  const longest = Math.max(1, ...text.split(/\s+/).map((w) => w.length));
+  return Math.max(40, Math.min(max, Math.floor(width / (longest * 0.6))));
+}
 
 // Turn a template + platform + background into ready-to-save EditorDocs (one per
 // screen). Captions are placed at each layout's caption slot; device frames are
@@ -158,10 +239,11 @@ const LEFT_ALIGNED: LayoutPreset[] = ["callout-left", "callout-right", "feature-
 export function buildTemplateDocs(
   template: ProjectTemplate,
   platform: Platform,
-  background: BackgroundChoice,
+  chosenBackground: BackgroundChoice,
 ): EditorDoc[] {
   const device = PLATFORM_DEVICE[platform];
   const m = masterDimsFor("portrait");
+  const background = template.background ?? chosenBackground;
   const color = captionColorFor(background);
   const screens = template.screens.length
     ? template.screens
@@ -169,6 +251,15 @@ export function buildTemplateDocs(
 
   return screens.map((screen) => {
     const cap = computeLayout(screen.layout, m.w, m.h).caption;
+    const align = LEFT_ALIGNED.includes(screen.layout) ? "left" : "center";
+    // Side layouts size the caption to their column (the stat as a big number);
+    // the rest scale with the caption slot.
+    const size =
+      screen.size ??
+      (cap && LEFT_ALIGNED.includes(screen.layout)
+        ? fitCaptionSize(screen.caption ?? "", cap.width, screen.layout === "stat-callout" ? 220 : 88)
+        : Math.max(56, Math.min(140, Math.round(cap ? cap.width * 0.1 : 110))));
+    const lineHeight = 1.1;
     const textLayers =
       cap && screen.caption !== undefined
         ? [
@@ -177,14 +268,35 @@ export function buildTemplateDocs(
               x: cap.x,
               y: cap.y,
               width: cap.width,
-              size: Math.max(56, Math.min(140, Math.round(cap.width * 0.1))),
-              align: LEFT_ALIGNED.includes(screen.layout) ? "left" : "center",
-              weight: "700",
-              lineHeight: 1.1,
+              size,
+              align,
+              font: template.font ?? "inter",
+              weight: template.weight ?? "700",
+              lineHeight,
               color,
             }),
           ]
         : [];
+    if (cap && screen.subcaption) {
+      // Under the caption: its explicit lines (template captions are written
+      // short enough not to wrap) plus a gap.
+      const subSize = Math.min(64, Math.max(44, Math.round(size * 0.55)));
+      const lines = (screen.caption ?? "").split("\n").length;
+      textLayers.push(
+        makeTextLayer({
+          content: screen.subcaption,
+          x: cap.x,
+          y: Math.round(cap.y + lines * size * lineHeight + subSize * 0.6),
+          width: cap.width,
+          size: subSize,
+          align,
+          font: template.subFont ?? "inter",
+          weight: "500",
+          lineHeight: 1.3,
+          color,
+        }),
+      );
+    }
     return {
       ...DEFAULT_DOC,
       device,
@@ -196,6 +308,7 @@ export function buildTemplateDocs(
       frameTransform: undefined,
       imageLayers: [],
       textLayers,
+      ...(screen.perspective ? { perspective: screen.perspective } : {}),
     };
   });
 }

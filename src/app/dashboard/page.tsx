@@ -1,9 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRightIcon, FolderPlusIcon, ImageIcon, Loader2, PlusIcon, Trash2Icon } from "lucide-react";
-import { listProjects, deleteProject, seedDemoIfEmpty, type ProjectSummary } from "@/lib/localData";
+import { ArrowUpRightIcon, DownloadIcon, FolderPlusIcon, ImageIcon, Loader2, PlusIcon, Trash2Icon, UploadIcon } from "lucide-react";
+import { toast } from "sonner";
+import {
+  listProjects,
+  deleteProject,
+  seedDemoIfEmpty,
+  exportProjectFile,
+  parseProjectFile,
+  importProjectFile,
+  type ProjectSummary,
+} from "@/lib/localData";
+import { downloadBlob } from "@/lib/download";
 import { projectHref } from "@/lib/routes";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -44,9 +54,49 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // Deleting a project can't be undone, so it takes two clicks: the first arms
+  // the button ("Delete?"), the second deletes. It disarms after a few seconds.
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!confirmId) return;
+    const t = setTimeout(() => setConfirmId(null), 4000);
+    return () => clearTimeout(t);
+  }, [confirmId]);
+
   async function onDelete(id: string) {
+    if (confirmId !== id) {
+      setConfirmId(id);
+      return;
+    }
+    setConfirmId(null);
     await deleteProject(id);
     await refresh();
+  }
+
+  // Project files: one JSON per project, images included.
+  async function onDownload(p: ProjectSummary) {
+    const file = await exportProjectFile(p.id);
+    if (!file) return toast.error("Couldn't read this project");
+    const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "project";
+    downloadBlob(new Blob([JSON.stringify(file)], { type: "application/json" }), `${slug}.onstage.json`);
+  }
+
+  const importRef = useRef<HTMLInputElement>(null);
+  async function onImport(f: File) {
+    try {
+      let data: unknown;
+      try {
+        data = JSON.parse(await f.text());
+      } catch {
+        throw new Error("This isn't an Onstage project file.");
+      }
+      const file = parseProjectFile(data);
+      await importProjectFile(file);
+      await refresh();
+      toast.success(`Imported “${file.name}”`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't import this project file");
+    }
   }
 
   const totalShots = (projects ?? []).reduce((n, p) => n + p.count, 0);
@@ -59,9 +109,6 @@ export default function DashboardPage() {
             <Mark />
           </Link>
           <span className="font-extrabold tracking-tight">Onstage</span>
-          <span className="hidden rounded-full border border-border bg-muted/50 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:inline">
-            Demo
-          </span>
         </div>
         <ThemeToggle />
       </header>
@@ -76,10 +123,27 @@ export default function DashboardPage() {
             <span className="tabular-nums text-foreground/80">{totalShots}</span> screenshot{totalShots === 1 ? "" : "s"}
           </p>
         </div>
-        <Link href="/project/new" className={cn(buttonVariants({ size: "sm" }), "h-9 shrink-0 gap-1.5 self-start px-3.5 sm:self-auto")}>
-          <PlusIcon className="size-4" />
-          New project
-        </Link>
+        <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
+          <Button variant="outline" size="sm" className="h-9 gap-1.5 px-3.5" onClick={() => importRef.current?.click()}>
+            <UploadIcon className="size-4" />
+            Import project
+          </Button>
+          <Link href="/project/new" className={cn(buttonVariants({ size: "sm" }), "h-9 gap-1.5 px-3.5")}>
+            <PlusIcon className="size-4" />
+            New project
+          </Link>
+          <input
+            ref={importRef}
+            type="file"
+            accept=".json,application/json"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void onImport(f);
+              e.target.value = "";
+            }}
+          />
+        </div>
       </section>
 
       {projects === null ? (
@@ -133,17 +197,41 @@ export default function DashboardPage() {
                   <ArrowUpRightIcon className="size-4 shrink-0 -translate-x-1 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
                 </div>
               </Link>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void onDelete(p.id);
-                }}
-                className="absolute right-2.5 top-2.5 z-10 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+              <div
+                className={cn(
+                  "absolute right-2.5 top-2.5 z-10 flex gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100",
+                  confirmId === p.id && "opacity-100",
+                )}
               >
-                <Button variant="ghost" size="icon-sm" type="submit" aria-label={`Delete ${p.name}`} className="bg-background/85 backdrop-blur hover:text-destructive">
-                  <Trash2Icon />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  type="button"
+                  onClick={() => void onDownload(p)}
+                  aria-label={`Download ${p.name} project file`}
+                  title="Download project file"
+                  className="bg-background/85 backdrop-blur"
+                >
+                  <DownloadIcon />
                 </Button>
-              </form>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void onDelete(p.id);
+                  }}
+                >
+                  {confirmId === p.id ? (
+                    <Button variant="destructive" size="sm" type="submit" aria-label={`Confirm delete ${p.name}`} className="backdrop-blur">
+                      <Trash2Icon />
+                      Delete?
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="icon-sm" type="submit" aria-label={`Delete ${p.name}`} className="bg-background/85 backdrop-blur hover:text-destructive">
+                      <Trash2Icon />
+                    </Button>
+                  )}
+                </form>
+              </div>
             </div>
           ))}
         </div>

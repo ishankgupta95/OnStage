@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Rect, Text, Line, Group, Transformer, Circle, Image as KonvaImage } from "react-konva";
-import type Konva from "konva";
+import Konva from "konva";
 import type { EditorDoc, TextLayer, FrameTransform, FrameAdjust, FreeformFrameSpec, ImageLayer, Orientation, DevicePerspective } from "@/lib/editorDoc";
 
 type KonvaNode = {
@@ -25,7 +25,7 @@ import {
   masterDimsFor,
 } from "@/lib/editorDoc";
 import { geometryFor, deviceClassOf, type DeviceGeometry } from "@/lib/deviceGeometry";
-import { computeLayout, fitFrame, type Box } from "@/lib/layout";
+import { computeLayout, fitFrame, keepCaptionOnCanvas, clearCaptions, type Box } from "@/lib/layout";
 import { GRADIENTS } from "@/lib/gradients";
 import { PALETTES } from "@/lib/palettes";
 import { MESH_GRADIENTS, PATTERNS, hexToRgba, generatePatternTile } from "@/lib/backgrounds";
@@ -61,6 +61,30 @@ function rotatePoint(px: number, py: number, deg: number) {
   const cos = Math.cos(a);
   const sin = Math.sin(a);
   return { x: px * cos - py * sin, y: px * sin + py * cos };
+}
+
+// Rendered height of a caption at `scale` × its design size (Konva wraps the
+// same way the drawn text does).
+function textHeight(l: TextLayer, scale: number): number {
+  const node = new Konva.Text({
+    text: l.content,
+    width: l.width * scale,
+    fontSize: l.size * scale,
+    fontFamily: FONT_FAMILY[l.font],
+    fontStyle: l.weight,
+    lineHeight: l.lineHeight,
+    letterSpacing: l.letterSpacing * scale,
+  });
+  const h = node.height();
+  node.destroy();
+  return h;
+}
+
+// Scale a box by k about its centre.
+function scaleAbout(b: Box, k: number): Box {
+  const width = b.width * k;
+  const height = b.height * k;
+  return { x: b.x + (b.width - width) / 2, y: b.y + (b.height - height) / 2, width, height };
 }
 
 function gradientPoints(angleDeg: number, W: number, H: number) {
@@ -161,6 +185,32 @@ export default function ScreenshotContent({
   const isFreeform = doc.layout === "freeform";
   const frameSelected = selectedLayerId === FRAME_SELECTION_ID;
 
+  // At an export size whose aspect differs from the design (iPad, Play tablet),
+  // keep captions on the canvas and fit each device into the space they leave,
+  // wherever the two were clear of each other in the design. The editor and
+  // thumbnails render at the design's aspect, so nothing changes there.
+  const captionY: Record<string, number> = {};
+  let frameBoxes = layout.frames.map((fp) => fp.box);
+  if (!isFreeform && Math.abs(sx / sy - 1) > 0.01) {
+    const captions = doc.textLayers.map((l) => {
+      const design = { x: l.x, y: l.y, width: l.width, height: textHeight(l, 1) };
+      const render = { x: l.x * sx, y: l.y * sy, width: l.width * sx, height: textHeight(l, sx) };
+      render.y = captionY[l.id] = keepCaptionOnCanvas(design, render, master.h, H);
+      return { design, render };
+    });
+    if (!layout.captionOnTop) {
+      const designFrames = computeLayout(doc.layout, master.w, master.h).frames;
+      frameBoxes = layout.frames.map((fp, i) => {
+        const aspect = geometryFor(doc.device, frameDeviceOrientationAt(doc, i)).aspect;
+        const fs = frameScaleAt(doc, i);
+        const design = scaleAbout(fitFrame(designFrames[i]?.box ?? fp.box, aspect), fs);
+        const render = scaleAbout(fitFrame(fp.box, aspect), fs);
+        const cleared = clearCaptions({ design, render }, captions, master.h, H);
+        return cleared === render ? fp.box : scaleAbout(cleared, 1 / fs);
+      });
+    }
+  }
+
   const bg = doc.background;
   let bgPts: { start: { x: number; y: number }; end: { x: number; y: number } } | null = null;
   let bgStops: (number | string)[] = [];
@@ -173,6 +223,9 @@ export default function ScreenshotContent({
     const c = p.colors;
     bgPts = gradientPoints(135, W, H);
     bgStops = [0, c[1] ?? c[0], 0.5, c[2] ?? c[c.length - 1], 1, c[3] ?? c[c.length - 1]];
+  } else if (bg.kind === "custom-gradient") {
+    bgPts = gradientPoints(bg.angle, W, H);
+    bgStops = [0, bg.from, 1, bg.to];
   }
 
   // Pattern backgrounds repeat a generated canvas tile (same-origin → no taint).
@@ -185,6 +238,26 @@ export default function ScreenshotContent({
   const renderBackground = () => {
     if (bg.kind === "solid") {
       return <Rect x={0} y={0} width={W} height={H} fill={bg.color} listening={false} />;
+    }
+    if (bg.kind === "image") {
+      // Cover the canvas, centred; a dark fill shows until the image loads.
+      const img = layerImages?.[bg.src];
+      const k = img && img.width > 0 ? Math.max(W / img.width, H / img.height) : 0;
+      return (
+        <>
+          <Rect x={0} y={0} width={W} height={H} fill="#111111" listening={false} />
+          {img && k > 0 && (
+            <KonvaImage
+              image={img}
+              x={(W - img.width * k) / 2}
+              y={(H - img.height * k) / 2}
+              width={img.width * k}
+              height={img.height * k}
+              listening={false}
+            />
+          )}
+        </>
+      );
     }
     if (bg.kind === "mesh") {
       const mesh = MESH_GRADIENTS.find((x) => x.id === bg.id) ?? MESH_GRADIENTS[0];
@@ -254,7 +327,7 @@ export default function ScreenshotContent({
       visible={l.id !== editingTextId}
       text={l.content}
       x={l.x * sx}
-      y={l.y * sy}
+      y={captionY[l.id] ?? l.y * sy}
       width={l.width * sx}
       align={l.align}
       fontFamily={FONT_FAMILY[l.font]}
@@ -340,7 +413,7 @@ export default function ScreenshotContent({
             return (
               <PresetFrame
                 key={i}
-                box={fp.box}
+                box={frameBoxes[i]}
                 layoutRotation={fp.rotation ?? 0}
                 userRotation={frameRotationAt(doc, i)}
                 geo={slotGeo}

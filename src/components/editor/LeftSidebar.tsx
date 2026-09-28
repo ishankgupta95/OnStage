@@ -1,13 +1,18 @@
 "use client";
 
+import { useRef } from "react";
 import { useEditorStore } from "@/store/editor";
-import { DEVICE_PICKER } from "@/lib/devices";
+import { devicePickerFor } from "@/lib/devices";
 import { deviceClassOf } from "@/lib/deviceGeometry";
 import { computeLayout, fitFrame } from "@/lib/layout";
 import { GRADIENTS } from "@/lib/gradients";
 import { SOLID_BACKGROUNDS, PALETTES } from "@/lib/palettes";
 import { MESH_GRADIENTS, PATTERNS, meshSwatchStyle, patternSwatchStyle } from "@/lib/backgrounds";
-import { parseFreeformSel, resolveFreeformFrames, PERSPECTIVE_PRESETS, perspectivePresetId, type Orientation } from "@/lib/editorDoc";
+import { parseFreeformSel, resolveFreeformFrames, PERSPECTIVE_PRESETS, perspectivePresetId, CUSTOM_GRADIENT_ANGLE, type Orientation } from "@/lib/editorDoc";
+import { backgroundColors } from "@/lib/templates";
+import { uploadImage } from "@/lib/uploadImage";
+import { ImageIcon } from "lucide-react";
+import { toast } from "sonner";
 import type { LayoutPreset } from "@/lib/schema";
 
 const ORIENTATIONS: { id: Orientation; label: string }[] = [
@@ -79,6 +84,18 @@ function LayoutThumb({ id, orientation }: { id: LayoutPreset; orientation: Orien
   );
 }
 
+// A colour swatch that opens the browser's colour picker.
+function ColorInput({ value, label, onChange }: { value: string; label: string; onChange: (hex: string) => void }) {
+  return (
+    <label title={label} className="relative h-7 w-7 shrink-0 cursor-pointer overflow-hidden rounded border" style={{ backgroundColor: value }}>
+      <input type="color" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0" />
+    </label>
+  );
+}
+
+const HEX = /^#[0-9a-f]{6}$/i;
+const RAINBOW = "conic-gradient(from 180deg, #ef4444, #f59e0b, #22c55e, #3b82f6, #a855f7, #ef4444)";
+
 export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }) {
   const doc = useEditorStore((s) => s.doc);
   const updateDoc = useEditorStore((s) => s.updateDoc);
@@ -94,6 +111,21 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
   const activeDevice = selectedFreeformId
     ? resolveFreeformFrames(doc).find((f) => f.id === selectedFreeformId)?.device ?? doc.device
     : doc.device;
+
+  // Custom backgrounds: a solid colour not in the presets, a two-colour
+  // gradient (its pickers start from the current background's colours), or an image.
+  const bg = doc.background;
+  const customSolid = bg.kind === "solid" && !SOLID_BACKGROUNDS.includes(bg.color) ? bg.color : null;
+  const seed = backgroundColors(bg).filter((c) => HEX.test(c));
+  const [gFrom, gTo] =
+    bg.kind === "custom-gradient" ? [bg.from, bg.to] : [seed[0] ?? "#0f172a", seed[seed.length - 1] ?? "#2563eb"];
+  const setGradient = (from: string, to: string) =>
+    updateDoc({ background: { kind: "custom-gradient", from, to, angle: CUSTOM_GRADIENT_ANGLE } });
+  const bgImageRef = useRef<HTMLInputElement>(null);
+  const onPickBackgroundImage = (file: File) =>
+    uploadImage(file)
+      .then((src) => updateDoc({ background: { kind: "image", src } }))
+      .catch(() => toast.error("Couldn't read the image file"));
 
   return (
     <aside
@@ -138,7 +170,7 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
       <section data-tour="device">
         <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Device</h3>
         <div className="space-y-1">
-          {DEVICE_PICKER.map((d) => (
+          {devicePickerFor(activeDevice).map((d) => (
             <button
               key={d.id}
               onClick={() => {
@@ -195,7 +227,7 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
           })}
         </div>
         <p className="mb-2 mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Solid</p>
-        <div className="grid grid-cols-8 gap-1.5">
+        <div className="grid grid-cols-9 gap-1.5">
           {SOLID_BACKGROUNDS.map((c) => {
             const active = doc.background.kind === "solid" && doc.background.color === c;
             return (
@@ -209,7 +241,57 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
               />
             );
           })}
+          <label
+            title="Custom colour"
+            className={`relative h-7 cursor-pointer overflow-hidden rounded border ${customSolid ? "ring-2 ring-primary" : ""}`}
+            style={{ background: customSolid ?? RAINBOW }}
+          >
+            <input
+              type="color"
+              aria-label="Custom colour"
+              value={customSolid ?? "#6366f1"}
+              onChange={(e) => updateDoc({ background: { kind: "solid", color: e.target.value } })}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
         </div>
+        <p className="mb-2 mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Custom gradient</p>
+        <div className="flex items-center gap-1.5">
+          <ColorInput value={gFrom} label="Gradient start colour" onChange={(c) => setGradient(c, gTo)} />
+          <button
+            onClick={() => setGradient(gFrom, gTo)}
+            aria-pressed={bg.kind === "custom-gradient"}
+            aria-label="Use custom gradient"
+            title="Use custom gradient"
+            className={`h-7 flex-1 rounded border ${bg.kind === "custom-gradient" ? "ring-2 ring-primary" : ""}`}
+            style={{ background: `linear-gradient(${CUSTOM_GRADIENT_ANGLE}deg, ${gFrom}, ${gTo})` }}
+          />
+          <ColorInput value={gTo} label="Gradient end colour" onChange={(c) => setGradient(gFrom, c)} />
+        </div>
+        <p className="mb-2 mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Image</p>
+        <button
+          onClick={() => bgImageRef.current?.click()}
+          aria-pressed={bg.kind === "image"}
+          className={`flex h-9 w-full items-center gap-2 rounded-md border px-2 text-xs hover:bg-accent ${bg.kind === "image" ? "border-primary ring-1 ring-primary" : ""}`}
+        >
+          {bg.kind === "image" ? (
+            <span className="size-6 shrink-0 rounded bg-cover bg-center" style={{ backgroundImage: `url(${bg.src})` }} />
+          ) : (
+            <ImageIcon className="size-4 text-muted-foreground" />
+          )}
+          {bg.kind === "image" ? "Replace image" : "Upload an image"}
+        </button>
+        <input
+          ref={bgImageRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onPickBackgroundImage(file);
+            e.target.value = "";
+          }}
+        />
       </section>
 
       <section>
