@@ -212,10 +212,11 @@ export function resolveFreeformFrames(doc: EditorDoc): FreeformFrameSpec[] {
   ];
 }
 
-// ── 3D device perspective ────────────────────────────────────────────────────
-// The angled-mockup view. yaw rotates about the vertical axis (NEGATIVE shows the
-// right rail + side button, matching the hero reference); pitch about horizontal.
-// Absent on the doc = the flat front-on frame (current behavior, back-compatible).
+// ── device angle ─────────────────────────────────────────────────────────────
+// The device's 3D angle. yaw rotates about the vertical axis (NEGATIVE shows the
+// right rail + side buttons); pitch about horizontal. Absent = front-on. Each
+// preset has its own photoreal render (src/lib/deviceRenders.ts), so these
+// values must match the angles the Blender script renders.
 export type DevicePerspective = { yaw: number; pitch: number };
 
 export const PERSPECTIVE_PRESETS: { id: string; label: string; value: DevicePerspective | null }[] = [
@@ -223,6 +224,7 @@ export const PERSPECTIVE_PRESETS: { id: string; label: string; value: DevicePers
   { id: "right", label: "Angle right", value: { yaw: -26, pitch: -6 } },
   { id: "left", label: "Angle left", value: { yaw: 26, pitch: -6 } },
   { id: "subtle", label: "Subtle tilt", value: { yaw: -15, pitch: -4 } },
+  { id: "hero", label: "Hero tilt", value: { yaw: -34, pitch: -12 } },
 ];
 
 // Map a stored perspective back to a preset id for the UI; "flat" when absent.
@@ -240,15 +242,6 @@ export function framePerspectiveAt(doc: EditorDoc, index: number): DevicePerspec
   const v = doc.framePerspectives?.[index];
   if (v !== undefined) return v ?? undefined;
   return doc.perspective;
-}
-
-// True if ANY device frame in the doc renders in 3D — used to lazy-load the
-// Three.js chunk only when needed (editor) and to preload it before export.
-export function docUses3D(doc: EditorDoc): boolean {
-  if (doc.perspective) return true;
-  if (doc.framePerspectives && Object.values(doc.framePerspectives).some((p) => p)) return true;
-  if (doc.freeformFrames?.some((f) => f.perspective)) return true;
-  return false;
 }
 
 // Pragmatic editor working state for Phase 2. Maps to the Zod ScreenshotConfig
@@ -299,6 +292,12 @@ export type EditorDoc = {
   // = force flat, a value = override, absent key = inherit `perspective`. See
   // framePerspectiveAt. (Freeform devices carry their own `perspective` instead.)
   framePerspectives?: Record<string, DevicePerspective | null>;
+  // Device colour, doc-wide: applies to every device frame (freeform included).
+  // A finish id from src/lib/deviceRenders.ts; absent, or one the model lacks =
+  // the model's default (resolveFinish).
+  deviceFinish?: string;
+  // Reflections over the screen glass, doc-wide. Absent = off.
+  deviceGlare?: boolean;
   textLayers: TextLayer[];
 };
 

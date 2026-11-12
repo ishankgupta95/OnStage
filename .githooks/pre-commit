@@ -1,0 +1,5 @@
+#!/bin/sh
+# Runs on `git commit` (enabled by `npm install` via the "prepare" script, which
+# points core.hooksPath here). Skip once with `git commit --no-verify`.
+echo "pre-commit: typecheck, lint, tests…"
+exec npm run --silent check

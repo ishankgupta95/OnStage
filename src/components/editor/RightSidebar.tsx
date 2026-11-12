@@ -13,6 +13,7 @@ import {
   Trash2Icon,
   TypeIcon,
 } from "lucide-react";
+import DeviceLook from "./DeviceLook";
 import { useEditorStore, type ApplyAttr } from "@/store/editor";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -297,6 +298,7 @@ export default function RightSidebar({ readOnly = false }: { readOnly?: boolean 
                   })}
                 </div>
               </div>
+              <DeviceLook device={selectedFreeform.device} />
               <div className="flex items-center gap-2">
                 <Button size="sm" className="flex-1" onClick={() => freeformFileRef.current?.click()}>
                   Upload image

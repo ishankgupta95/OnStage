@@ -1,13 +1,13 @@
 import type { DeviceFrame } from "@/lib/schema";
-import { geometryFor } from "@/lib/deviceGeometry";
+import { modelFor } from "@/lib/deviceGeometry";
 
 export type DeviceSpec = {
   id: DeviceFrame;
   label: string;
   platform: "ios" | "android";
   kind: "phone" | "tablet";
-  // Screen cutout pixel size (source image fits here). Approximate — frame
-  // proportions come from deviceGeometry; refined per device later.
+  // Native screen size in pixels (the frame itself comes from the device's
+  // render; see deviceRenders.ts).
   screenWidth: number;
   screenHeight: number;
 };
@@ -46,18 +46,18 @@ export const DEVICE_BY_ID = Object.fromEntries(
 ) as Record<DeviceFrame, DeviceSpec | undefined>;
 
 // The models shown in the device picker. Every device above maps to one of a
-// handful of shared frame geometries (deviceGeometry.ts), so most "different"
-// models render an identical frame. We keep DEVICES (and DEVICE_BY_ID) full so
+// handful of rendered device models (modelFor in deviceGeometry.ts), so most
+// "different" models render an identical frame. We keep DEVICES (and DEVICE_BY_ID) full so
 // any saved/legacy doc still resolves a label and renders correctly, and only
 // curate which models are *offered* — one representative per distinct frame.
 const PICKER_IDS: DeviceFrame[] = [
-  "iphone-17-pro", // covers 17/16/15/14 Pro & non-Pro (identical IPHONE frame)
+  "iphone-17-pro", // covers 17/16/15/14 Pro & non-Pro (same frame)
   "iphone-se-3",
-  "ipad-pro-13", // covers iPad Pro 11 / Air (identical IPAD frame)
+  "ipad-pro-13", // covers iPad Pro 11 / Air (same frame)
   "ipad-mini", // distinct: narrower 0.7 aspect
-  "pixel-10", // covers Pixel 9 / Pro / XL / 8 (identical PIXEL frame)
-  "galaxy-s24-ultra", // covers S24/S23 family + A55 (GALAXY frame)
-  "galaxy-z-fold-6", // covers Pixel 9 Pro Fold (identical FOLD frame)
+  "pixel-10", // covers Pixel 9 / Pro / XL / 8 (same frame)
+  "galaxy-s24-ultra", // covers the S24/S23 family
+  "galaxy-z-fold-6", // covers Pixel 9 Pro Fold (same frame)
   "galaxy-tab-s9",
 ];
 
@@ -71,6 +71,6 @@ export const DEVICE_PICKER: DeviceSpec[] = PICKER_IDS.map((id) => DEVICE_BY_ID[i
 export function devicePickerFor(active: DeviceFrame): DeviceSpec[] {
   const saved = DEVICE_BY_ID[active];
   return DEVICE_PICKER.map((d) =>
-    saved && d.id !== active && geometryFor(d.id) === geometryFor(active) ? saved : d,
+    saved && d.id !== active && modelFor(d.id) === modelFor(active) ? saved : d,
   );
 }

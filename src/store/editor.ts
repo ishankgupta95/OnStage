@@ -162,6 +162,9 @@ function applyAttr(attr: ApplyAttr, source: EditorDoc, target: EditorDoc, srcLay
         ...target,
         device: source.device,
         deviceOrientation: source.deviceOrientation ?? source.orientation ?? "portrait",
+        // The colour and glare belong to the device look, so they travel with it.
+        deviceFinish: source.deviceFinish,
+        deviceGlare: source.deviceGlare,
       };
     case "typography":
       if (!srcLayer) return target;

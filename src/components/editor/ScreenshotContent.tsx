@@ -30,7 +30,6 @@ import { GRADIENTS } from "@/lib/gradients";
 import { PALETTES } from "@/lib/palettes";
 import { MESH_GRADIENTS, PATTERNS, hexToRgba, generatePatternTile } from "@/lib/backgrounds";
 import DeviceFrame from "./DeviceFrame";
-import DeviceFrame3D from "./DeviceFrame3D";
 import type { DeviceFrame as DeviceId } from "@/lib/schema";
 
 // Sentinel selection id for the device frame (freeform or preset) vs. a text layer id.
@@ -391,6 +390,8 @@ export default function ScreenshotContent({
                 geo={ffGeo}
                 device={ff.device}
                 perspective={ff.perspective === undefined ? doc.perspective : ff.perspective ?? undefined}
+                finish={doc.deviceFinish}
+                glare={doc.deviceGlare}
                 orientation={ffOrientation}
                 screenImage={ff.src ? layerImages?.[ff.src] ?? null : null}
                 adjust={ff.adjust ?? DEFAULT_FRAME_ADJUST}
@@ -419,6 +420,8 @@ export default function ScreenshotContent({
                 geo={slotGeo}
                 device={doc.device}
                 perspective={framePerspectiveAt(doc, i)}
+                finish={doc.deviceFinish}
+                glare={doc.deviceGlare}
                 orientation={slotOrientation}
                 screenImage={screenImages[i] ?? screenImages[0] ?? null}
                 adjust={frameAdjustFor(doc, cls, i)}
@@ -497,6 +500,8 @@ function FreeformFrame({
   geo,
   device,
   perspective,
+  finish,
+  glare,
   orientation,
   screenImage,
   adjust,
@@ -512,6 +517,8 @@ function FreeformFrame({
   geo: DeviceGeometry;
   device: DeviceId;
   perspective?: DevicePerspective;
+  finish?: string;
+  glare?: boolean;
   orientation: "portrait" | "landscape";
   screenImage: HTMLImageElement | null;
   adjust: FrameAdjust;
@@ -570,11 +577,7 @@ function FreeformFrame({
           });
         }}
       >
-        {perspective ? (
-          <DeviceFrame3D f={{ x: 0, y: 0, width: fw, height: fh }} geo={geo} device={device} perspective={perspective} orientation={orientation} screenImage={screenImage} adjust={adjust} />
-        ) : (
-          <DeviceFrame f={{ x: 0, y: 0, width: fw, height: fh }} geo={geo} orientation={orientation} screenImage={screenImage} adjust={adjust} editable={false} />
-        )}
+        <DeviceFrame f={{ x: 0, y: 0, width: fw, height: fh }} device={device} perspective={perspective} finish={finish} glare={glare} orientation={orientation} screenImage={screenImage} adjust={adjust} />
       </Group>
       {interactive && selected && (
         <Transformer
@@ -627,6 +630,8 @@ function PresetFrame({
   geo,
   device,
   perspective,
+  finish,
+  glare,
   orientation,
   screenImage,
   adjust,
@@ -647,6 +652,8 @@ function PresetFrame({
   geo: DeviceGeometry;
   device: DeviceId;
   perspective?: DevicePerspective;
+  finish?: string;
+  glare?: boolean;
   orientation: "portrait" | "landscape";
   screenImage: HTMLImageElement | null;
   adjust: FrameAdjust;
@@ -717,27 +724,18 @@ function PresetFrame({
           }
         }}
       >
-        {perspective ? (
-          <DeviceFrame3D
-            f={{ x: -sw / 2, y: -sh / 2, width: sw, height: sh }}
-            geo={geo}
-            device={device}
-            perspective={perspective}
-            orientation={orientation}
-            screenImage={screenImage}
-            adjust={adjust}
-          />
-        ) : (
-          <DeviceFrame
-            f={{ x: -sw / 2, y: -sh / 2, width: sw, height: sh }}
-            geo={geo}
-            orientation={orientation}
-            screenImage={screenImage}
-            adjust={adjust}
-            editable={editable}
-            onAdjust={onAdjust}
-          />
-        )}
+        <DeviceFrame
+          f={{ x: -sw / 2, y: -sh / 2, width: sw, height: sh }}
+          device={device}
+          perspective={perspective}
+          finish={finish}
+          glare={glare}
+          orientation={orientation}
+          screenImage={screenImage}
+          adjust={adjust}
+          editable={editable}
+          onAdjust={onAdjust}
+        />
       </Group>
       {interactive && selected && (
         <Transformer

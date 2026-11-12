@@ -53,6 +53,8 @@ export type StoreSlotConfig = {
   id: string;
   device?: DeviceFrame;
   orientation?: Orientation;
+  /** Device finish id; absent or unavailable = the model's default. */
+  finish?: string;
   bg: BgChoice;
   caption?: string;
   captionFont?: Font;
@@ -70,16 +72,23 @@ export function StoreSlot({
   className = "",
   style,
   radius = "1.5rem",
+  priority,
+  sizes,
 }: {
   config: StoreSlotConfig;
   className?: string;
   style?: CSSProperties;
   /** Card corner radius. Fixed value (cqw can't self-reference), pass smaller for tiny slots. */
   radius?: string;
+  /** Above the fold: load the device render eagerly (see DeviceMock). */
+  priority?: boolean;
+  /** srcset width hint for the device render (see DeviceMock). */
+  sizes?: string;
 }) {
   const {
     device = "iphone-16-pro",
     orientation = "portrait",
+    finish,
     bg,
     caption,
     captionFont = "plus-jakarta-sans",
@@ -96,7 +105,14 @@ export function StoreSlot({
   const top = captionPlacement === "top";
 
   const deviceNode = (
-    <DeviceMock device={device} orientation={orientation}>
+    <DeviceMock
+      device={device}
+      orientation={orientation}
+      finish={finish}
+      priority={priority}
+      // a landscape slot's device is ~half the slot; default to a wide hint
+      sizes={sizes ?? (landscape ? "auto, 45vw" : undefined)}
+    >
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={image} alt="" className="h-full w-full object-cover" />

@@ -10,6 +10,7 @@ import { SOLID_BACKGROUNDS, PALETTES } from "@/lib/palettes";
 import { MESH_GRADIENTS, PATTERNS, meshSwatchStyle, patternSwatchStyle } from "@/lib/backgrounds";
 import { parseFreeformSel, resolveFreeformFrames, PERSPECTIVE_PRESETS, perspectivePresetId, CUSTOM_GRADIENT_ANGLE, type Orientation } from "@/lib/editorDoc";
 import { backgroundColors } from "@/lib/templates";
+import DeviceLook from "./DeviceLook";
 import { uploadImage } from "@/lib/uploadImage";
 import { ImageIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -204,6 +205,9 @@ export default function LeftSidebar({ readOnly = false }: { readOnly?: boolean }
               </button>
             );
           })}
+        </div>
+        <div className="mt-3">
+          <DeviceLook device={doc.device} />
         </div>
       </section>
 

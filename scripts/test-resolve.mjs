@@ -23,4 +23,10 @@ registerHooks({
     }
     return nextResolve(specifier, context);
   },
+  // The app imports JSON (the device manifest) the bundler way, without the
+  // `with { type: "json" }` attribute Node insists on.
+  load(url, context, nextLoad) {
+    if (url.endsWith(".json")) return nextLoad(url, { ...context, format: "json", importAttributes: { type: "json" } });
+    return nextLoad(url, context);
+  },
 });

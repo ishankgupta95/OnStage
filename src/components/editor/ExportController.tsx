@@ -6,10 +6,10 @@ import type Konva from "konva";
 import JSZip from "jszip";
 import { toast } from "sonner";
 import ScreenshotContent from "./ScreenshotContent";
-import { ensure3DLoaded, release3DMemory, take3DRenderError } from "./device3d/loader";
+import { releaseDeviceRenderMemory, takeDeviceRenderError, takeDeviceRenderPending } from "./deviceRender";
 import { useEditorStore, type ExportShot } from "@/store/editor";
 import { STORE_SCREENSHOT_LIMIT, exportDocForSize, exportFileCount, orientSize, sizeById, type ExportSize } from "@/lib/sizes";
-import { FONT_FAMILY, FONT_LABEL, docUses3D, type EditorDoc } from "@/lib/editorDoc";
+import { FONT_FAMILY, FONT_LABEL, type EditorDoc } from "@/lib/editorDoc";
 import { downloadBlob } from "@/lib/download";
 import { blobDimensions, canvasToBlob, loadExportImage } from "@/lib/exportImages";
 import { recordExport } from "@/lib/localData";
@@ -142,11 +142,6 @@ export default function ExportController() {
         await document.fonts.ready;
         if (run.cancelled) return;
 
-        // Preload the Three.js renderer chunk if any shot uses a 3D angle, so the
-        // synchronous harvest below has it ready (no flat-frame fallback on export).
-        if (shots.some((s) => docUses3D(s.doc))) await ensure3DLoaded();
-        if (run.cancelled) return;
-
         const files: { path: string; blob: Blob }[] = [];
         const decoded: { id: string; w: number; h: number }[] = [];
 
@@ -183,7 +178,7 @@ export default function ExportController() {
             // for PRESET layouts, letterboxing phone screenshots in tablet frames.
             // Freeform devices keep their own models on every size.
             const doc = exportDocForSize(localizeDoc(shot.doc, locale), size);
-            take3DRenderError(); // clear any failure from before this job
+            takeDeviceRenderError(); // clear any failure from before this job
             setJob({ key, w: osize.w, h: osize.h, doc, images, layerImages, watermark: exportWatermark });
             const stage = await waitForStage(key);
             if (run.cancelled) return;
@@ -195,9 +190,20 @@ export default function ExportController() {
             const layer = layerRef.current;
             if (!layer || layer.getStage() !== stage) throw new Error("export layer not ready");
             layer.draw();
-            // A 3D device that failed to draw would leave the PNG without it.
-            const err3d = take3DRenderError();
-            if (err3d) throw err3d;
+            // Device renders load on demand: if this shot needed one that wasn't
+            // downloaded yet, wait for it, let the frames re-render, and draw again.
+            for (let round = 0; round < 4; round++) {
+              const pending = takeDeviceRenderPending();
+              if (!pending) break;
+              await pending;
+              await nextFrame();
+              await nextFrame();
+              if (run.cancelled) return;
+              layer.draw();
+            }
+            // A device that failed to draw would leave the PNG without it.
+            const errDevice = takeDeviceRenderError();
+            if (errDevice) throw errDevice;
             const blob = await canvasToBlob(layer.getNativeCanvasElement(), "image/png");
             if (run.cancelled) return;
 
@@ -259,7 +265,7 @@ export default function ExportController() {
           running.current = false;
           runRef.current = null;
         }
-        release3DMemory(); // full-size 3D renders aren't needed after an export
+        releaseDeviceRenderMemory(); // full-size frames aren't needed after an export
       }
     })();
 

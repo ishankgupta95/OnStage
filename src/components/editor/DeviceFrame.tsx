@@ -1,9 +1,112 @@
 "use client";
 
-import { Group, Rect, Text, Circle, Image as KonvaImage } from "react-konva";
+import { useEffect, useState } from "react";
+import { Group, Rect, Text, Image as KonvaImage } from "react-konva";
 import type { Box } from "@/lib/layout";
-import type { DeviceGeometry } from "@/lib/deviceGeometry";
-import { DEFAULT_FRAME_ADJUST, type FrameAdjust } from "@/lib/editorDoc";
+import type { DeviceFrame as DeviceId } from "@/lib/schema";
+import { DEFAULT_FRAME_ADJUST, type DevicePerspective, type FrameAdjust } from "@/lib/editorDoc";
+import { FRONT_ON, deviceRender, frontScreenRect } from "@/lib/deviceRenders";
+import { deviceShadow, renderDeviceFrame, subscribeDeviceRenders } from "./deviceRender";
+
+// A device frame on the canvas: the photoreal render of the device (front-on
+// or at a preset angle) with the screenshot in its screen, as one Konva.Image
+// filling the frame box. Front-on frames add an invisible screenshot layer
+// over the screen so the screenshot can be dragged to pan (it shows while
+// dragging). While the render downloads, an invisible hit area keeps the
+// frame selectable.
+export default function DeviceFrame({
+  f,
+  device,
+  perspective,
+  finish,
+  glare = false,
+  orientation,
+  screenImage,
+  adjust = DEFAULT_FRAME_ADJUST,
+  editable = false,
+  onAdjust,
+}: {
+  f: Box;
+  device: DeviceId;
+  perspective?: DevicePerspective; // absent = front-on
+  finish?: string; // absent/unknown = the model's default
+  glare?: boolean;
+  orientation: "portrait" | "landscape";
+  screenImage: HTMLImageElement | null;
+  adjust?: FrameAdjust;
+  editable?: boolean;
+  onAdjust?: (offset: { offsetX: number; offsetY: number }) => void;
+}) {
+  const [, bump] = useState(0);
+  useEffect(() => subscribeDeviceRenders(() => bump((n) => n + 1)), []);
+
+  const angle = perspective ?? FRONT_ON;
+  const front = angle.yaw === 0 && angle.pitch === 0;
+  const canvas = renderDeviceFrame({
+    device,
+    orientation,
+    angle,
+    finish,
+    glare,
+    screenImage,
+    adjust,
+    width: f.width,
+    height: f.height,
+  });
+
+  if (!canvas) {
+    return <Rect x={f.x} y={f.y} width={f.width} height={f.height} fill="#000000" opacity={0} />;
+  }
+
+  const refDim = Math.min(f.width, f.height);
+  const r = front ? deviceRender(device, orientation) : undefined;
+  const rect = r ? frontScreenRect(r, f.width, f.height) : null;
+  // The render's own soft shadow, under the device. Without one, fall back to
+  // Konva's blur shadow.
+  const shadow = deviceShadow(device, orientation, angle);
+
+  return (
+    <Group>
+      {shadow && (
+        <KonvaImage
+          image={shadow.image}
+          x={f.x + shadow.x * (f.width / shadow.renderW)}
+          y={f.y + shadow.y * (f.height / shadow.renderH)}
+          width={shadow.w * (f.width / shadow.renderW)}
+          height={shadow.h * (f.height / shadow.renderH)}
+          listening={false}
+        />
+      )}
+      <KonvaImage
+        image={canvas}
+        x={f.x}
+        y={f.y}
+        width={f.width}
+        height={f.height}
+        // Catches clicks/drags on the device (select, move).
+        {...(shadow
+          ? {}
+          : {
+              shadowColor: "#000000",
+              shadowBlur: front ? refDim * 0.13 : Math.max(8, f.width * 0.06),
+              shadowOpacity: front ? 0.45 : 0.3,
+              shadowOffsetY: front ? refDim * 0.07 : f.height * 0.02,
+            })}
+      />
+      {rect && (
+        <ScreenshotLayer
+          rect={{ x: f.x + rect.x, y: f.y + rect.y, w: rect.w, h: rect.h, r: rect.r }}
+          screenImage={screenImage}
+          adjust={adjust}
+          editable={editable}
+          onAdjust={onAdjust}
+          ghost={!!screenImage}
+          placeholderSize={Math.max(20, refDim * 0.05)}
+        />
+      )}
+    </Group>
+  );
+}
 
 type CtxLike = {
   beginPath: () => void;
@@ -22,39 +125,30 @@ function roundedRect(ctx: CtxLike, x: number, y: number, w: number, h: number, r
   ctx.closePath();
 }
 
-export default function DeviceFrame({
-  f,
-  geo,
+// The screenshot inside a rounded screen rect, fitted per the frame's
+// adjustment (cover/contain, scale, pan) and — when editable and overflowing —
+// draggable to pan. With `ghost` it's invisible (the render shows the
+// screenshot) except while dragging, when it previews the pan live.
+function ScreenshotLayer({
+  rect,
   screenImage,
-  orientation = "portrait",
-  rotation = 0,
-  adjust = DEFAULT_FRAME_ADJUST,
+  adjust,
   editable = false,
   onAdjust,
+  ghost = false,
+  placeholderSize,
 }: {
-  f: Box;
-  geo: DeviceGeometry;
+  rect: { x: number; y: number; w: number; h: number; r: number };
   screenImage: HTMLImageElement | null;
-  orientation?: "portrait" | "landscape";
-  rotation?: number;
-  adjust?: FrameAdjust;
+  adjust: FrameAdjust;
   editable?: boolean;
   onAdjust?: (offset: { offsetX: number; offsetY: number }) => void;
+  ghost?: boolean;
+  placeholderSize: number;
 }) {
-  const landscape = orientation === "landscape";
-  // All proportions are relative to the device's SHORT edge, so a landscape
-  // (wide) frame keeps the same physical corner/bezel/cutout sizing.
-  const refDim = landscape ? f.height : f.width;
-  const cornerR = geo.cornerRatio * refDim;
-  const inset = geo.insetRatio * refDim;
-  const rail = geo.railRatio * refDim;
-  const sx = f.x + inset;
-  const sy = f.y + inset;
-  const sw = f.width - inset * 2;
-  const sh = f.height - inset * 2;
-  const sr = geo.screenCornerRatio * refDim;
+  const [dragging, setDragging] = useState(false);
+  const { x: sx, y: sy, w: sw, h: sh, r: sr } = rect;
 
-  // Fit the screenshot into the screen rect per the frame's adjustment.
   let img: { x: number; y: number; w: number; h: number } | null = null;
   // Pan geometry, shared by the render and the drag handlers.
   let pan: { centerX: number; centerY: number; overflowX: number; overflowY: number } | null = null;
@@ -97,122 +191,51 @@ export default function DeviceFrame({
   }
 
   const canDrag = editable && !!pan && (pan.overflowX > 0 || pan.overflowY > 0);
+  // A ghost layer with nothing to drag has no job: let clicks through.
+  if (ghost && !canDrag && img) return null;
   const setCursor = (stage: { container: () => HTMLElement } | null | undefined, cursor: string) => {
     if (stage) stage.container().style.cursor = cursor;
   };
 
-  const btnW = refDim * 0.012;
-  const btnOut = refDim * 0.008;
-
-  // rotate around the frame center when angled
-  const cx = f.x + f.width / 2;
-  const cy = f.y + f.height / 2;
-  const groupProps = rotation
-    ? { x: cx, y: cy, offsetX: cx, offsetY: cy, rotation }
-    : {};
-
   return (
-    <Group {...groupProps}>
-      {/* side buttons (portrait only; landscape keeps the frame clean) */}
-      {geo.buttons && !landscape && (
-        <>
-          <Rect x={f.x + f.width - btnW} y={f.y + f.height * 0.22} width={btnW + btnOut} height={f.height * 0.12} cornerRadius={btnW / 2} fill="#565660" />
-          <Rect x={f.x + f.width - btnW} y={f.y + f.height * 0.12} width={btnW + btnOut} height={f.height * 0.055} cornerRadius={btnW / 2} fill="#565660" />
-          {geo.cutout === "island" && (
-            <>
-              <Rect x={f.x - btnOut} y={f.y + f.height * 0.19} width={btnW + btnOut} height={f.height * 0.075} cornerRadius={btnW / 2} fill="#565660" />
-              <Rect x={f.x - btnOut} y={f.y + f.height * 0.28} width={btnW + btnOut} height={f.height * 0.075} cornerRadius={btnW / 2} fill="#565660" />
-            </>
-          )}
-        </>
+    <Group clipFunc={(ctx) => roundedRect(ctx, sx, sy, sw, sh, sr)}>
+      {img ? (
+        <KonvaImage
+          image={screenImage!}
+          x={img.x}
+          y={img.y}
+          width={img.w}
+          height={img.h}
+          opacity={ghost && !dragging ? 0 : 1}
+          draggable={canDrag}
+          onMouseEnter={(e) => canDrag && setCursor(e.target.getStage(), "grab")}
+          onMouseLeave={(e) => setCursor(e.target.getStage(), "default")}
+          onDragStart={(e) => {
+            setDragging(true);
+            setCursor(e.target.getStage(), "grabbing");
+          }}
+          onDragMove={(e) => {
+            if (!pan) return;
+            const node = e.target;
+            const { centerX, centerY, overflowX, overflowY } = pan;
+            node.x(overflowX > 0 ? Math.max(centerX - overflowX / 2, Math.min(centerX + overflowX / 2, node.x())) : centerX);
+            node.y(overflowY > 0 ? Math.max(centerY - overflowY / 2, Math.min(centerY + overflowY / 2, node.y())) : centerY);
+          }}
+          onDragEnd={(e) => {
+            setDragging(false);
+            setCursor(e.target.getStage(), "grab");
+            if (!pan || !onAdjust) return;
+            const node = e.target;
+            const { centerX, centerY, overflowX, overflowY } = pan;
+            onAdjust({
+              offsetX: overflowX > 0 ? Math.max(-1, Math.min(1, (node.x() - centerX) / (overflowX / 2))) : 0,
+              offsetY: overflowY > 0 ? Math.max(-1, Math.min(1, (node.y() - centerY) / (overflowY / 2))) : 0,
+            });
+          }}
+        />
+      ) : (
+        <Text text="Drop a screenshot" x={sx} y={sy + sh / 2 - placeholderSize * 0.4} width={sw} align="center" fontFamily="Inter" fontSize={placeholderSize} fill="#B8B8BE" listening={false} />
       )}
-
-      {/* titanium body */}
-      <Rect
-        x={f.x}
-        y={f.y}
-        width={f.width}
-        height={f.height}
-        cornerRadius={cornerR}
-        fillLinearGradientStartPoint={{ x: f.x, y: f.y }}
-        // Run the titanium sheen along the long edge — horizontal when the
-        // device is laid on its side — so landscape doesn't compress the bands.
-        fillLinearGradientEndPoint={landscape ? { x: f.x + f.width, y: f.y } : { x: f.x, y: f.y + f.height }}
-        fillLinearGradientColorStops={[0, "#7c7c85", 0.18, "#4a4a52", 0.5, "#34343b", 0.82, "#4a4a52", 1, "#6a6a72"]}
-        shadowColor="#000000"
-        shadowBlur={refDim * 0.13}
-        shadowOpacity={0.5}
-        shadowOffsetY={refDim * 0.07}
-      />
-
-      {/* black bezel */}
-      <Rect x={f.x + rail} y={f.y + rail} width={f.width - rail * 2} height={f.height - rail * 2} cornerRadius={cornerR - rail} fill="#050505" />
-
-      {/* screen base — dark so "contain" letterboxing reads as an off display */}
-      <Rect x={sx} y={sy} width={sw} height={sh} cornerRadius={sr} fill="#0B0B0F" />
-
-      {/* screenshot, clipped to the rounded screen */}
-      <Group clipFunc={(ctx) => roundedRect(ctx, sx, sy, sw, sh, sr)}>
-        {img ? (
-          <KonvaImage
-            image={screenImage!}
-            x={img.x}
-            y={img.y}
-            width={img.w}
-            height={img.h}
-            draggable={canDrag}
-            onMouseEnter={(e) => canDrag && setCursor(e.target.getStage(), "grab")}
-            onMouseLeave={(e) => setCursor(e.target.getStage(), "default")}
-            onDragStart={(e) => setCursor(e.target.getStage(), "grabbing")}
-            onDragMove={(e) => {
-              if (!pan) return;
-              const node = e.target;
-              const { centerX, centerY, overflowX, overflowY } = pan;
-              node.x(overflowX > 0 ? Math.max(centerX - overflowX / 2, Math.min(centerX + overflowX / 2, node.x())) : centerX);
-              node.y(overflowY > 0 ? Math.max(centerY - overflowY / 2, Math.min(centerY + overflowY / 2, node.y())) : centerY);
-            }}
-            onDragEnd={(e) => {
-              setCursor(e.target.getStage(), "grab");
-              if (!pan || !onAdjust) return;
-              const node = e.target;
-              const { centerX, centerY, overflowX, overflowY } = pan;
-              onAdjust({
-                offsetX: overflowX > 0 ? Math.max(-1, Math.min(1, (node.x() - centerX) / (overflowX / 2))) : 0,
-                offsetY: overflowY > 0 ? Math.max(-1, Math.min(1, (node.y() - centerY) / (overflowY / 2))) : 0,
-              });
-            }}
-          />
-        ) : (
-          <Text text="Drop a screenshot" x={sx} y={sy + sh / 2 - 20} width={sw} align="center" fontFamily="Inter" fontSize={Math.max(20, refDim * 0.05)} fill="#B8B8BE" />
-        )}
-      </Group>
-
-      {/* cutout — top-center in portrait, left-center in landscape */}
-      {geo.cutout === "island" &&
-        (landscape ? (
-          <Rect x={sx + refDim * 0.03} y={cy - refDim * 0.15} width={refDim * 0.072} height={refDim * 0.3} cornerRadius={refDim * 0.036} fill="#000000" listening={false} />
-        ) : (
-          <Rect x={cx - refDim * 0.15} y={sy + refDim * 0.03} width={refDim * 0.3} height={refDim * 0.072} cornerRadius={refDim * 0.036} fill="#000000" listening={false} />
-        ))}
-      {geo.cutout === "punch" &&
-        (landscape ? (
-          <Circle x={sx + refDim * 0.045} y={cy} radius={refDim * 0.02} fill="#000000" listening={false} />
-        ) : (
-          <Circle x={cx} y={sy + refDim * 0.045} radius={refDim * 0.02} fill="#000000" listening={false} />
-        ))}
-
-      {/* glass gloss */}
-      <Rect
-        x={sx}
-        y={sy}
-        width={sw}
-        height={sh}
-        cornerRadius={sr}
-        fillLinearGradientStartPoint={{ x: sx, y: sy }}
-        fillLinearGradientEndPoint={{ x: sx + sw * 0.7, y: sy + sh * 0.5 }}
-        fillLinearGradientColorStops={[0, "rgba(255,255,255,0.12)", 0.5, "rgba(255,255,255,0.02)", 1, "rgba(255,255,255,0)"]}
-        listening={false}
-      />
     </Group>
   );
 }

@@ -1,0 +1,3554 @@
+{
+  "version": 2,
+  "models": {
+    "fold": {
+      "finishes": {
+        "black": "Crafted Black",
+        "silver": "Silver Shadow",
+        "natural": "Pink"
+      }
+    },
+    "galaxy": {
+      "finishes": {
+        "black": "Titanium Black",
+        "silver": "Titanium Gray",
+        "natural": "Titanium Violet"
+      }
+    },
+    "galaxy-a": {
+      "finishes": {
+        "black": "Awesome Navy",
+        "silver": "Awesome Iceblue",
+        "natural": "Awesome Lilac"
+      }
+    },
+    "galaxy-tab": {
+      "finishes": {
+        "black": "Graphite",
+        "silver": "Beige"
+      }
+    },
+    "ipad": {
+      "finishes": {
+        "black": "Space Black",
+        "silver": "Silver"
+      }
+    },
+    "ipad-mini": {
+      "finishes": {
+        "black": "Space Gray",
+        "silver": "Starlight",
+        "natural": "Blue"
+      }
+    },
+    "iphone": {
+      "finishes": {
+        "black": "Deep Blue",
+        "silver": "Silver",
+        "natural": "Cosmic Orange"
+      }
+    },
+    "iphone-se": {
+      "finishes": {
+        "black": "Midnight",
+        "silver": "Starlight",
+        "natural": "(PRODUCT)RED"
+      }
+    },
+    "pixel": {
+      "finishes": {
+        "black": "Obsidian",
+        "silver": "Frost",
+        "natural": "Indigo"
+      }
+    }
+  },
+  "renders": {
+    "fold/landscape/-15_-4": {
+      "w": 2209,
+      "h": 1900,
+      "corners": [
+        [
+          237,
+          206.151
+        ],
+        [
+          2033.424,
+          101.787
+        ],
+        [
+          2053.832,
+          1775.836
+        ],
+        [
+          219.598,
+          1736.807
+        ]
+      ],
+      "radius": 0.03104,
+      "n": 2,
+      "files": {
+        "black": "fold-black-landscape--15_-4.webp",
+        "silver": "fold-silver-landscape--15_-4.webp",
+        "natural": "fold-natural-landscape--15_-4.webp"
+      },
+      "glare": "fold-glare-landscape--15_-4.webp",
+      "shadow": {
+        "file": "fold-shadow-landscape--15_-4.webp",
+        "x": 130.27,
+        "y": 190,
+        "w": 2294.55,
+        "h": 2272
+      }
+    },
+    "fold/landscape/-26_-6": {
+      "w": 2209,
+      "h": 1900,
+      "corners": [
+        [
+          352.132,
+          286.558
+        ],
+        [
+          1940.264,
+          97.957
+        ],
+        [
+          1967.372,
+          1732.934
+        ],
+        [
+          331.066,
+          1703.317
+        ]
+      ],
+      "radius": 0.03104,
+      "n": 2,
+      "files": {
+        "black": "fold-black-landscape--26_-6.webp",
+        "silver": "fold-silver-landscape--26_-6.webp",
+        "natural": "fold-natural-landscape--26_-6.webp"
+      },
+      "glare": "fold-glare-landscape--26_-6.webp",
+      "shadow": {
+        "file": "fold-shadow-landscape--26_-6.webp",
+        "x": 240.29,
+        "y": 244,
+        "w": 2244.53,
+        "h": 2434
+      }
+    },
+    "fold/landscape/-34_-12": {
+      "w": 2209,
+      "h": 1900,
+      "corners": [
+        [
+          459.74,
+          399.641
+        ],
+        [
+          1827.967,
+          91.196
+        ],
+        [
+          1873.39,
+          1628.678
+        ],
+        [
+          425.818,
+          1704.259
+        ]
+      ],
+      "radius": 0.03104,
+      "n": 2,
+      "files": {
+        "black": "fold-black-landscape--34_-12.webp",
+        "silver": "fold-silver-landscape--34_-12.webp",
+        "natural": "fold-natural-landscape--34_-12.webp"
+      },
+      "glare": "fold-glare-landscape--34_-12.webp",
+      "shadow": {
+        "file": "fold-shadow-landscape--34_-12.webp",
+        "x": 316.31,
+        "y": 266,
+        "w": 2194.52,
+        "h": 2530
+      }
+    },
+    "fold/landscape/0_0": {
+      "w": 2209,
+      "h": 1900,
+      "corners": [
+        [
+          47.141,
+          46.666
+        ],
+        [
+          2161.859,
+          46.666
+        ],
+        [
+          2161.859,
+          1853.336
+        ],
+        [
+          47.141,
+          1853.336
+        ]
+      ],
+      "radius": 0.03104,
+      "n": 2,
+      "files": {
+        "black": "fold-black-landscape-0_0.webp",
+        "silver": "fold-silver-landscape-0_0.webp",
+        "natural": "fold-natural-landscape-0_0.webp"
+      },
+      "glare": "fold-glare-landscape-0_0.webp",
+      "shadow": {
+        "file": "fold-shadow-landscape-0_0.webp",
+        "x": -87.78,
+        "y": 0,
+        "w": 2430.58,
+        "h": 2132
+      },
+      "thumb": {
+        "w": 640,
+        "h": 550,
+        "files": {
+          "black": "fold-black-landscape-0_0@640.webp",
+          "silver": "fold-silver-landscape-0_0@640.webp",
+          "natural": "fold-natural-landscape-0_0@640.webp"
+        },
+        "shadow": "fold-shadow-landscape-0_0@640.webp"
+      }
+    },
+    "fold/landscape/26_-6": {
+      "w": 2209,
+      "h": 1900,
+      "corners": [
+        [
+          268.735,
+          97.957
+        ],
+        [
+          1856.868,
+          286.558
+        ],
+        [
+          1877.935,
+          1703.317
+        ],
+        [
+          241.628,
+          1732.934
+        ]
+      ],
+      "radius": 0.03104,
+      "n": 2,
+      "files": {
+        "black": "fold-black-landscape-26_-6.webp",
+        "silver": "fold-silver-landscape-26_-6.webp",
+        "natural": "fold-natural-landscape-26_-6.webp"
+      },
+      "glare": "fold-glare-landscape-26_-6.webp",
+      "shadow": {
+        "file": "fold-shadow-landscape-26_-6.webp",
+        "x": -47.77,
+        "y": 250,
+        "w": 2072.49,
+        "h": 2416
+      }
+    },
+    "fold/portrait/-15_-4": {
+      "w": 1900,
+      "h": 2209,
+      "corners": [
+        [
+          187.34,
+          205.28
+        ],
+        [
+          1745.627,
+          113.368
+        ],
+        [
+          1763.305,
+          2081.704
+        ],
+        [
+          171.507,
+          2046.307
+        ]
+      ],
+      "radius": 0.03633,
+      "n": 2,
+      "files": {
+        "black": "fold-black-portrait--15_-4.webp",
+        "silver": "fold-silver-portrait--15_-4.webp",
+        "natural": "fold-natural-portrait--15_-4.webp"
+      },
+      "glare": "fold-glare-portrait--15_-4.webp",
+      "shadow": {
+        "file": "fold-shadow-portrait--15_-4.webp",
+        "x": 70,
+        "y": 176.28,
+        "w": 2058,
+        "h": 2570.61
+      }
+    },
+    "fold/portrait/-26_-6": {
+      "w": 1900,
+      "h": 2209,
+      "corners": [
+        [
+          274.463,
+          278.968
+        ],
+        [
+          1670.205,
+          109.732
+        ],
+        [
+          1694.019,
+          2047.424
+        ],
+        [
+          254.48,
+          2017.432
+        ]
+      ],
+      "radius": 0.03633,
+      "n": 2,
+      "files": {
+        "black": "fold-black-portrait--26_-6.webp",
+        "silver": "fold-silver-portrait--26_-6.webp",
+        "natural": "fold-natural-portrait--26_-6.webp"
+      },
+      "glare": "fold-glare-portrait--26_-6.webp",
+      "shadow": {
+        "file": "fold-shadow-portrait--26_-6.webp",
+        "x": 148,
+        "y": 228.29,
+        "w": 2058,
+        "h": 2728.65
+      }
+    },
+    "fold/portrait/-34_-12": {
+      "w": 1900,
+      "h": 2209,
+      "corners": [
+        [
+          357.623,
+          385.782
+        ],
+        [
+          1584.23,
+          103.283
+        ],
+        [
+          1625.653,
+          1962.603
+        ],
+        [
+          323.886,
+          2023.191
+        ]
+      ],
+      "radius": 0.03633,
+      "n": 2,
+      "files": {
+        "black": "fold-black-portrait--34_-12.webp",
+        "silver": "fold-silver-portrait--34_-12.webp",
+        "natural": "fold-natural-portrait--34_-12.webp"
+      },
+      "glare": "fold-glare-portrait--34_-12.webp",
+      "shadow": {
+        "file": "fold-shadow-portrait--34_-12.webp",
+        "x": 188,
+        "y": 252.3,
+        "w": 2092,
+        "h": 2886.69
+      }
+    },
+    "fold/portrait/0_0": {
+      "w": 1900,
+      "h": 2209,
+      "corners": [
+        [
+          46.665,
+          47.142
+        ],
+        [
+          1853.335,
+          47.142
+        ],
+        [
+          1853.335,
+          2161.86
+        ],
+        [
+          46.665,
+          2161.86
+        ]
+      ],
+      "radius": 0.03633,
+      "n": 2,
+      "files": {
+        "black": "fold-black-portrait-0_0.webp",
+        "silver": "fold-silver-portrait-0_0.webp",
+        "natural": "fold-natural-portrait-0_0.webp"
+      },
+      "glare": "fold-glare-portrait-0_0.webp",
+      "shadow": {
+        "file": "fold-shadow-portrait-0_0.webp",
+        "x": -84,
+        "y": -9.77,
+        "w": 2112,
+        "h": 2452.58
+      },
+      "thumb": {
+        "w": 640,
+        "h": 744,
+        "files": {
+          "black": "fold-black-portrait-0_0@640.webp",
+          "silver": "fold-silver-portrait-0_0@640.webp",
+          "natural": "fold-natural-portrait-0_0@640.webp"
+        },
+        "shadow": "fold-shadow-portrait-0_0@640.webp"
+      }
+    },
+    "fold/portrait/26_-6": {
+      "w": 1900,
+      "h": 2209,
+      "corners": [
+        [
+          229.795,
+          109.732
+        ],
+        [
+          1625.537,
+          278.968
+        ],
+        [
+          1645.52,
+          2017.432
+        ],
+        [
+          205.981,
+          2047.424
+        ]
+      ],
+      "radius": 0.03633,
+      "n": 2,
+      "files": {
+        "black": "fold-black-portrait-26_-6.webp",
+        "silver": "fold-silver-portrait-26_-6.webp",
+        "natural": "fold-natural-portrait-26_-6.webp"
+      },
+      "glare": "fold-glare-portrait-26_-6.webp",
+      "shadow": {
+        "file": "fold-shadow-portrait-26_-6.webp",
+        "x": -104,
+        "y": 204.29,
+        "w": 1920,
+        "h": 2758.66
+      }
+    },
+    "galaxy-a/landscape/-15_-4": {
+      "w": 2669,
+      "h": 1300,
+      "corners": [
+        [
+          354.91,
+          193.769
+        ],
+        [
+          2434.537,
+          77.87
+        ],
+        [
+          2457.85,
+          1182.956
+        ],
+        [
+          337.102,
+          1143.827
+        ]
+      ],
+      "radius": 0.04613,
+      "n": 2,
+      "files": {
+        "black": "galaxy-a-black-landscape--15_-4.webp",
+        "silver": "galaxy-a-silver-landscape--15_-4.webp",
+        "natural": "galaxy-a-natural-landscape--15_-4.webp"
+      },
+      "glare": "galaxy-a-glare-landscape--15_-4.webp",
+      "shadow": {
+        "file": "galaxy-a-shadow-landscape--15_-4.webp",
+        "x": 274.29,
+        "y": 186,
+        "w": 2468.49,
+        "h": 1674
+      }
+    },
+    "galaxy-a/landscape/-26_-6": {
+      "w": 2669,
+      "h": 1300,
+      "corners": [
+        [
+          521.853,
+          272.434
+        ],
+        [
+          2302.109,
+          71.77
+        ],
+        [
+          2331.788,
+          1129.803
+        ],
+        [
+          502.232,
+          1110.149
+        ]
+      ],
+      "radius": 0.04613,
+      "n": 2,
+      "files": {
+        "black": "galaxy-a-black-landscape--26_-6.webp",
+        "silver": "galaxy-a-silver-landscape--26_-6.webp",
+        "natural": "galaxy-a-natural-landscape--26_-6.webp"
+      },
+      "glare": "galaxy-a-glare-landscape--26_-6.webp",
+      "shadow": {
+        "file": "galaxy-a-shadow-landscape--26_-6.webp",
+        "x": 440.32,
+        "y": 260,
+        "w": 2288.45,
+        "h": 1760
+      }
+    },
+    "galaxy-a/landscape/-34_-12": {
+      "w": 2669,
+      "h": 1300,
+      "corners": [
+        [
+          670.059,
+          375.735
+        ],
+        [
+          2130.841,
+          61.843
+        ],
+        [
+          2175.741,
+          1006.522
+        ],
+        [
+          641.536,
+          1108.435
+        ]
+      ],
+      "radius": 0.04613,
+      "n": 2,
+      "files": {
+        "black": "galaxy-a-black-landscape--34_-12.webp",
+        "silver": "galaxy-a-silver-landscape--34_-12.webp",
+        "natural": "galaxy-a-natural-landscape--34_-12.webp"
+      },
+      "glare": "galaxy-a-glare-landscape--34_-12.webp",
+      "shadow": {
+        "file": "galaxy-a-shadow-landscape--34_-12.webp",
+        "x": 572.35,
+        "y": 276,
+        "w": 2078.41,
+        "h": 1754
+      }
+    },
+    "galaxy-a/landscape/0_0": {
+      "w": 2669,
+      "h": 1300,
+      "corners": [
+        [
+          71.589,
+          53.96
+        ],
+        [
+          2590.77,
+          53.96
+        ],
+        [
+          2590.77,
+          1246.041
+        ],
+        [
+          71.589,
+          1246.041
+        ]
+      ],
+      "radius": 0.04613,
+      "n": 2,
+      "files": {
+        "black": "galaxy-a-black-landscape-0_0.webp",
+        "silver": "galaxy-a-silver-landscape-0_0.webp",
+        "natural": "galaxy-a-natural-landscape-0_0.webp"
+      },
+      "glare": "galaxy-a-glare-landscape-0_0.webp",
+      "shadow": {
+        "file": "galaxy-a-shadow-landscape-0_0.webp",
+        "x": -97.78,
+        "y": 12,
+        "w": 2928.58,
+        "h": 1582
+      },
+      "thumb": {
+        "w": 640,
+        "h": 312,
+        "files": {
+          "black": "galaxy-a-black-landscape-0_0@640.webp",
+          "silver": "galaxy-a-silver-landscape-0_0@640.webp",
+          "natural": "galaxy-a-natural-landscape-0_0@640.webp"
+        },
+        "shadow": "galaxy-a-shadow-landscape-0_0@640.webp"
+      }
+    },
+    "galaxy-a/landscape/26_-6": {
+      "w": 2669,
+      "h": 1300,
+      "corners": [
+        [
+          360.962,
+          71.102
+        ],
+        [
+          2143.427,
+          272.015
+        ],
+        [
+          2162.969,
+          1110.19
+        ],
+        [
+          331.081,
+          1129.869
+        ]
+      ],
+      "radius": 0.04613,
+      "n": 2,
+      "files": {
+        "black": "galaxy-a-black-landscape-26_-6.webp",
+        "silver": "galaxy-a-silver-landscape-26_-6.webp",
+        "natural": "galaxy-a-natural-landscape-26_-6.webp"
+      },
+      "glare": "galaxy-a-glare-landscape-26_-6.webp",
+      "shadow": {
+        "file": "galaxy-a-shadow-landscape-26_-6.webp",
+        "x": 172.27,
+        "y": 260,
+        "w": 2106.42,
+        "h": 1748
+      }
+    },
+    "galaxy-a/portrait/-15_-4": {
+      "w": 1300,
+      "h": 2669,
+      "corners": [
+        [
+          116.408,
+          207.321
+        ],
+        [
+          1170.711,
+          144.459
+        ],
+        [
+          1182.244,
+          2515.234
+        ],
+        [
+          105.031,
+          2490.905
+        ]
+      ],
+      "radius": 0.09749,
+      "n": 2,
+      "files": {
+        "black": "galaxy-a-black-portrait--15_-4.webp",
+        "silver": "galaxy-a-silver-portrait--15_-4.webp",
+        "natural": "galaxy-a-natural-portrait--15_-4.webp"
+      },
+      "glare": "galaxy-a-glare-portrait--15_-4.webp",
+      "shadow": {
+        "file": "galaxy-a-shadow-portrait--15_-4.webp",
+        "x": -22,
+        "y": 192.27,
+        "w": 1560,
+        "h": 2962.58
+      }
+    },
+    "galaxy-a/portrait/-26_-6": {
+      "w": 1300,
+      "h": 2669,
+      "corners": [
+        [
+          153.905,
+          251.508
+        ],
+        [
+          1121.776,
+          131.158
+        ],
+        [
+          1137.605,
+          2506.746
+        ],
+        [
+          138.294,
+          2483.346
+        ]
+      ],
+      "radius": 0.09749,
+      "n": 2,
+      "files": {
+        "black": "galaxy-a-black-portrait--26_-6.webp",
+        "silver": "galaxy-a-silver-portrait--26_-6.webp",
+        "natural": "galaxy-a-natural-portrait--26_-6.webp"
+      },
+      "glare": "galaxy-a-glare-portrait--26_-6.webp",
+      "shadow": {
+        "file": "galaxy-a-shadow-portrait--26_-6.webp",
+        "x": 2,
+        "y": 218.28,
+        "w": 1614,
+        "h": 3124.62
+      }
+    },
+    "galaxy-a/portrait/-34_-12": {
+      "w": 1300,
+      "h": 2669,
+      "corners": [
+        [
+          195.011,
+          328.096
+        ],
+        [
+          1070.395,
+          120.292
+        ],
+        [
+          1099.059,
+          2465.255
+        ],
+        [
+          166.416,
+          2502.649
+        ]
+      ],
+      "radius": 0.09749,
+      "n": 2,
+      "files": {
+        "black": "galaxy-a-black-portrait--34_-12.webp",
+        "silver": "galaxy-a-silver-portrait--34_-12.webp",
+        "natural": "galaxy-a-natural-portrait--34_-12.webp"
+      },
+      "glare": "galaxy-a-glare-portrait--34_-12.webp",
+      "shadow": {
+        "file": "galaxy-a-shadow-portrait--34_-12.webp",
+        "x": -14,
+        "y": 240.28,
+        "w": 1748,
+        "h": 3340.66
+      }
+    },
+    "galaxy-a/portrait/0_0": {
+      "w": 1300,
+      "h": 2669,
+      "corners": [
+        [
+          53.959,
+          71.589
+        ],
+        [
+          1246.041,
+          71.589
+        ],
+        [
+          1246.041,
+          2590.771
+        ],
+        [
+          53.959,
+          2590.771
+        ]
+      ],
+      "radius": 0.09749,
+      "n": 2,
+      "files": {
+        "black": "galaxy-a-black-portrait-0_0.webp",
+        "silver": "galaxy-a-silver-portrait-0_0.webp",
+        "natural": "galaxy-a-natural-portrait-0_0.webp"
+      },
+      "glare": "galaxy-a-glare-portrait-0_0.webp",
+      "shadow": {
+        "file": "galaxy-a-shadow-portrait-0_0.webp",
+        "x": -88,
+        "y": 14.24,
+        "w": 1538,
+        "h": 2958.58
+      },
+      "thumb": {
+        "w": 640,
+        "h": 1314,
+        "files": {
+          "black": "galaxy-a-black-portrait-0_0@640.webp",
+          "silver": "galaxy-a-silver-portrait-0_0@640.webp",
+          "natural": "galaxy-a-natural-portrait-0_0@640.webp"
+        },
+        "shadow": "galaxy-a-shadow-portrait-0_0@640.webp"
+      }
+    },
+    "galaxy-a/portrait/26_-6": {
+      "w": 1300,
+      "h": 2669,
+      "corners": [
+        [
+          178.224,
+          131.158
+        ],
+        [
+          1146.095,
+          251.508
+        ],
+        [
+          1161.706,
+          2483.346
+        ],
+        [
+          162.395,
+          2506.746
+        ]
+      ],
+      "radius": 0.09749,
+      "n": 2,
+      "files": {
+        "black": "galaxy-a-black-portrait-26_-6.webp",
+        "silver": "galaxy-a-silver-portrait-26_-6.webp",
+        "natural": "galaxy-a-natural-portrait-26_-6.webp"
+      },
+      "glare": "galaxy-a-glare-portrait-26_-6.webp",
+      "shadow": {
+        "file": "galaxy-a-shadow-portrait-26_-6.webp",
+        "x": -126,
+        "y": 230.28,
+        "w": 1516,
+        "h": 3108.61
+      }
+    },
+    "galaxy-tab/landscape/-15_-4": {
+      "w": 3520,
+      "h": 2200,
+      "corners": [
+        [
+          462.075,
+          321.607
+        ],
+        [
+          3200.373,
+          170.705
+        ],
+        [
+          3230.024,
+          1988.118
+        ],
+        [
+          438.363,
+          1937.269
+        ]
+      ],
+      "radius": 0.02206,
+      "n": 2,
+      "files": {
+        "black": "galaxy-tab-black-landscape--15_-4.webp",
+        "silver": "galaxy-tab-silver-landscape--15_-4.webp"
+      },
+      "glare": "galaxy-tab-glare-landscape--15_-4.webp",
+      "shadow": {
+        "file": "galaxy-tab-shadow-landscape--15_-4.webp",
+        "x": 308,
+        "y": 264,
+        "w": 3402,
+        "h": 2694
+      }
+    },
+    "galaxy-tab/landscape/-26_-6": {
+      "w": 3520,
+      "h": 2200,
+      "corners": [
+        [
+          665.521,
+          433.146
+        ],
+        [
+          3045.119,
+          165.685
+        ],
+        [
+          3083.688,
+          1918.999
+        ],
+        [
+          638.337,
+          1890.845
+        ]
+      ],
+      "radius": 0.02206,
+      "n": 2,
+      "files": {
+        "black": "galaxy-tab-black-landscape--26_-6.webp",
+        "silver": "galaxy-tab-silver-landscape--26_-6.webp"
+      },
+      "glare": "galaxy-tab-glare-landscape--26_-6.webp",
+      "shadow": {
+        "file": "galaxy-tab-shadow-landscape--26_-6.webp",
+        "x": 514,
+        "y": 366,
+        "w": 3218,
+        "h": 2844
+      }
+    },
+    "galaxy-tab/landscape/-34_-12": {
+      "w": 3520,
+      "h": 2200,
+      "corners": [
+        [
+          848.905,
+          585.604
+        ],
+        [
+          2848.165,
+          154.973
+        ],
+        [
+          2909.609,
+          1758.839
+        ],
+        [
+          807.656,
+          1891.076
+        ]
+      ],
+      "radius": 0.02206,
+      "n": 2,
+      "files": {
+        "black": "galaxy-tab-black-landscape--34_-12.webp",
+        "silver": "galaxy-tab-silver-landscape--34_-12.webp"
+      },
+      "glare": "galaxy-tab-glare-landscape--34_-12.webp",
+      "shadow": {
+        "file": "galaxy-tab-shadow-landscape--34_-12.webp",
+        "x": 672,
+        "y": 390,
+        "w": 3014,
+        "h": 2902
+      }
+    },
+    "galaxy-tab/landscape/0_0": {
+      "w": 3520,
+      "h": 2200,
+      "corners": [
+        [
+          111.521,
+          109.379
+        ],
+        [
+          3408.479,
+          109.379
+        ],
+        [
+          3408.479,
+          2090.623
+        ],
+        [
+          111.521,
+          2090.623
+        ]
+      ],
+      "radius": 0.02206,
+      "n": 2,
+      "files": {
+        "black": "galaxy-tab-black-landscape-0_0.webp",
+        "silver": "galaxy-tab-silver-landscape-0_0.webp"
+      },
+      "glare": "galaxy-tab-glare-landscape-0_0.webp",
+      "shadow": {
+        "file": "galaxy-tab-shadow-landscape-0_0.webp",
+        "x": -110,
+        "y": 4,
+        "w": 3800,
+        "h": 2486
+      },
+      "thumb": {
+        "w": 640,
+        "h": 400,
+        "files": {
+          "black": "galaxy-tab-black-landscape-0_0@640.webp",
+          "silver": "galaxy-tab-silver-landscape-0_0@640.webp"
+        },
+        "shadow": "galaxy-tab-shadow-landscape-0_0@640.webp"
+      }
+    },
+    "galaxy-tab/landscape/26_-6": {
+      "w": 3520,
+      "h": 2200,
+      "corners": [
+        [
+          474.881,
+          165.684
+        ],
+        [
+          2854.479,
+          433.145
+        ],
+        [
+          2881.664,
+          1890.845
+        ],
+        [
+          436.312,
+          1919
+        ]
+      ],
+      "radius": 0.02206,
+      "n": 2,
+      "files": {
+        "black": "galaxy-tab-black-landscape-26_-6.webp",
+        "silver": "galaxy-tab-silver-landscape-26_-6.webp"
+      },
+      "glare": "galaxy-tab-glare-landscape-26_-6.webp",
+      "shadow": {
+        "file": "galaxy-tab-shadow-landscape-26_-6.webp",
+        "x": 118,
+        "y": 376,
+        "w": 2954,
+        "h": 2814
+      }
+    },
+    "galaxy-tab/portrait/-15_-4": {
+      "w": 2200,
+      "h": 3520,
+      "corners": [
+        [
+          247.56,
+          324.037
+        ],
+        [
+          1973.703,
+          223.092
+        ],
+        [
+          1992.689,
+          3291.502
+        ],
+        [
+          229.89,
+          3253.072
+        ]
+      ],
+      "radius": 0.03672,
+      "n": 2,
+      "files": {
+        "black": "galaxy-tab-black-portrait--15_-4.webp",
+        "silver": "galaxy-tab-silver-portrait--15_-4.webp"
+      },
+      "glare": "galaxy-tab-glare-portrait--15_-4.webp",
+      "shadow": {
+        "file": "galaxy-tab-shadow-portrait--15_-4.webp",
+        "x": 38,
+        "y": 258,
+        "w": 2488,
+        "h": 3942
+      }
+    },
+    "galaxy-tab/portrait/-26_-6": {
+      "w": 2200,
+      "h": 3520,
+      "corners": [
+        [
+          331.665,
+          407.745
+        ],
+        [
+          1897.113,
+          217.977
+        ],
+        [
+          1923.064,
+          3259.554
+        ],
+        [
+          308.538,
+          3225.57
+        ]
+      ],
+      "radius": 0.03672,
+      "n": 2,
+      "files": {
+        "black": "galaxy-tab-black-portrait--26_-6.webp",
+        "silver": "galaxy-tab-silver-portrait--26_-6.webp"
+      },
+      "glare": "galaxy-tab-glare-portrait--26_-6.webp",
+      "shadow": {
+        "file": "galaxy-tab-shadow-portrait--26_-6.webp",
+        "x": 110,
+        "y": 320,
+        "w": 2530,
+        "h": 4160
+      }
+    },
+    "galaxy-tab/portrait/-34_-12": {
+      "w": 2200,
+      "h": 3520,
+      "corners": [
+        [
+          413.41,
+          535.751
+        ],
+        [
+          1813.308,
+          211.431
+        ],
+        [
+          1859.9,
+          3177.554
+        ],
+        [
+          372.761,
+          3243.453
+        ]
+      ],
+      "radius": 0.03672,
+      "n": 2,
+      "files": {
+        "black": "galaxy-tab-black-portrait--34_-12.webp",
+        "silver": "galaxy-tab-silver-portrait--34_-12.webp"
+      },
+      "glare": "galaxy-tab-glare-portrait--34_-12.webp",
+      "shadow": {
+        "file": "galaxy-tab-shadow-portrait--34_-12.webp",
+        "x": 124,
+        "y": 350,
+        "w": 2650,
+        "h": 4422
+      }
+    },
+    "galaxy-tab/portrait/0_0": {
+      "w": 2200,
+      "h": 3520,
+      "corners": [
+        [
+          109.378,
+          111.522
+        ],
+        [
+          2090.622,
+          111.522
+        ],
+        [
+          2090.622,
+          3408.48
+        ],
+        [
+          109.378,
+          3408.48
+        ]
+      ],
+      "radius": 0.03672,
+      "n": 2,
+      "files": {
+        "black": "galaxy-tab-black-portrait-0_0.webp",
+        "silver": "galaxy-tab-silver-portrait-0_0.webp"
+      },
+      "glare": "galaxy-tab-glare-portrait-0_0.webp",
+      "shadow": {
+        "file": "galaxy-tab-shadow-portrait-0_0.webp",
+        "x": -100,
+        "y": 0,
+        "w": 2458,
+        "h": 3818
+      },
+      "thumb": {
+        "w": 640,
+        "h": 1024,
+        "files": {
+          "black": "galaxy-tab-black-portrait-0_0@640.webp",
+          "silver": "galaxy-tab-silver-portrait-0_0@640.webp"
+        },
+        "shadow": "galaxy-tab-shadow-portrait-0_0@640.webp"
+      }
+    },
+    "galaxy-tab/portrait/26_-6": {
+      "w": 2200,
+      "h": 3520,
+      "corners": [
+        [
+          302.887,
+          217.977
+        ],
+        [
+          1868.335,
+          407.745
+        ],
+        [
+          1891.462,
+          3225.57
+        ],
+        [
+          276.936,
+          3259.554
+        ]
+      ],
+      "radius": 0.03672,
+      "n": 2,
+      "files": {
+        "black": "galaxy-tab-black-portrait-26_-6.webp",
+        "silver": "galaxy-tab-silver-portrait-26_-6.webp"
+      },
+      "glare": "galaxy-tab-glare-portrait-26_-6.webp",
+      "shadow": {
+        "file": "galaxy-tab-shadow-portrait-26_-6.webp",
+        "x": -146,
+        "y": 334,
+        "w": 2338,
+        "h": 4128
+      }
+    },
+    "galaxy/landscape/-15_-4": {
+      "w": 2669,
+      "h": 1300,
+      "corners": [
+        [
+          345.969,
+          187.544
+        ],
+        [
+          2452.383,
+          69.045
+        ],
+        [
+          2476.446,
+          1191.283
+        ],
+        [
+          327.752,
+          1150.49
+        ]
+      ],
+      "radius": 0.02149,
+      "n": 2,
+      "files": {
+        "black": "galaxy-black-landscape--15_-4.webp",
+        "silver": "galaxy-silver-landscape--15_-4.webp",
+        "natural": "galaxy-natural-landscape--15_-4.webp"
+      },
+      "glare": "galaxy-glare-landscape--15_-4.webp",
+      "shadow": {
+        "file": "galaxy-shadow-landscape--15_-4.webp",
+        "x": 276.29,
+        "y": 184,
+        "w": 2472.49,
+        "h": 1690
+      }
+    },
+    "galaxy/landscape/-26_-6": {
+      "w": 2669,
+      "h": 1300,
+      "corners": [
+        [
+          517.688,
+          268.718
+        ],
+        [
+          2313.866,
+          65.151
+        ],
+        [
+          2344.256,
+          1135.338
+        ],
+        [
+          497.778,
+          1114.344
+        ]
+      ],
+      "radius": 0.02149,
+      "n": 2,
+      "files": {
+        "black": "galaxy-black-landscape--26_-6.webp",
+        "silver": "galaxy-silver-landscape--26_-6.webp",
+        "natural": "galaxy-natural-landscape--26_-6.webp"
+      },
+      "glare": "galaxy-glare-landscape--26_-6.webp",
+      "shadow": {
+        "file": "galaxy-shadow-landscape--26_-6.webp",
+        "x": 442.32,
+        "y": 244,
+        "w": 2288.45,
+        "h": 1786
+      }
+    },
+    "galaxy/landscape/-34_-12": {
+      "w": 2669,
+      "h": 1300,
+      "corners": [
+        [
+          669.784,
+          374.074
+        ],
+        [
+          2135.715,
+          58.564
+        ],
+        [
+          2181.145,
+          1008.385
+        ],
+        [
+          641.115,
+          1110.154
+        ]
+      ],
+      "radius": 0.02149,
+      "n": 2,
+      "files": {
+        "black": "galaxy-black-landscape--34_-12.webp",
+        "silver": "galaxy-silver-landscape--34_-12.webp",
+        "natural": "galaxy-natural-landscape--34_-12.webp"
+      },
+      "glare": "galaxy-glare-landscape--34_-12.webp",
+      "shadow": {
+        "file": "galaxy-shadow-landscape--34_-12.webp",
+        "x": 578.35,
+        "y": 256,
+        "w": 2072.41,
+        "h": 1782
+      }
+    },
+    "galaxy/landscape/0_0": {
+      "w": 2669,
+      "h": 1300,
+      "corners": [
+        [
+          41.547,
+          37.101
+        ],
+        [
+          2627.453,
+          37.101
+        ],
+        [
+          2627.453,
+          1262.9
+        ],
+        [
+          41.547,
+          1262.9
+        ]
+      ],
+      "radius": 0.02149,
+      "n": 2,
+      "files": {
+        "black": "galaxy-black-landscape-0_0.webp",
+        "silver": "galaxy-silver-landscape-0_0.webp",
+        "natural": "galaxy-natural-landscape-0_0.webp"
+      },
+      "glare": "galaxy-glare-landscape-0_0.webp",
+      "shadow": {
+        "file": "galaxy-shadow-landscape-0_0.webp",
+        "x": -117.79,
+        "y": 2,
+        "w": 2970.59,
+        "h": 1614
+      },
+      "thumb": {
+        "w": 640,
+        "h": 312,
+        "files": {
+          "black": "galaxy-black-landscape-0_0@640.webp",
+          "silver": "galaxy-silver-landscape-0_0@640.webp",
+          "natural": "galaxy-natural-landscape-0_0@640.webp"
+        },
+        "shadow": "galaxy-shadow-landscape-0_0@640.webp"
+      }
+    },
+    "galaxy/landscape/26_-6": {
+      "w": 2669,
+      "h": 1300,
+      "corners": [
+        [
+          355.134,
+          65.151
+        ],
+        [
+          2151.312,
+          268.718
+        ],
+        [
+          2171.222,
+          1114.344
+        ],
+        [
+          324.744,
+          1135.338
+        ]
+      ],
+      "radius": 0.02149,
+      "n": 2,
+      "files": {
+        "black": "galaxy-black-landscape-26_-6.webp",
+        "silver": "galaxy-silver-landscape-26_-6.webp",
+        "natural": "galaxy-natural-landscape-26_-6.webp"
+      },
+      "glare": "galaxy-glare-landscape-26_-6.webp",
+      "shadow": {
+        "file": "galaxy-shadow-landscape-26_-6.webp",
+        "x": 162.27,
+        "y": 248,
+        "w": 2114.42,
+        "h": 1778
+      }
+    },
+    "galaxy/portrait/-15_-4": {
+      "w": 1300,
+      "h": 2669,
+      "corners": [
+        [
+          105.166,
+          188.744
+        ],
+        [
+          1181.979,
+          123.793
+        ],
+        [
+          1194.002,
+          2542.538
+        ],
+        [
+          93.322,
+          2516.648
+        ]
+      ],
+      "radius": 0.04533,
+      "n": 2,
+      "files": {
+        "black": "galaxy-black-portrait--15_-4.webp",
+        "silver": "galaxy-silver-portrait--15_-4.webp",
+        "natural": "galaxy-natural-portrait--15_-4.webp"
+      },
+      "glare": "galaxy-glare-portrait--15_-4.webp",
+      "shadow": {
+        "file": "galaxy-shadow-portrait--15_-4.webp",
+        "x": -32,
+        "y": 180.27,
+        "w": 1586,
+        "h": 2998.59
+      }
+    },
+    "galaxy/portrait/-26_-6": {
+      "w": 1300,
+      "h": 2669,
+      "corners": [
+        [
+          146.299,
+          239.995
+        ],
+        [
+          1129.267,
+          116.956
+        ],
+        [
+          1145.585,
+          2527.27
+        ],
+        [
+          130.23,
+          2502.211
+        ]
+      ],
+      "radius": 0.04533,
+      "n": 2,
+      "files": {
+        "black": "galaxy-black-portrait--26_-6.webp",
+        "silver": "galaxy-silver-portrait--26_-6.webp",
+        "natural": "galaxy-natural-portrait--26_-6.webp"
+      },
+      "glare": "galaxy-glare-portrait--26_-6.webp",
+      "shadow": {
+        "file": "galaxy-shadow-portrait--26_-6.webp",
+        "x": -4,
+        "y": 208.28,
+        "w": 1636,
+        "h": 3154.62
+      }
+    },
+    "galaxy/portrait/-34_-12": {
+      "w": 1300,
+      "h": 2669,
+      "corners": [
+        [
+          189.939,
+          321.783
+        ],
+        [
+          1075.195,
+          111.031
+        ],
+        [
+          1104.495,
+          2480.359
+        ],
+        [
+          160.745,
+          2516.986
+        ]
+      ],
+      "radius": 0.04533,
+      "n": 2,
+      "files": {
+        "black": "galaxy-black-portrait--34_-12.webp",
+        "silver": "galaxy-silver-portrait--34_-12.webp",
+        "natural": "galaxy-natural-portrait--34_-12.webp"
+      },
+      "glare": "galaxy-glare-portrait--34_-12.webp",
+      "shadow": {
+        "file": "galaxy-shadow-portrait--34_-12.webp",
+        "x": -22,
+        "y": 228.28,
+        "w": 1772,
+        "h": 3364.66
+      }
+    },
+    "galaxy/portrait/0_0": {
+      "w": 1300,
+      "h": 2669,
+      "corners": [
+        [
+          37.101,
+          41.548
+        ],
+        [
+          1262.899,
+          41.548
+        ],
+        [
+          1262.899,
+          2627.454
+        ],
+        [
+          37.101,
+          2627.454
+        ]
+      ],
+      "radius": 0.04533,
+      "n": 2,
+      "files": {
+        "black": "galaxy-black-portrait-0_0.webp",
+        "silver": "galaxy-silver-portrait-0_0.webp",
+        "natural": "galaxy-natural-portrait-0_0.webp"
+      },
+      "glare": "galaxy-glare-portrait-0_0.webp",
+      "shadow": {
+        "file": "galaxy-shadow-portrait-0_0.webp",
+        "x": -104,
+        "y": 0.24,
+        "w": 1574,
+        "h": 3000.59
+      },
+      "thumb": {
+        "w": 640,
+        "h": 1314,
+        "files": {
+          "black": "galaxy-black-portrait-0_0@640.webp",
+          "silver": "galaxy-silver-portrait-0_0@640.webp",
+          "natural": "galaxy-natural-portrait-0_0@640.webp"
+        },
+        "shadow": "galaxy-shadow-portrait-0_0@640.webp"
+      }
+    },
+    "galaxy/portrait/26_-6": {
+      "w": 1300,
+      "h": 2669,
+      "corners": [
+        [
+          170.733,
+          116.956
+        ],
+        [
+          1153.701,
+          239.995
+        ],
+        [
+          1169.77,
+          2502.211
+        ],
+        [
+          154.415,
+          2527.27
+        ]
+      ],
+      "radius": 0.04533,
+      "n": 2,
+      "files": {
+        "black": "galaxy-black-portrait-26_-6.webp",
+        "silver": "galaxy-silver-portrait-26_-6.webp",
+        "natural": "galaxy-natural-portrait-26_-6.webp"
+      },
+      "glare": "galaxy-glare-portrait-26_-6.webp",
+      "shadow": {
+        "file": "galaxy-shadow-portrait-26_-6.webp",
+        "x": -140,
+        "y": 212.28,
+        "w": 1536,
+        "h": 3148.62
+      }
+    },
+    "ipad-mini/landscape/-15_-4": {
+      "w": 2857,
+      "h": 2000,
+      "corners": [
+        [
+          383.494,
+          300.013
+        ],
+        [
+          2564.012,
+          181.48
+        ],
+        [
+          2586.694,
+          1785.184
+        ],
+        [
+          364.693,
+          1746.593
+        ]
+      ],
+      "radius": 0.0593,
+      "n": 4,
+      "files": {
+        "black": "ipad-mini-black-landscape--15_-4.webp",
+        "silver": "ipad-mini-silver-landscape--15_-4.webp",
+        "natural": "ipad-mini-natural-landscape--15_-4.webp"
+      },
+      "glare": "ipad-mini-glare-landscape--15_-4.webp",
+      "shadow": {
+        "file": "ipad-mini-shadow-landscape--15_-4.webp",
+        "x": 214.28,
+        "y": 220,
+        "w": 2846.52,
+        "h": 2440
+      }
+    },
+    "ipad-mini/landscape/-26_-6": {
+      "w": 2857,
+      "h": 2000,
+      "corners": [
+        [
+          534.597,
+          389.76
+        ],
+        [
+          2443.602,
+          176.492
+        ],
+        [
+          2473.299,
+          1731.01
+        ],
+        [
+          512.471,
+          1710.237
+        ]
+      ],
+      "radius": 0.0593,
+      "n": 4,
+      "files": {
+        "black": "ipad-mini-black-landscape--26_-6.webp",
+        "silver": "ipad-mini-silver-landscape--26_-6.webp",
+        "natural": "ipad-mini-natural-landscape--26_-6.webp"
+      },
+      "glare": "ipad-mini-glare-landscape--26_-6.webp",
+      "shadow": {
+        "file": "ipad-mini-shadow-landscape--26_-6.webp",
+        "x": 372.31,
+        "y": 290,
+        "w": 2726.5,
+        "h": 2596
+      }
+    },
+    "ipad-mini/landscape/-34_-12": {
+      "w": 2857,
+      "h": 2000,
+      "corners": [
+        [
+          674.405,
+          515.34
+        ],
+        [
+          2294.63,
+          166.134
+        ],
+        [
+          2342.781,
+          1603.067
+        ],
+        [
+          639.989,
+          1710.927
+        ]
+      ],
+      "radius": 0.0593,
+      "n": 4,
+      "files": {
+        "black": "ipad-mini-black-landscape--34_-12.webp",
+        "silver": "ipad-mini-silver-landscape--34_-12.webp",
+        "natural": "ipad-mini-natural-landscape--34_-12.webp"
+      },
+      "glare": "ipad-mini-glare-landscape--34_-12.webp",
+      "shadow": {
+        "file": "ipad-mini-shadow-landscape--34_-12.webp",
+        "x": 490.33,
+        "y": 316,
+        "w": 2592.48,
+        "h": 2664
+      }
+    },
+    "ipad-mini/landscape/0_0": {
+      "w": 2857,
+      "h": 2000,
+      "corners": [
+        [
+          131.228,
+          130.08
+        ],
+        [
+          2725.772,
+          130.08
+        ],
+        [
+          2725.772,
+          1869.921
+        ],
+        [
+          131.228,
+          1869.921
+        ]
+      ],
+      "radius": 0.0593,
+      "n": 4,
+      "files": {
+        "black": "ipad-mini-black-landscape-0_0.webp",
+        "silver": "ipad-mini-silver-landscape-0_0.webp",
+        "natural": "ipad-mini-natural-landscape-0_0.webp"
+      },
+      "glare": "ipad-mini-glare-landscape-0_0.webp",
+      "shadow": {
+        "file": "ipad-mini-shadow-landscape-0_0.webp",
+        "x": -101.78,
+        "y": -2,
+        "w": 3116.57,
+        "h": 2272
+      },
+      "thumb": {
+        "w": 640,
+        "h": 448,
+        "files": {
+          "black": "ipad-mini-black-landscape-0_0@640.webp",
+          "silver": "ipad-mini-silver-landscape-0_0@640.webp",
+          "natural": "ipad-mini-natural-landscape-0_0@640.webp"
+        },
+        "shadow": "ipad-mini-shadow-landscape-0_0@640.webp"
+      }
+    },
+    "ipad-mini/landscape/26_-6": {
+      "w": 2857,
+      "h": 2000,
+      "corners": [
+        [
+          413.398,
+          176.492
+        ],
+        [
+          2322.403,
+          389.76
+        ],
+        [
+          2344.529,
+          1710.237
+        ],
+        [
+          383.7,
+          1731.011
+        ]
+      ],
+      "radius": 0.0593,
+      "n": 4,
+      "files": {
+        "black": "ipad-mini-black-landscape-26_-6.webp",
+        "silver": "ipad-mini-silver-landscape-26_-6.webp",
+        "natural": "ipad-mini-natural-landscape-26_-6.webp"
+      },
+      "glare": "ipad-mini-glare-landscape-26_-6.webp",
+      "shadow": {
+        "file": "ipad-mini-shadow-landscape-26_-6.webp",
+        "x": 38.24,
+        "y": 300,
+        "w": 2506.46,
+        "h": 2572
+      }
+    },
+    "ipad-mini/portrait/-15_-4": {
+      "w": 2000,
+      "h": 2857,
+      "corners": [
+        [
+          250.091,
+          301.191
+        ],
+        [
+          1765.671,
+          214.343
+        ],
+        [
+          1781.822,
+          2632.578
+        ],
+        [
+          235.059,
+          2600.859
+        ]
+      ],
+      "radius": 0.08844,
+      "n": 4,
+      "files": {
+        "black": "ipad-mini-black-portrait--15_-4.webp",
+        "silver": "ipad-mini-silver-portrait--15_-4.webp",
+        "natural": "ipad-mini-natural-portrait--15_-4.webp"
+      },
+      "glare": "ipad-mini-glare-portrait--15_-4.webp",
+      "shadow": {
+        "file": "ipad-mini-shadow-portrait--15_-4.webp",
+        "x": 44,
+        "y": 208.28,
+        "w": 2240,
+        "h": 3262.6
+      }
+    },
+    "ipad-mini/portrait/-26_-6": {
+      "w": 2000,
+      "h": 2857,
+      "corners": [
+        [
+          325.441,
+          373.995
+        ],
+        [
+          1694.261,
+          211.212
+        ],
+        [
+          1716.129,
+          2600.737
+        ],
+        [
+          305.914,
+          2574.769
+        ]
+      ],
+      "radius": 0.08844,
+      "n": 4,
+      "files": {
+        "black": "ipad-mini-black-portrait--26_-6.webp",
+        "silver": "ipad-mini-silver-portrait--26_-6.webp",
+        "natural": "ipad-mini-natural-portrait--26_-6.webp"
+      },
+      "glare": "ipad-mini-glare-portrait--26_-6.webp",
+      "shadow": {
+        "file": "ipad-mini-shadow-portrait--26_-6.webp",
+        "x": 114,
+        "y": 262.29,
+        "w": 2268,
+        "h": 3446.63
+      }
+    },
+    "ipad-mini/portrait/-34_-12": {
+      "w": 2000,
+      "h": 2857,
+      "corners": [
+        [
+          398.835,
+          483.015
+        ],
+        [
+          1616.795,
+          204.808
+        ],
+        [
+          1655.551,
+          2522.78
+        ],
+        [
+          364.831,
+          2585.419
+        ]
+      ],
+      "radius": 0.08844,
+      "n": 4,
+      "files": {
+        "black": "ipad-mini-black-portrait--34_-12.webp",
+        "silver": "ipad-mini-silver-portrait--34_-12.webp",
+        "natural": "ipad-mini-natural-portrait--34_-12.webp"
+      },
+      "glare": "ipad-mini-glare-portrait--34_-12.webp",
+      "shadow": {
+        "file": "ipad-mini-shadow-portrait--34_-12.webp",
+        "x": 136,
+        "y": 288.29,
+        "w": 2348,
+        "h": 3662.67
+      }
+    },
+    "ipad-mini/portrait/0_0": {
+      "w": 2000,
+      "h": 2857,
+      "corners": [
+        [
+          130.079,
+          131.229
+        ],
+        [
+          1869.921,
+          131.229
+        ],
+        [
+          1869.921,
+          2725.773
+        ],
+        [
+          130.079,
+          2725.773
+        ]
+      ],
+      "radius": 0.08844,
+      "n": 4,
+      "files": {
+        "black": "ipad-mini-black-portrait-0_0.webp",
+        "silver": "ipad-mini-silver-portrait-0_0.webp",
+        "natural": "ipad-mini-natural-portrait-0_0.webp"
+      },
+      "glare": "ipad-mini-glare-portrait-0_0.webp",
+      "shadow": {
+        "file": "ipad-mini-shadow-portrait-0_0.webp",
+        "x": -94,
+        "y": -5.76,
+        "w": 2242,
+        "h": 3140.58
+      },
+      "thumb": {
+        "w": 640,
+        "h": 914,
+        "files": {
+          "black": "ipad-mini-black-portrait-0_0@640.webp",
+          "silver": "ipad-mini-silver-portrait-0_0@640.webp",
+          "natural": "ipad-mini-natural-portrait-0_0@640.webp"
+        },
+        "shadow": "ipad-mini-shadow-portrait-0_0@640.webp"
+      }
+    },
+    "ipad-mini/portrait/26_-6": {
+      "w": 2000,
+      "h": 2857,
+      "corners": [
+        [
+          305.739,
+          211.212
+        ],
+        [
+          1674.559,
+          373.995
+        ],
+        [
+          1694.086,
+          2574.769
+        ],
+        [
+          283.871,
+          2600.737
+        ]
+      ],
+      "radius": 0.08844,
+      "n": 4,
+      "files": {
+        "black": "ipad-mini-black-portrait-26_-6.webp",
+        "silver": "ipad-mini-silver-portrait-26_-6.webp",
+        "natural": "ipad-mini-natural-portrait-26_-6.webp"
+      },
+      "glare": "ipad-mini-glare-portrait-26_-6.webp",
+      "shadow": {
+        "file": "ipad-mini-shadow-portrait-26_-6.webp",
+        "x": -126,
+        "y": 272.29,
+        "w": 2096,
+        "h": 3426.63
+      }
+    },
+    "ipad/landscape/-15_-4": {
+      "w": 3200,
+      "h": 2400,
+      "corners": [
+        [
+          389.857,
+          307.701
+        ],
+        [
+          2922.648,
+          164.803
+        ],
+        [
+          2950.641,
+          2202.66
+        ],
+        [
+          366.713,
+          2151.892
+        ]
+      ],
+      "radius": 0.05046,
+      "n": 4,
+      "files": {
+        "black": "ipad-black-landscape--15_-4.webp",
+        "silver": "ipad-silver-landscape--15_-4.webp"
+      },
+      "glare": "ipad-glare-landscape--15_-4.webp",
+      "shadow": {
+        "file": "ipad-shadow-landscape--15_-4.webp",
+        "x": 232,
+        "y": 254,
+        "w": 3210,
+        "h": 2882
+      }
+    },
+    "ipad/landscape/-26_-6": {
+      "w": 3200,
+      "h": 2400,
+      "corners": [
+        [
+          563.999,
+          416.198
+        ],
+        [
+          2790.675,
+          159.316
+        ],
+        [
+          2827.723,
+          2141.63
+        ],
+        [
+          536.605,
+          2107.644
+        ]
+      ],
+      "radius": 0.05046,
+      "n": 4,
+      "files": {
+        "black": "ipad-black-landscape--26_-6.webp",
+        "silver": "ipad-silver-landscape--26_-6.webp"
+      },
+      "glare": "ipad-glare-landscape--26_-6.webp",
+      "shadow": {
+        "file": "ipad-shadow-landscape--26_-6.webp",
+        "x": 408,
+        "y": 344,
+        "w": 3090,
+        "h": 3056
+      }
+    },
+    "ipad/landscape/-34_-12": {
+      "w": 3200,
+      "h": 2400,
+      "corners": [
+        [
+          723.936,
+          568.433
+        ],
+        [
+          2625.216,
+          149.838
+        ],
+        [
+          2686.305,
+          1995.076
+        ],
+        [
+          680.916,
+          2109.666
+        ]
+      ],
+      "radius": 0.05046,
+      "n": 4,
+      "files": {
+        "black": "ipad-black-landscape--34_-12.webp",
+        "silver": "ipad-silver-landscape--34_-12.webp"
+      },
+      "glare": "ipad-glare-landscape--34_-12.webp",
+      "shadow": {
+        "file": "ipad-shadow-landscape--34_-12.webp",
+        "x": 534,
+        "y": 376,
+        "w": 2956,
+        "h": 3154
+      }
+    },
+    "ipad/landscape/0_0": {
+      "w": 3200,
+      "h": 2400,
+      "corners": [
+        [
+          98.056,
+          96.861
+        ],
+        [
+          3101.944,
+          96.86
+        ],
+        [
+          3101.944,
+          2303.142
+        ],
+        [
+          98.056,
+          2303.142
+        ]
+      ],
+      "radius": 0.05046,
+      "n": 4,
+      "files": {
+        "black": "ipad-black-landscape-0_0.webp",
+        "silver": "ipad-silver-landscape-0_0.webp"
+      },
+      "glare": "ipad-glare-landscape-0_0.webp",
+      "shadow": {
+        "file": "ipad-shadow-landscape-0_0.webp",
+        "x": -102,
+        "y": 2,
+        "w": 3458,
+        "h": 2666
+      },
+      "thumb": {
+        "w": 640,
+        "h": 480,
+        "files": {
+          "black": "ipad-black-landscape-0_0@640.webp",
+          "silver": "ipad-silver-landscape-0_0@640.webp"
+        },
+        "shadow": "ipad-shadow-landscape-0_0@640.webp"
+      }
+    },
+    "ipad/landscape/26_-6": {
+      "w": 3200,
+      "h": 2400,
+      "corners": [
+        [
+          409.325,
+          159.316
+        ],
+        [
+          2636.001,
+          416.198
+        ],
+        [
+          2663.395,
+          2107.644
+        ],
+        [
+          372.277,
+          2141.631
+        ]
+      ],
+      "radius": 0.05046,
+      "n": 4,
+      "files": {
+        "black": "ipad-black-landscape-26_-6.webp",
+        "silver": "ipad-silver-landscape-26_-6.webp"
+      },
+      "glare": "ipad-glare-landscape-26_-6.webp",
+      "shadow": {
+        "file": "ipad-shadow-landscape-26_-6.webp",
+        "x": 24,
+        "y": 360,
+        "w": 2834,
+        "h": 3012
+      }
+    },
+    "ipad/portrait/-15_-4": {
+      "w": 2400,
+      "h": 3200,
+      "corners": [
+        [
+          262.612,
+          306.907
+        ],
+        [
+          2177.77,
+          195.072
+        ],
+        [
+          2199.092,
+          2994.225
+        ],
+        [
+          243.314,
+          2951.709
+        ]
+      ],
+      "radius": 0.0687,
+      "n": 4,
+      "files": {
+        "black": "ipad-black-portrait--15_-4.webp",
+        "silver": "ipad-silver-portrait--15_-4.webp"
+      },
+      "glare": "ipad-glare-portrait--15_-4.webp",
+      "shadow": {
+        "file": "ipad-shadow-portrait--15_-4.webp",
+        "x": 78,
+        "y": 242,
+        "w": 2634,
+        "h": 3638
+      }
+    },
+    "ipad/portrait/-26_-6": {
+      "w": 2400,
+      "h": 3200,
+      "corners": [
+        [
+          365.579,
+          398.695
+        ],
+        [
+          2091.624,
+          190.573
+        ],
+        [
+          2120.649,
+          2955.029
+        ],
+        [
+          340.88,
+          2918.64
+        ]
+      ],
+      "radius": 0.0687,
+      "n": 4,
+      "files": {
+        "black": "ipad-black-portrait--26_-6.webp",
+        "silver": "ipad-silver-portrait--26_-6.webp"
+      },
+      "glare": "ipad-glare-portrait--26_-6.webp",
+      "shadow": {
+        "file": "ipad-shadow-portrait--26_-6.webp",
+        "x": 170,
+        "y": 316,
+        "w": 2650,
+        "h": 3854
+      }
+    },
+    "ipad/portrait/-34_-12": {
+      "w": 2400,
+      "h": 3200,
+      "corners": [
+        [
+          463.482,
+          535.142
+        ],
+        [
+          1994.182,
+          183.113
+        ],
+        [
+          2045.647,
+          2857.698
+        ],
+        [
+          421.065,
+          2932.373
+        ]
+      ],
+      "radius": 0.0687,
+      "n": 4,
+      "files": {
+        "black": "ipad-black-portrait--34_-12.webp",
+        "silver": "ipad-silver-portrait--34_-12.webp"
+      },
+      "glare": "ipad-glare-portrait--34_-12.webp",
+      "shadow": {
+        "file": "ipad-shadow-portrait--34_-12.webp",
+        "x": 208,
+        "y": 346,
+        "w": 2720,
+        "h": 4084
+      }
+    },
+    "ipad/portrait/0_0": {
+      "w": 2400,
+      "h": 3200,
+      "corners": [
+        [
+          96.859,
+          98.057
+        ],
+        [
+          2303.141,
+          98.057
+        ],
+        [
+          2303.141,
+          3101.945
+        ],
+        [
+          96.859,
+          3101.945
+        ]
+      ],
+      "radius": 0.0687,
+      "n": 4,
+      "files": {
+        "black": "ipad-black-portrait-0_0.webp",
+        "silver": "ipad-silver-portrait-0_0.webp"
+      },
+      "glare": "ipad-glare-portrait-0_0.webp",
+      "shadow": {
+        "file": "ipad-shadow-portrait-0_0.webp",
+        "x": -94,
+        "y": 0,
+        "w": 2642,
+        "h": 3472
+      },
+      "thumb": {
+        "w": 640,
+        "h": 853,
+        "files": {
+          "black": "ipad-black-portrait-0_0@640.webp",
+          "silver": "ipad-silver-portrait-0_0@640.webp"
+        },
+        "shadow": "ipad-shadow-portrait-0_0@640.webp"
+      }
+    },
+    "ipad/portrait/26_-6": {
+      "w": 2400,
+      "h": 3200,
+      "corners": [
+        [
+          308.376,
+          190.573
+        ],
+        [
+          2034.421,
+          398.695
+        ],
+        [
+          2059.12,
+          2918.64
+        ],
+        [
+          279.351,
+          2955.029
+        ]
+      ],
+      "radius": 0.0687,
+      "n": 4,
+      "files": {
+        "black": "ipad-black-portrait-26_-6.webp",
+        "silver": "ipad-silver-portrait-26_-6.webp"
+      },
+      "glare": "ipad-glare-portrait-26_-6.webp",
+      "shadow": {
+        "file": "ipad-shadow-portrait-26_-6.webp",
+        "x": -120,
+        "y": 328,
+        "w": 2438,
+        "h": 3818
+      }
+    },
+    "iphone-se/landscape/-15_-4": {
+      "w": 2653,
+      "h": 1300,
+      "corners": [
+        [
+          526.113,
+          211.809
+        ],
+        [
+          2169.844,
+          123.748
+        ],
+        [
+          2186.347,
+          1144.987
+        ],
+        [
+          512.241,
+          1117.882
+        ]
+      ],
+      "radius": 0.00751,
+      "n": 4,
+      "files": {
+        "black": "iphone-se-black-landscape--15_-4.webp",
+        "silver": "iphone-se-silver-landscape--15_-4.webp",
+        "natural": "iphone-se-natural-landscape--15_-4.webp"
+      },
+      "glare": "iphone-se-glare-landscape--15_-4.webp",
+      "shadow": {
+        "file": "iphone-se-shadow-landscape--15_-4.webp",
+        "x": 262.29,
+        "y": 178,
+        "w": 2484.49,
+        "h": 1706
+      }
+    },
+    "iphone-se/landscape/-26_-6": {
+      "w": 2653,
+      "h": 1300,
+      "corners": [
+        [
+          656.33,
+          281.445
+        ],
+        [
+          2056.882,
+          128.647
+        ],
+        [
+          2077.308,
+          1094.91
+        ],
+        [
+          640.812,
+          1085.026
+        ]
+      ],
+      "radius": 0.00751,
+      "n": 4,
+      "files": {
+        "black": "iphone-se-black-landscape--26_-6.webp",
+        "silver": "iphone-se-silver-landscape--26_-6.webp",
+        "natural": "iphone-se-natural-landscape--26_-6.webp"
+      },
+      "glare": "iphone-se-glare-landscape--26_-6.webp",
+      "shadow": {
+        "file": "iphone-se-shadow-landscape--26_-6.webp",
+        "x": 428.32,
+        "y": 228,
+        "w": 2306.46,
+        "h": 1808
+      }
+    },
+    "iphone-se/landscape/-34_-12": {
+      "w": 2653,
+      "h": 1300,
+      "corners": [
+        [
+          776.458,
+          373.047
+        ],
+        [
+          1922.609,
+          131.745
+        ],
+        [
+          1953.03,
+          990.353
+        ],
+        [
+          753.805,
+          1075.888
+        ]
+      ],
+      "radius": 0.00751,
+      "n": 4,
+      "files": {
+        "black": "iphone-se-black-landscape--34_-12.webp",
+        "silver": "iphone-se-silver-landscape--34_-12.webp",
+        "natural": "iphone-se-natural-landscape--34_-12.webp"
+      },
+      "glare": "iphone-se-glare-landscape--34_-12.webp",
+      "shadow": {
+        "file": "iphone-se-shadow-landscape--34_-12.webp",
+        "x": 562.35,
+        "y": 244,
+        "w": 2096.42,
+        "h": 1812
+      }
+    },
+    "iphone-se/landscape/0_0": {
+      "w": 2653,
+      "h": 1300,
+      "corners": [
+        [
+          317.132,
+          91.407
+        ],
+        [
+          2307.124,
+          91.407
+        ],
+        [
+          2307.124,
+          1208.594
+        ],
+        [
+          317.132,
+          1208.594
+        ]
+      ],
+      "radius": 0.00751,
+      "n": 4,
+      "files": {
+        "black": "iphone-se-black-landscape-0_0.webp",
+        "silver": "iphone-se-silver-landscape-0_0.webp",
+        "natural": "iphone-se-natural-landscape-0_0.webp"
+      },
+      "glare": "iphone-se-glare-landscape-0_0.webp",
+      "shadow": {
+        "file": "iphone-se-shadow-landscape-0_0.webp",
+        "x": -105.78,
+        "y": 0,
+        "w": 2930.58,
+        "h": 1606
+      },
+      "thumb": {
+        "w": 640,
+        "h": 314,
+        "files": {
+          "black": "iphone-se-black-landscape-0_0@640.webp",
+          "silver": "iphone-se-silver-landscape-0_0@640.webp",
+          "natural": "iphone-se-natural-landscape-0_0@640.webp"
+        },
+        "shadow": "iphone-se-shadow-landscape-0_0@640.webp"
+      }
+    },
+    "iphone-se/landscape/26_-6": {
+      "w": 2653,
+      "h": 1300,
+      "corners": [
+        [
+          571.727,
+          125.986
+        ],
+        [
+          1979.801,
+          279.604
+        ],
+        [
+          1994.965,
+          1085.144
+        ],
+        [
+          550.556,
+          1095.083
+        ]
+      ],
+      "radius": 0.00751,
+      "n": 4,
+      "files": {
+        "black": "iphone-se-black-landscape-26_-6.webp",
+        "silver": "iphone-se-silver-landscape-26_-6.webp",
+        "natural": "iphone-se-natural-landscape-26_-6.webp"
+      },
+      "glare": "iphone-se-glare-landscape-26_-6.webp",
+      "shadow": {
+        "file": "iphone-se-shadow-landscape-26_-6.webp",
+        "x": 144.27,
+        "y": 232,
+        "w": 2128.42,
+        "h": 1800
+      }
+    },
+    "iphone-se/portrait/-15_-4": {
+      "w": 1300,
+      "h": 2653,
+      "corners": [
+        [
+          147.736,
+          424.643
+        ],
+        [
+          1136.208,
+          373.581
+        ],
+        [
+          1144.722,
+          2240.743
+        ],
+        [
+          139.25,
+          2227.115
+        ]
+      ],
+      "radius": 0.01338,
+      "n": 4,
+      "files": {
+        "black": "iphone-se-black-portrait--15_-4.webp",
+        "silver": "iphone-se-silver-portrait--15_-4.webp",
+        "natural": "iphone-se-natural-portrait--15_-4.webp"
+      },
+      "glare": "iphone-se-glare-portrait--15_-4.webp",
+      "shadow": {
+        "file": "iphone-se-shadow-portrait--15_-4.webp",
+        "x": -26,
+        "y": 172.27,
+        "w": 1572,
+        "h": 2976.59
+      }
+    },
+    "iphone-se/portrait/-26_-6": {
+      "w": 1300,
+      "h": 2653,
+      "corners": [
+        [
+          180.951,
+          459.722
+        ],
+        [
+          1089.737,
+          359.572
+        ],
+        [
+          1101.385,
+          2229.931
+        ],
+        [
+          169.252,
+          2223.347
+        ]
+      ],
+      "radius": 0.01338,
+      "n": 4,
+      "files": {
+        "black": "iphone-se-black-portrait--26_-6.webp",
+        "silver": "iphone-se-silver-portrait--26_-6.webp",
+        "natural": "iphone-se-natural-portrait--26_-6.webp"
+      },
+      "glare": "iphone-se-glare-portrait--26_-6.webp",
+      "shadow": {
+        "file": "iphone-se-shadow-portrait--26_-6.webp",
+        "x": -4,
+        "y": 194.28,
+        "w": 1636,
+        "h": 3148.62
+      }
+    },
+    "iphone-se/portrait/-34_-12": {
+      "w": 1300,
+      "h": 2653,
+      "corners": [
+        [
+          218.255,
+          523.567
+        ],
+        [
+          1041.351,
+          343.354
+        ],
+        [
+          1062.296,
+          2184.874
+        ],
+        [
+          196.842,
+          2239.131
+        ]
+      ],
+      "radius": 0.01338,
+      "n": 4,
+      "files": {
+        "black": "iphone-se-black-portrait--34_-12.webp",
+        "silver": "iphone-se-silver-portrait--34_-12.webp",
+        "natural": "iphone-se-natural-portrait--34_-12.webp"
+      },
+      "glare": "iphone-se-glare-portrait--34_-12.webp",
+      "shadow": {
+        "file": "iphone-se-shadow-portrait--34_-12.webp",
+        "x": -20,
+        "y": 216.28,
+        "w": 1772,
+        "h": 3366.67
+      }
+    },
+    "iphone-se/portrait/0_0": {
+      "w": 1300,
+      "h": 2653,
+      "corners": [
+        [
+          91.406,
+          317.133
+        ],
+        [
+          1208.594,
+          317.133
+        ],
+        [
+          1208.594,
+          2307.124
+        ],
+        [
+          91.406,
+          2307.124
+        ]
+      ],
+      "radius": 0.01338,
+      "n": 4,
+      "files": {
+        "black": "iphone-se-black-portrait-0_0.webp",
+        "silver": "iphone-se-silver-portrait-0_0.webp",
+        "natural": "iphone-se-natural-portrait-0_0.webp"
+      },
+      "glare": "iphone-se-glare-portrait-0_0.webp",
+      "shadow": {
+        "file": "iphone-se-shadow-portrait-0_0.webp",
+        "x": -96,
+        "y": 2.24,
+        "w": 1554,
+        "h": 2970.59
+      },
+      "thumb": {
+        "w": 640,
+        "h": 1306,
+        "files": {
+          "black": "iphone-se-black-portrait-0_0@640.webp",
+          "silver": "iphone-se-silver-portrait-0_0@640.webp",
+          "natural": "iphone-se-natural-portrait-0_0@640.webp"
+        },
+        "shadow": "iphone-se-shadow-portrait-0_0@640.webp"
+      }
+    },
+    "iphone-se/portrait/26_-6": {
+      "w": 1300,
+      "h": 2653,
+      "corners": [
+        [
+          210.263,
+          359.572
+        ],
+        [
+          1119.049,
+          459.722
+        ],
+        [
+          1130.748,
+          2223.347
+        ],
+        [
+          198.615,
+          2229.931
+        ]
+      ],
+      "radius": 0.01338,
+      "n": 4,
+      "files": {
+        "black": "iphone-se-black-portrait-26_-6.webp",
+        "silver": "iphone-se-silver-portrait-26_-6.webp",
+        "natural": "iphone-se-natural-portrait-26_-6.webp"
+      },
+      "glare": "iphone-se-glare-portrait-26_-6.webp",
+      "shadow": {
+        "file": "iphone-se-shadow-portrait-26_-6.webp",
+        "x": -142,
+        "y": 198.28,
+        "w": 1536,
+        "h": 3142.62
+      }
+    },
+    "iphone/landscape/-15_-4": {
+      "w": 2731,
+      "h": 1300,
+      "corners": [
+        [
+          353.984,
+          193.899
+        ],
+        [
+          2510.047,
+          73.461
+        ],
+        [
+          2534.434,
+          1184.405
+        ],
+        [
+          335.6,
+          1143.746
+        ]
+      ],
+      "radius": 0.08551,
+      "n": 4,
+      "files": {
+        "black": "iphone-black-landscape--15_-4.webp",
+        "silver": "iphone-silver-landscape--15_-4.webp",
+        "natural": "iphone-natural-landscape--15_-4.webp"
+      },
+      "glare": "iphone-glare-landscape--15_-4.webp",
+      "shadow": {
+        "file": "iphone-shadow-landscape--15_-4.webp",
+        "x": 278.29,
+        "y": 190,
+        "w": 2538.49,
+        "h": 1712
+      }
+    },
+    "iphone/landscape/-26_-6": {
+      "w": 2731,
+      "h": 1300,
+      "corners": [
+        [
+          527.325,
+          274.028
+        ],
+        [
+          2371.252,
+          65.837
+        ],
+        [
+          2402.279,
+          1129.788
+        ],
+        [
+          507.142,
+          1109.526
+        ]
+      ],
+      "radius": 0.08551,
+      "n": 4,
+      "files": {
+        "black": "iphone-black-landscape--26_-6.webp",
+        "silver": "iphone-silver-landscape--26_-6.webp",
+        "natural": "iphone-natural-landscape--26_-6.webp"
+      },
+      "glare": "iphone-glare-landscape--26_-6.webp",
+      "shadow": {
+        "file": "iphone-shadow-landscape--26_-6.webp",
+        "x": 448.32,
+        "y": 248,
+        "w": 2348.45,
+        "h": 1802
+      }
+    },
+    "iphone/landscape/-34_-12": {
+      "w": 2731,
+      "h": 1300,
+      "corners": [
+        [
+          682.072,
+          379.232
+        ],
+        [
+          2189.06,
+          55.234
+        ],
+        [
+          2235.577,
+          1001.211
+        ],
+        [
+          652.931,
+          1107.174
+        ]
+      ],
+      "radius": 0.08551,
+      "n": 4,
+      "files": {
+        "black": "iphone-black-landscape--34_-12.webp",
+        "silver": "iphone-silver-landscape--34_-12.webp",
+        "natural": "iphone-natural-landscape--34_-12.webp"
+      },
+      "glare": "iphone-glare-landscape--34_-12.webp",
+      "shadow": {
+        "file": "iphone-shadow-landscape--34_-12.webp",
+        "x": 588.35,
+        "y": 260,
+        "w": 2122.41,
+        "h": 1798
+      }
+    },
+    "iphone/landscape/0_0": {
+      "w": 2731,
+      "h": 1300,
+      "corners": [
+        [
+          55.895,
+          50.608
+        ],
+        [
+          2675.105,
+          50.608
+        ],
+        [
+          2675.105,
+          1249.393
+        ],
+        [
+          55.895,
+          1249.393
+        ]
+      ],
+      "radius": 0.08551,
+      "n": 4,
+      "files": {
+        "black": "iphone-black-landscape-0_0.webp",
+        "silver": "iphone-silver-landscape-0_0.webp",
+        "natural": "iphone-natural-landscape-0_0.webp"
+      },
+      "glare": "iphone-glare-landscape-0_0.webp",
+      "shadow": {
+        "file": "iphone-shadow-landscape-0_0.webp",
+        "x": -129.79,
+        "y": 10,
+        "w": 3068.59,
+        "h": 1654
+      },
+      "thumb": {
+        "w": 640,
+        "h": 305,
+        "files": {
+          "black": "iphone-black-landscape-0_0@640.webp",
+          "silver": "iphone-silver-landscape-0_0@640.webp",
+          "natural": "iphone-natural-landscape-0_0@640.webp"
+        },
+        "shadow": "iphone-shadow-landscape-0_0@640.webp"
+      }
+    },
+    "iphone/landscape/26_-6": {
+      "w": 2731,
+      "h": 1300,
+      "corners": [
+        [
+          359.748,
+          65.837
+        ],
+        [
+          2203.675,
+          274.028
+        ],
+        [
+          2223.858,
+          1109.526
+        ],
+        [
+          328.721,
+          1129.788
+        ]
+      ],
+      "radius": 0.08551,
+      "n": 4,
+      "files": {
+        "black": "iphone-black-landscape-26_-6.webp",
+        "silver": "iphone-silver-landscape-26_-6.webp",
+        "natural": "iphone-natural-landscape-26_-6.webp"
+      },
+      "glare": "iphone-glare-landscape-26_-6.webp",
+      "shadow": {
+        "file": "iphone-shadow-landscape-26_-6.webp",
+        "x": 166.27,
+        "y": 248,
+        "w": 2166.42,
+        "h": 1794
+      }
+    },
+    "iphone/portrait/-15_-4": {
+      "w": 1300,
+      "h": 2731,
+      "corners": [
+        [
+          112.115,
+          198.137
+        ],
+        [
+          1169.819,
+          134.569
+        ],
+        [
+          1181.49,
+          2593.337
+        ],
+        [
+          100.481,
+          2568.19
+        ]
+      ],
+      "radius": 0.18683,
+      "n": 4,
+      "files": {
+        "black": "iphone-black-portrait--15_-4.webp",
+        "silver": "iphone-silver-portrait--15_-4.webp",
+        "natural": "iphone-natural-portrait--15_-4.webp"
+      },
+      "glare": "iphone-glare-portrait--15_-4.webp",
+      "shadow": {
+        "file": "iphone-shadow-portrait--15_-4.webp",
+        "x": -36,
+        "y": 186.27,
+        "w": 1598,
+        "h": 3066.59
+      }
+    },
+    "iphone/portrait/-26_-6": {
+      "w": 1300,
+      "h": 2731,
+      "corners": [
+        [
+          147.521,
+          241.674
+        ],
+        [
+          1119.527,
+          119.864
+        ],
+        [
+          1135.515,
+          2586.342
+        ],
+        [
+          131.455,
+          2561.507
+        ]
+      ],
+      "radius": 0.18683,
+      "n": 4,
+      "files": {
+        "black": "iphone-black-portrait--26_-6.webp",
+        "silver": "iphone-silver-portrait--26_-6.webp",
+        "natural": "iphone-natural-portrait--26_-6.webp"
+      },
+      "glare": "iphone-glare-portrait--26_-6.webp",
+      "shadow": {
+        "file": "iphone-shadow-portrait--26_-6.webp",
+        "x": -14,
+        "y": 206.28,
+        "w": 1654,
+        "h": 3234.62
+      }
+    },
+    "iphone/portrait/-34_-12": {
+      "w": 1300,
+      "h": 2731,
+      "corners": [
+        [
+          187.83,
+          319.279
+        ],
+        [
+          1066.823,
+          109.398
+        ],
+        [
+          1095.678,
+          2544.532
+        ],
+        [
+          158.298,
+          2580.465
+        ]
+      ],
+      "radius": 0.18683,
+      "n": 4,
+      "files": {
+        "black": "iphone-black-portrait--34_-12.webp",
+        "silver": "iphone-silver-portrait--34_-12.webp",
+        "natural": "iphone-natural-portrait--34_-12.webp"
+      },
+      "glare": "iphone-glare-portrait--34_-12.webp",
+      "shadow": {
+        "file": "iphone-shadow-portrait--34_-12.webp",
+        "x": -32,
+        "y": 224.28,
+        "w": 1792,
+        "h": 3454.67
+      }
+    },
+    "iphone/portrait/0_0": {
+      "w": 1300,
+      "h": 2731,
+      "corners": [
+        [
+          50.607,
+          55.896
+        ],
+        [
+          1249.393,
+          55.896
+        ],
+        [
+          1249.393,
+          2675.105
+        ],
+        [
+          50.607,
+          2675.105
+        ]
+      ],
+      "radius": 0.18683,
+      "n": 4,
+      "files": {
+        "black": "iphone-black-portrait-0_0.webp",
+        "silver": "iphone-silver-portrait-0_0.webp",
+        "natural": "iphone-natural-portrait-0_0.webp"
+      },
+      "glare": "iphone-glare-portrait-0_0.webp",
+      "shadow": {
+        "file": "iphone-shadow-portrait-0_0.webp",
+        "x": -114,
+        "y": 4.24,
+        "w": 1604,
+        "h": 3108.6
+      },
+      "thumb": {
+        "w": 640,
+        "h": 1344,
+        "files": {
+          "black": "iphone-black-portrait-0_0@640.webp",
+          "silver": "iphone-silver-portrait-0_0@640.webp",
+          "natural": "iphone-natural-portrait-0_0@640.webp"
+        },
+        "shadow": "iphone-shadow-portrait-0_0@640.webp"
+      }
+    },
+    "iphone/portrait/26_-6": {
+      "w": 1300,
+      "h": 2731,
+      "corners": [
+        [
+          180.473,
+          119.864
+        ],
+        [
+          1152.479,
+          241.674
+        ],
+        [
+          1168.544,
+          2561.507
+        ],
+        [
+          164.485,
+          2586.342
+        ]
+      ],
+      "radius": 0.18683,
+      "n": 4,
+      "files": {
+        "black": "iphone-black-portrait-26_-6.webp",
+        "silver": "iphone-silver-portrait-26_-6.webp",
+        "natural": "iphone-natural-portrait-26_-6.webp"
+      },
+      "glare": "iphone-glare-portrait-26_-6.webp",
+      "shadow": {
+        "file": "iphone-shadow-portrait-26_-6.webp",
+        "x": -146,
+        "y": 212.28,
+        "w": 1558,
+        "h": 3224.62
+      }
+    },
+    "pixel/landscape/-15_-4": {
+      "w": 2766,
+      "h": 1300,
+      "corners": [
+        [
+          360.264,
+          193.764
+        ],
+        [
+          2543.763,
+          71.663
+        ],
+        [
+          2568.568,
+          1185.87
+        ],
+        [
+          341.658,
+          1144.52
+        ]
+      ],
+      "radius": 0.05391,
+      "n": 2,
+      "files": {
+        "black": "pixel-black-landscape--15_-4.webp",
+        "silver": "pixel-silver-landscape--15_-4.webp",
+        "natural": "pixel-natural-landscape--15_-4.webp"
+      },
+      "glare": "pixel-glare-landscape--15_-4.webp",
+      "shadow": {
+        "file": "pixel-shadow-landscape--15_-4.webp",
+        "x": 286,
+        "y": 186,
+        "w": 2552,
+        "h": 1700
+      }
+    },
+    "pixel/landscape/-26_-6": {
+      "w": 2766,
+      "h": 1300,
+      "corners": [
+        [
+          536.412,
+          274.469
+        ],
+        [
+          2403.897,
+          63.477
+        ],
+        [
+          2435.499,
+          1131.005
+        ],
+        [
+          516.02,
+          1110.25
+        ]
+      ],
+      "radius": 0.05391,
+      "n": 2,
+      "files": {
+        "black": "pixel-black-landscape--26_-6.webp",
+        "silver": "pixel-silver-landscape--26_-6.webp",
+        "natural": "pixel-natural-landscape--26_-6.webp"
+      },
+      "glare": "pixel-glare-landscape--26_-6.webp",
+      "shadow": {
+        "file": "pixel-shadow-landscape--26_-6.webp",
+        "x": 460,
+        "y": 250,
+        "w": 2360,
+        "h": 1796
+      }
+    },
+    "pixel/landscape/-34_-12": {
+      "w": 2766,
+      "h": 1300,
+      "corners": [
+        [
+          692.281,
+          380.054
+        ],
+        [
+          2220.686,
+          51.218
+        ],
+        [
+          2268.251,
+          1001.962
+        ],
+        [
+          662.789,
+          1109.015
+        ]
+      ],
+      "radius": 0.05391,
+      "n": 2,
+      "files": {
+        "black": "pixel-black-landscape--34_-12.webp",
+        "silver": "pixel-silver-landscape--34_-12.webp",
+        "natural": "pixel-natural-landscape--34_-12.webp"
+      },
+      "glare": "pixel-glare-landscape--34_-12.webp",
+      "shadow": {
+        "file": "pixel-shadow-landscape--34_-12.webp",
+        "x": 600,
+        "y": 264,
+        "w": 2132,
+        "h": 1792
+      }
+    },
+    "pixel/landscape/0_0": {
+      "w": 2766,
+      "h": 1300,
+      "corners": [
+        [
+          53.327,
+          47.85
+        ],
+        [
+          2712.673,
+          47.85
+        ],
+        [
+          2712.673,
+          1252.151
+        ],
+        [
+          53.327,
+          1252.151
+        ]
+      ],
+      "radius": 0.05391,
+      "n": 2,
+      "files": {
+        "black": "pixel-black-landscape-0_0.webp",
+        "silver": "pixel-silver-landscape-0_0.webp",
+        "natural": "pixel-natural-landscape-0_0.webp"
+      },
+      "glare": "pixel-glare-landscape-0_0.webp",
+      "shadow": {
+        "file": "pixel-shadow-landscape-0_0.webp",
+        "x": -126,
+        "y": 8,
+        "w": 3094,
+        "h": 1646
+      },
+      "thumb": {
+        "w": 640,
+        "h": 301,
+        "files": {
+          "black": "pixel-black-landscape-0_0@640.webp",
+          "silver": "pixel-silver-landscape-0_0@640.webp",
+          "natural": "pixel-natural-landscape-0_0@640.webp"
+        },
+        "shadow": "pixel-shadow-landscape-0_0@640.webp"
+      }
+    },
+    "pixel/landscape/26_-6": {
+      "w": 2766,
+      "h": 1300,
+      "corners": [
+        [
+          362.103,
+          63.477
+        ],
+        [
+          2229.588,
+          274.468
+        ],
+        [
+          2249.98,
+          1110.25
+        ],
+        [
+          330.501,
+          1131.006
+        ]
+      ],
+      "radius": 0.05391,
+      "n": 2,
+      "files": {
+        "black": "pixel-black-landscape-26_-6.webp",
+        "silver": "pixel-silver-landscape-26_-6.webp",
+        "natural": "pixel-natural-landscape-26_-6.webp"
+      },
+      "glare": "pixel-glare-landscape-26_-6.webp",
+      "shadow": {
+        "file": "pixel-shadow-landscape-26_-6.webp",
+        "x": 174,
+        "y": 254,
+        "w": 2184,
+        "h": 1788
+      }
+    },
+    "pixel/portrait/-15_-4": {
+      "w": 1300,
+      "h": 2766,
+      "corners": [
+        [
+          110.331,
+          198.396
+        ],
+        [
+          1172.221,
+          134.504
+        ],
+        [
+          1183.965,
+          2628.959
+        ],
+        [
+          98.635,
+          2603.622
+        ]
+      ],
+      "radius": 0.11905,
+      "n": 2,
+      "files": {
+        "black": "pixel-black-portrait--15_-4.webp",
+        "silver": "pixel-silver-portrait--15_-4.webp",
+        "natural": "pixel-natural-portrait--15_-4.webp"
+      },
+      "glare": "pixel-glare-portrait--15_-4.webp",
+      "shadow": {
+        "file": "pixel-shadow-portrait--15_-4.webp",
+        "x": -34,
+        "y": 188,
+        "w": 1588,
+        "h": 3080
+      }
+    },
+    "pixel/portrait/-26_-6": {
+      "w": 1300,
+      "h": 2766,
+      "corners": [
+        [
+          145.628,
+          241.282
+        ],
+        [
+          1122.466,
+          118.685
+        ],
+        [
+          1138.596,
+          2623.279
+        ],
+        [
+          129.451,
+          2598.085
+        ]
+      ],
+      "radius": 0.11905,
+      "n": 2,
+      "files": {
+        "black": "pixel-black-portrait--26_-6.webp",
+        "silver": "pixel-silver-portrait--26_-6.webp",
+        "natural": "pixel-natural-portrait--26_-6.webp"
+      },
+      "glare": "pixel-glare-portrait--26_-6.webp",
+      "shadow": {
+        "file": "pixel-shadow-portrait--26_-6.webp",
+        "x": -12,
+        "y": 208,
+        "w": 1648,
+        "h": 3258
+      }
+    },
+    "pixel/portrait/-34_-12": {
+      "w": 1300,
+      "h": 2766,
+      "corners": [
+        [
+          185.375,
+          317.759
+        ],
+        [
+          1070.577,
+          106.025
+        ],
+        [
+          1099.836,
+          2584.244
+        ],
+        [
+          155.526,
+          2619.904
+        ]
+      ],
+      "radius": 0.11905,
+      "n": 2,
+      "files": {
+        "black": "pixel-black-portrait--34_-12.webp",
+        "silver": "pixel-silver-portrait--34_-12.webp",
+        "natural": "pixel-natural-portrait--34_-12.webp"
+      },
+      "glare": "pixel-glare-portrait--34_-12.webp",
+      "shadow": {
+        "file": "pixel-shadow-portrait--34_-12.webp",
+        "x": -32,
+        "y": 226,
+        "w": 1792,
+        "h": 3490
+      }
+    },
+    "pixel/portrait/0_0": {
+      "w": 1300,
+      "h": 2766,
+      "corners": [
+        [
+          47.849,
+          53.328
+        ],
+        [
+          1252.151,
+          53.328
+        ],
+        [
+          1252.151,
+          2712.673
+        ],
+        [
+          47.849,
+          2712.673
+        ]
+      ],
+      "radius": 0.11905,
+      "n": 2,
+      "files": {
+        "black": "pixel-black-portrait-0_0.webp",
+        "silver": "pixel-silver-portrait-0_0.webp",
+        "natural": "pixel-natural-portrait-0_0.webp"
+      },
+      "glare": "pixel-glare-portrait-0_0.webp",
+      "shadow": {
+        "file": "pixel-shadow-portrait-0_0.webp",
+        "x": -110,
+        "y": 6,
+        "w": 1594,
+        "h": 3132
+      },
+      "thumb": {
+        "w": 640,
+        "h": 1362,
+        "files": {
+          "black": "pixel-black-portrait-0_0@640.webp",
+          "silver": "pixel-silver-portrait-0_0@640.webp",
+          "natural": "pixel-natural-portrait-0_0@640.webp"
+        },
+        "shadow": "pixel-shadow-portrait-0_0@640.webp"
+      }
+    },
+    "pixel/portrait/26_-6": {
+      "w": 1300,
+      "h": 2766,
+      "corners": [
+        [
+          177.534,
+          118.685
+        ],
+        [
+          1154.372,
+          241.282
+        ],
+        [
+          1170.549,
+          2598.085
+        ],
+        [
+          161.404,
+          2623.279
+        ]
+      ],
+      "radius": 0.11905,
+      "n": 2,
+      "files": {
+        "black": "pixel-black-portrait-26_-6.webp",
+        "silver": "pixel-silver-portrait-26_-6.webp",
+        "natural": "pixel-natural-portrait-26_-6.webp"
+      },
+      "glare": "pixel-glare-portrait-26_-6.webp",
+      "shadow": {
+        "file": "pixel-shadow-portrait-26_-6.webp",
+        "x": -144,
+        "y": 212,
+        "w": 1552,
+        "h": 3244
+      }
+    }
+  }
+}

@@ -1,12 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEVICE_PICKER, devicePickerFor } from "./devices";
-import { geometryFor } from "./deviceGeometry";
+import { modelFor } from "./deviceGeometry";
 
 test("the picker offers the current iPhone and Pixel", () => {
   const ids = DEVICE_PICKER.map((d) => d.id);
   assert.ok(ids.includes("iphone-17-pro") && ids.includes("pixel-10"));
-  assert.equal(geometryFor("iphone-17-pro"), geometryFor("iphone-16-pro")); // same frame shape
+  assert.equal(modelFor("iphone-17-pro"), modelFor("iphone-16-pro")); // same frame
 });
 
 test("an older project keeps showing its saved model in the picker", () => {

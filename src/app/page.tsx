@@ -99,19 +99,19 @@ function HeroCluster({ examples }: { examples: StoreSlotConfig[] }) {
       {/* back-left */}
       <div className="absolute left-0 top-[8%] w-[42%] -rotate-[9deg]">
         <div className="onstage-float" style={{ animationDelay: "-3s" }}>
-          <StoreSlot config={pick("social")} className="opacity-95 shadow-2xl ring-black/20" />
+          <StoreSlot priority config={pick("social")} className="opacity-95 shadow-2xl ring-black/20" />
         </div>
       </div>
       {/* front-right */}
       <div className="absolute bottom-[2%] right-0 z-30 w-[40%] rotate-[7deg]">
         <div className="onstage-float" style={{ animationDelay: "-6s" }}>
-          <StoreSlot config={pick("ai")} className="shadow-2xl ring-black/20" />
+          <StoreSlot priority config={pick("ai")} className="shadow-2xl ring-black/20" />
         </div>
       </div>
       {/* hero center */}
       <div className="absolute left-1/2 top-1/2 z-20 w-[54%] -translate-x-1/2 -translate-y-1/2 -rotate-[2deg]">
         <div className="onstage-float">
-          <StoreSlot config={pick("finance")} className="shadow-[0_50px_90px_-30px_rgba(0,0,0,0.6)] ring-black/20" />
+          <StoreSlot priority config={pick("finance")} className="shadow-[0_50px_90px_-30px_rgba(0,0,0,0.6)] ring-black/20" />
         </div>
         <span className="absolute -right-3 top-1/2 hidden -translate-y-1/2 translate-x-full rotate-90 font-mono text-[10px] uppercase tracking-[0.2em] text-primary/80 sm:inline-block">
           1290 × 2796
@@ -188,13 +188,13 @@ function FramesFan() {
         <DeviceMock device="galaxy-z-fold-6"><AppUI variant="travel" accent="#5ee0c0" tone="dark" /></DeviceMock>
       </div>
       <div className="absolute right-[3%] top-[8%] w-[40%] rotate-[10deg]">
-        <DeviceMock device="ipad-air-11"><AppUI variant="finance" accent="#a78bfa" tone="light" /></DeviceMock>
+        <DeviceMock device="ipad-air-11" finish="silver"><AppUI variant="finance" accent="#a78bfa" tone="light" /></DeviceMock>
       </div>
       <div className="absolute bottom-[2%] right-[10%] z-10 w-[27%] rotate-[6deg]">
-        <DeviceMock device="pixel-9"><AppUI variant="chat" accent="#56b8e6" tone="dark" /></DeviceMock>
+        <DeviceMock device="pixel-9" finish="silver"><AppUI variant="chat" accent="#56b8e6" tone="dark" /></DeviceMock>
       </div>
       <div className="absolute bottom-0 left-[8%] z-20 w-[30%] -rotate-[5deg]">
-        <DeviceMock device="iphone-16-pro"><AppUI variant="fitness" accent="#16a34a" tone="light" /></DeviceMock>
+        <DeviceMock device="iphone-16-pro" finish="natural"><AppUI variant="fitness" accent="#16a34a" tone="light" /></DeviceMock>
       </div>
       <div className="absolute left-1/2 top-1/2 z-30 w-[30%] -translate-x-1/2 -translate-y-[55%] rotate-[2deg]">
         <DeviceMock device="galaxy-s24-ultra"><AppUI variant="music" accent="#f97316" tone="dark" /></DeviceMock>

@@ -1,130 +1,70 @@
 import type { DeviceFrame } from "@/lib/schema";
 
-export type Cutout = "island" | "punch" | "none";
+// Every device frame is a photoreal render of one of a handful of device
+// models (built and path-traced in Blender by scripts/blender/build_devices.py;
+// see src/lib/deviceRenders.ts). Devices that share a model share a frame.
+export type DeviceModelId =
+  | "iphone"
+  | "iphone-se"
+  | "ipad"
+  | "ipad-mini"
+  | "pixel"
+  | "galaxy"
+  | "galaxy-a"
+  | "fold"
+  | "galaxy-tab";
 
-// All ratios are relative to the rendered frame width, so a device looks correct
-// at any size. aspect = frameWidth / frameHeight.
+export function modelFor(device: DeviceFrame): DeviceModelId {
+  if (device === "iphone-se-3") return "iphone-se";
+  if (device === "ipad-mini") return "ipad-mini";
+  if (device.startsWith("ipad")) return "ipad";
+  if (device.startsWith("iphone")) return "iphone";
+  if (device === "pixel-9-fold" || device === "galaxy-z-fold-6") return "fold";
+  if (device.startsWith("pixel")) return "pixel";
+  if (device === "galaxy-a55") return "galaxy-a";
+  if (device.startsWith("galaxy-tab")) return "galaxy-tab";
+  if (device.startsWith("galaxy")) return "galaxy";
+  return "iphone";
+}
+
+// Portrait frame-box aspect (width ÷ height) per model. The renders are made
+// at exactly this aspect — keep in sync with SPECS[*].aspect in the Blender
+// script.
+const MODEL_ASPECT: Record<DeviceModelId, number> = {
+  iphone: 0.476,
+  "iphone-se": 0.49,
+  ipad: 0.75,
+  "ipad-mini": 0.7,
+  pixel: 0.47,
+  galaxy: 0.487,
+  "galaxy-a": 0.487,
+  fold: 0.86,
+  "galaxy-tab": 0.625,
+};
+
 export type DeviceGeometry = {
-  aspect: number;
-  cornerRatio: number; // body corner radius
-  insetRatio: number; // frame edge → screen
-  railRatio: number; // titanium/metal rail thickness (rest of inset is black bezel)
-  screenCornerRatio: number;
-  cutout: Cutout;
-  buttons: boolean;
-  // Body depth ÷ short edge — drives the 3D-angled mockup's thickness. Real
-  // devices are thin (phones ~0.10, tablets ~0.026). Ignored by the flat frame.
-  thickness: number;
+  aspect: number; // frame box width ÷ height
 };
 
-const IPHONE: DeviceGeometry = {
-  aspect: 0.476,
-  cornerRatio: 0.165,
-  insetRatio: 0.042,
-  railRatio: 0.02,
-  screenCornerRatio: 0.135,
-  cutout: "island",
-  buttons: true,
-  thickness: 0.098,
-};
+// One object per model + orientation, so devices sharing a frame get the very
+// same geometry. (Inline orientation literal avoids an import cycle with
+// editorDoc, which imports this module.)
+const _geo = new Map<string, DeviceGeometry>();
 
-const IPAD: DeviceGeometry = {
-  aspect: 0.75,
-  cornerRatio: 0.05,
-  insetRatio: 0.05,
-  railRatio: 0.012,
-  screenCornerRatio: 0.03,
-  cutout: "none",
-  buttons: false,
-  thickness: 0.026,
-};
-
-const PIXEL: DeviceGeometry = {
-  aspect: 0.47,
-  cornerRatio: 0.12,
-  insetRatio: 0.034,
-  railRatio: 0.014,
-  screenCornerRatio: 0.1,
-  cutout: "punch",
-  buttons: true,
-  thickness: 0.1,
-};
-
-const GALAXY: DeviceGeometry = {
-  aspect: 0.487,
-  cornerRatio: 0.055,
-  insetRatio: 0.028,
-  railRatio: 0.012,
-  screenCornerRatio: 0.045,
-  cutout: "punch",
-  buttons: true,
-  thickness: 0.1,
-};
-
-// Android tablet (Galaxy Tab) — 16:10 portrait, uniform bezels, no notch.
-const ANDROID_TABLET: DeviceGeometry = {
-  aspect: 0.625,
-  cornerRatio: 0.05,
-  insetRatio: 0.032,
-  railRatio: 0.012,
-  screenCornerRatio: 0.03,
-  cutout: "none",
-  buttons: true,
-  thickness: 0.036,
-};
-
-// Unfolded inner display — near-square.
-const FOLD: DeviceGeometry = {
-  aspect: 0.86,
-  cornerRatio: 0.04,
-  insetRatio: 0.026,
-  railRatio: 0.01,
-  screenCornerRatio: 0.03,
-  cutout: "punch",
-  buttons: true,
-  thickness: 0.055,
-};
-
-const SE: DeviceGeometry = { ...IPHONE, aspect: 0.49, cornerRatio: 0.08, cutout: "none", screenCornerRatio: 0.02 };
-
-const BY_DEVICE: Partial<Record<DeviceFrame, DeviceGeometry>> = {
-  "iphone-17-pro": IPHONE,
-  "iphone-16-pro": IPHONE,
-  "iphone-16-pro-max": IPHONE,
-  "iphone-16": IPHONE,
-  "iphone-16-plus": IPHONE,
-  "iphone-15-pro": IPHONE,
-  "iphone-15": IPHONE,
-  "iphone-14": IPHONE,
-  "iphone-se-3": SE,
-  "ipad-pro-13": IPAD,
-  "ipad-pro-11": IPAD,
-  "ipad-air-11": IPAD,
-  "ipad-mini": { ...IPAD, aspect: 0.7 },
-  "pixel-10": PIXEL,
-  "pixel-9-pro-xl": PIXEL,
-  "pixel-9-pro": PIXEL,
-  "pixel-9": PIXEL,
-  "pixel-9-fold": FOLD,
-  "pixel-8": PIXEL,
-  "galaxy-s24-ultra": GALAXY,
-  "galaxy-s24-plus": GALAXY,
-  "galaxy-s24": GALAXY,
-  "galaxy-s23": GALAXY,
-  "galaxy-z-fold-6": FOLD,
-  "galaxy-a55": { ...GALAXY, cornerRatio: 0.08 },
-  "galaxy-tab-s9": ANDROID_TABLET,
-};
-
-// Landscape inverts the aspect (a phone laid on its side); DeviceFrame handles
-// the matching cutout/button placement. (Inline orientation literal avoids an
-// import cycle with editorDoc, which imports this module.)
 export function geometryFor(
   device: DeviceFrame,
   orientation: "portrait" | "landscape" = "portrait",
 ): DeviceGeometry {
-  const g = BY_DEVICE[device] ?? IPHONE;
-  return orientation === "landscape" ? { ...g, aspect: 1 / g.aspect } : g;
+  const model = modelFor(device);
+  const key = `${model}/${orientation}`;
+  let g = _geo.get(key);
+  if (!g) {
+    const a = MODEL_ASPECT[model];
+    // Landscape = the device laid on its side.
+    g = { aspect: orientation === "landscape" ? 1 / a : a };
+    _geo.set(key, g);
+  }
+  return g;
 }
 
 // Coarse device family. Export sizes are grouped the same way so a size can be
